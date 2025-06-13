@@ -10,20 +10,45 @@ import {
   Dimensions,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { supabase } from '../../services/supabase';
 
 const { width, height } = Dimensions.get('window');
 
 const LoginScreen = () => {
-  const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = () => {
-    // TODO: Implement login logic
-    if (email && password) {
-      console.log('Login attempt with:', { email, password });
+  const handleLogin = async () => {
+    if (!email || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      console.log('🔄 Attempting to sign in with:', email);
+      
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (error) {
+        console.error('❌ Login error:', error.message);
+        throw error;
+      }
+      
+      console.log('✅ Login successful!');
+      console.log('User data:', data.user);
+      console.log('Session:', data.session);
+    } catch (error: any) {
+      console.error('❌ Login failed:', error?.message);
+      Alert.alert('Error', error?.message || 'An error occurred during login');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -59,6 +84,8 @@ const LoginScreen = () => {
                 placeholder=""
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 selectionColor="#FFFFFF"
+                autoCapitalize="none"
+                keyboardType="email-address"
               />
             </View>
 
@@ -78,16 +105,18 @@ const LoginScreen = () => {
 
             {/* Login Button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
               onPress={handleLogin}
+              disabled={loading}
             >
-              <Text style={styles.buttonText}>Iniciar Sesión</Text>
+              <Text style={styles.buttonText}>
+                {loading ? 'Cargando...' : 'Iniciar Sesión'}
+              </Text>
             </TouchableOpacity>
 
             {/* Forgot Password */}
             <TouchableOpacity
               style={styles.forgotPasswordButton}
-              
             >
               <Text style={styles.forgotPasswordText}>
                 ¿Olvidaste tu contraseña?
@@ -103,7 +132,6 @@ const LoginScreen = () => {
               />
               <TouchableOpacity
                 style={styles.createAccountButton}
-                
               >
                 <Text style={styles.buttonText}>Crear una cuenta</Text>
               </TouchableOpacity>
@@ -118,7 +146,7 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E3A8A', // mainBlue equivalent
+    backgroundColor: '#1E3A8A',
   },
   scrollContent: {
     flexGrow: 1,
@@ -162,12 +190,15 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   loginButton: {
-    backgroundColor: '#F97316', // mainOrange equivalent
+    backgroundColor: '#F97316',
     width: width * 0.55,
     paddingVertical: height * 0.02,
     borderRadius: 24,
     alignItems: 'center',
     marginTop: height * 0.035,
+  },
+  loginButtonDisabled: {
+    opacity: 0.7,
   },
   buttonText: {
     color: '#FFFFFF',
@@ -193,7 +224,7 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   createAccountButton: {
-    backgroundColor: '#F97316', // mainOrange equivalent
+    backgroundColor: '#F97316',
     width: width * 0.55,
     paddingVertical: 18,
     borderRadius: 24,
