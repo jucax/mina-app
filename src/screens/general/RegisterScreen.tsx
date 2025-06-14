@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../services/supabase';
+import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -32,7 +33,7 @@ const RegisterScreen = () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     
     if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant permission to access your photos');
+      Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
       return;
     }
 
@@ -50,25 +51,24 @@ const RegisterScreen = () => {
 
   const handleRegister = async () => {
     if (!name || !phone || !email || !password || !repeatPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
 
     if (password !== repeatPassword) {
-      Alert.alert('Error', 'Passwords do not match');
+      Alert.alert('Error', 'Las contraseñas no coinciden');
       return;
     }
 
     if (!privacyAccepted) {
-      Alert.alert('Error', 'Please accept the privacy policy');
+      Alert.alert('Error', 'Por favor, acepta la política de privacidad');
       return;
     }
 
     try {
       setLoading(true);
-      console.log('🔄 Attempting to register with:', email);
+      console.log('🔄 Intentando registrar con:', email);
 
-      // Register with Supabase
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -82,20 +82,18 @@ const RegisterScreen = () => {
       });
 
       if (error) {
-        console.error('❌ Registration error:', error.message);
+        console.error('❌ Error de registro:', error.message);
         throw error;
       }
 
-      console.log('✅ Registration successful!');
-      console.log('User data:', data.user);
+      console.log('✅ Registro exitoso!');
+      console.log('Datos del usuario:', data.user);
 
-      // Upload profile image if selected
       if (profileImage) {
         const fileExt = profileImage.split('.').pop();
         const fileName = `${data.user?.id}.${fileExt}`;
         const filePath = `${fileName}`;
 
-        // Convert image to blob
         const response = await fetch(profileImage);
         const blob = await response.blob();
 
@@ -106,16 +104,16 @@ const RegisterScreen = () => {
           });
 
         if (uploadError) {
-          console.error('❌ Image upload error:', uploadError.message);
+          console.error('❌ Error al subir la imagen:', uploadError.message);
         } else {
-          console.log('✅ Profile image uploaded successfully');
+          console.log('✅ Imagen de perfil subida exitosamente');
         }
       }
 
-      Alert.alert('Success', 'Registration successful! Please check your email to verify your account.');
+      Alert.alert('Éxito', '¡Registro exitoso! Por favor, verifica tu correo electrónico.');
     } catch (error: any) {
-      console.error('❌ Registration failed:', error?.message);
-      Alert.alert('Error', error?.message || 'An error occurred during registration');
+      console.error('❌ Registro fallido:', error?.message);
+      Alert.alert('Error', error?.message || 'Ocurrió un error durante el registro');
     } finally {
       setLoading(false);
     }
@@ -124,7 +122,7 @@ const RegisterScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[commonStyles.container, styles.container]}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -134,7 +132,7 @@ const RegisterScreen = () => {
           {/* Logo */}
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
-            style={styles.logo}
+            style={[commonStyles.headerLogo]}
             resizeMode="contain"
           />
 
@@ -144,62 +142,77 @@ const RegisterScreen = () => {
               <Image source={{ uri: profileImage }} style={styles.profileImage} />
             ) : (
               <View style={styles.profileImagePlaceholder}>
-                <Text style={styles.profileImageText}>Add profile photo</Text>
+                <Text style={styles.profileImageText}>Agregar foto de perfil</Text>
               </View>
             )}
           </TouchableOpacity>
 
           {/* Form */}
           <View style={styles.formContainer}>
-            <TextInput
-              style={styles.input}
-              value={name}
-              onChangeText={setName}
-              placeholder="Full Name"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              selectionColor="#FFFFFF"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Nombre completo:</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={name}
+                onChangeText={setName}
+                placeholder=""
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                selectionColor={COLORS.white}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Phone Number"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              keyboardType="phone-pad"
-              selectionColor="#FFFFFF"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Número de teléfono:</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={phone}
+                onChangeText={(text) => setPhone(text.replace(/[^0-9]/g, ''))}
+                placeholder=""
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                keyboardType="numeric"
+                selectionColor={COLORS.white}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              selectionColor="#FFFFFF"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Correo electrónico:</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={email}
+                onChangeText={setEmail}
+                placeholder=""
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                selectionColor={COLORS.white}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              secureTextEntry
-              selectionColor="#FFFFFF"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Contraseña:</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={password}
+                onChangeText={setPassword}
+                placeholder=""
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                secureTextEntry
+                selectionColor={COLORS.white}
+              />
+            </View>
 
-            <TextInput
-              style={styles.input}
-              value={repeatPassword}
-              onChangeText={setRepeatPassword}
-              placeholder="Repeat Password"
-              placeholderTextColor="rgba(255, 255, 255, 0.5)"
-              secureTextEntry
-              selectionColor="#FFFFFF"
-            />
+            <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Repetir contraseña:</Text>
+              <TextInput
+                style={commonStyles.input}
+                value={repeatPassword}
+                onChangeText={setRepeatPassword}
+                placeholder=""
+                placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                secureTextEntry
+                selectionColor={COLORS.white}
+              />
+            </View>
 
             {/* User Type Selection */}
             <View style={styles.userTypeContainer}>
@@ -208,7 +221,7 @@ const RegisterScreen = () => {
                 onPress={() => setIsOwner(true)}
               >
                 <Text style={[styles.userTypeText, isOwner && styles.userTypeTextActive]}>
-                  Owner
+                  Propietario
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -216,7 +229,7 @@ const RegisterScreen = () => {
                 onPress={() => setIsOwner(false)}
               >
                 <Text style={[styles.userTypeText, !isOwner && styles.userTypeTextActive]}>
-                  Agent
+                  Agente
                 </Text>
               </TouchableOpacity>
             </View>
@@ -228,18 +241,22 @@ const RegisterScreen = () => {
             >
               <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]} />
               <Text style={styles.privacyText}>
-                I accept the privacy policy and terms of service
+                Acepto la política de privacidad y los términos de servicio
               </Text>
             </TouchableOpacity>
 
             {/* Register Button */}
             <TouchableOpacity
-              style={[styles.registerButton, loading && styles.registerButtonDisabled]}
+              style={[
+                commonStyles.button,
+                commonStyles.primaryButton,
+                loading && styles.registerButtonDisabled
+              ]}
               onPress={handleRegister}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
-                {loading ? 'Registering...' : 'Register'}
+              <Text style={commonStyles.buttonText}>
+                {loading ? 'Registrando...' : 'Crean una cuenta'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -252,23 +269,21 @@ const RegisterScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#144E7A',
   },
   scrollContent: {
     flexGrow: 1,
   },
   content: {
     flex: 1,
-    paddingHorizontal: width * 0.08,
-    paddingVertical: height * 0.02,
+    paddingHorizontal: SIZES.padding.large,
+    paddingVertical: SIZES.margin.large,
     alignItems: 'center',
   },
-  logo: {
-    height: height * 0.05,
-    marginTop: height * 0.03,
+  logoMargin: {
+    marginTop: height * 0.08,
   },
   profileImageContainer: {
-    marginTop: height * 0.03,
+    marginTop: SIZES.margin.large,
     width: width * 0.26,
     height: width * 0.26,
     borderRadius: width * 0.13,
@@ -285,8 +300,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   profileImageText: {
-    color: '#FFFFFF',
-    fontSize: 14,
+    color: COLORS.white,
+    fontSize: SIZES.font,
     fontWeight: '600',
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.26)',
@@ -296,36 +311,31 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: height * 0.03,
+    marginTop: SIZES.margin.large,
   },
-  input: {
-    width: width * 0.7,
-    color: '#FFFFFF',
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#FFFFFF',
-    paddingVertical: 8,
-    fontSize: 16,
-    marginBottom: height * 0.02,
+  inputContainer: {
+    width: width * 0.8,
+    marginBottom: SIZES.margin.medium,
   },
   userTypeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginTop: height * 0.02,
-    marginBottom: height * 0.02,
+    marginTop: SIZES.margin.medium,
+    marginBottom: SIZES.margin.medium,
   },
   userTypeButton: {
-    paddingHorizontal: width * 0.06,
-    paddingVertical: height * 0.01,
+    paddingHorizontal: SIZES.padding.medium,
+    paddingVertical: SIZES.padding.small,
     borderRadius: 20,
-    marginHorizontal: width * 0.02,
+    marginHorizontal: SIZES.margin.small,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
   },
   userTypeButtonActive: {
-    backgroundColor: '#FFA733',
+    backgroundColor: COLORS.secondary,
   },
   userTypeText: {
-    color: '#FFFFFF',
-    fontSize: 16,
+    color: COLORS.white,
+    fontSize: SIZES.font,
   },
   userTypeTextActive: {
     fontWeight: 'bold',
@@ -333,39 +343,27 @@ const styles = StyleSheet.create({
   privacyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: height * 0.02,
-    marginBottom: height * 0.03,
+    marginTop: SIZES.margin.medium,
+    marginBottom: SIZES.margin.large,
   },
   checkbox: {
     width: 20,
     height: 20,
     borderWidth: 2,
-    borderColor: '#FFFFFF',
+    borderColor: COLORS.white,
     borderRadius: 4,
     marginRight: 10,
   },
   checkboxChecked: {
-    backgroundColor: '#FFA733',
-    borderColor: '#FFA733',
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
   },
   privacyText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-  },
-  registerButton: {
-    backgroundColor: '#FFA733',
-    width: width * 0.55,
-    paddingVertical: height * 0.02,
-    borderRadius: 24,
-    alignItems: 'center',
+    color: COLORS.white,
+    fontSize: SIZES.font,
   },
   registerButtonDisabled: {
     opacity: 0.7,
-  },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 

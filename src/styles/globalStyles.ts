@@ -90,6 +90,16 @@ export const commonStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  loginLogo: {
+    height: height * 0.1,
+    marginBottom: SIZES.margin.large,
+  },
+  headerLogo: {
+    height: height * 0.04,
+    marginTop: SIZES.margin.large,
+    marginBottom: SIZES.margin.small,
+    width: width * 0.4,
+  },
   input: {
     color: COLORS.white,
     borderBottomWidth: 1.5,

@@ -73,7 +73,7 @@ const LoginScreen = () => {
           {/* Logo */}
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
-            style={styles.logo}
+            style={commonStyles.loginLogo}
             resizeMode="contain"
           />
 
@@ -173,7 +173,7 @@ const styles = StyleSheet.create({
     minHeight: height * 0.8,
   },
   logo: {
-    height: height * 0.08,
+    height: height * 0.1,
     marginBottom: SIZES.margin.large,
   },
   title: {
