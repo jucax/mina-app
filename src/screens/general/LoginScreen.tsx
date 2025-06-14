@@ -12,7 +12,9 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
+import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 
 const { width, height } = Dimensions.get('window');
 
@@ -44,6 +46,12 @@ const LoginScreen = () => {
       console.log('✅ Login successful!');
       console.log('User data:', data.user);
       console.log('Session:', data.session);
+
+      // Navigate to the appropriate screen based on user type
+      const userType = data.user?.user_metadata?.is_owner ? 'owner' : 'agent';
+      router.replace({
+        pathname: `/(${userType})/home` as any,
+      });
     } catch (error: any) {
       console.error('❌ Login failed:', error?.message);
       Alert.alert('Error', error?.message || 'An error occurred during login');
@@ -55,7 +63,7 @@ const LoginScreen = () => {
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+      style={[commonStyles.container, styles.container]}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -70,20 +78,20 @@ const LoginScreen = () => {
           />
 
           {/* Title */}
-          <Text style={styles.title}>INICIO DE SESION</Text>
+          <Text style={[FONTS.title, styles.title]}>INICIO DE SESION</Text>
 
           {/* Form */}
           <View style={styles.formContainer}>
             {/* Username Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Usuario:</Text>
+              <Text style={commonStyles.label}>Usuario:</Text>
               <TextInput
-                style={styles.input}
+                style={commonStyles.input}
                 value={email}
                 onChangeText={setEmail}
                 placeholder=""
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                selectionColor="#FFFFFF"
+                selectionColor={COLORS.white}
                 autoCapitalize="none"
                 keyboardType="email-address"
               />
@@ -91,25 +99,29 @@ const LoginScreen = () => {
 
             {/* Password Input */}
             <View style={styles.inputContainer}>
-              <Text style={styles.label}>Contraseña:</Text>
+              <Text style={commonStyles.label}>Contraseña:</Text>
               <TextInput
-                style={styles.input}
+                style={commonStyles.input}
                 value={password}
                 onChangeText={setPassword}
                 placeholder=""
                 placeholderTextColor="rgba(255, 255, 255, 0.5)"
                 secureTextEntry
-                selectionColor="#FFFFFF"
+                selectionColor={COLORS.white}
               />
             </View>
 
             {/* Login Button */}
             <TouchableOpacity
-              style={[styles.loginButton, loading && styles.loginButtonDisabled]}
+              style={[
+                commonStyles.button,
+                commonStyles.primaryButton,
+                loading && styles.loginButtonDisabled
+              ]}
               onPress={handleLogin}
               disabled={loading}
             >
-              <Text style={styles.buttonText}>
+              <Text style={commonStyles.buttonText}>
                 {loading ? 'Cargando...' : 'Iniciar Sesión'}
               </Text>
             </TouchableOpacity>
@@ -117,6 +129,7 @@ const LoginScreen = () => {
             {/* Forgot Password */}
             <TouchableOpacity
               style={styles.forgotPasswordButton}
+              onPress={() => router.push('/(general)/password')}
             >
               <Text style={styles.forgotPasswordText}>
                 ¿Olvidaste tu contraseña?
@@ -131,9 +144,10 @@ const LoginScreen = () => {
                 resizeMode="cover"
               />
               <TouchableOpacity
-                style={styles.createAccountButton}
+                style={[commonStyles.button, styles.createAccountButton]}
+                onPress={() => router.push('/(general)/register')}
               >
-                <Text style={styles.buttonText}>Crear una cuenta</Text>
+                <Text style={commonStyles.buttonText}>Crear una cuenta</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -146,77 +160,50 @@ const LoginScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1E3A8A',
   },
   scrollContent: {
     flexGrow: 1,
+    justifyContent: 'center',
   },
   content: {
     flex: 1,
-    paddingHorizontal: width * 0.06,
+    paddingHorizontal: SIZES.padding.large,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: height * 0.8,
   },
   logo: {
     height: height * 0.08,
-    marginTop: height * 0.06,
+    marginBottom: SIZES.margin.large,
   },
   title: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    letterSpacing: 1.5,
-    marginTop: height * 0.035,
+    color: COLORS.white,
+    marginBottom: SIZES.margin.large,
     textAlign: 'center',
   },
   formContainer: {
     width: '100%',
     alignItems: 'center',
-    marginTop: height * 0.04,
   },
   inputContainer: {
     width: width * 0.8,
-    marginBottom: height * 0.035,
-  },
-  label: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    marginBottom: 8,
-  },
-  input: {
-    color: '#FFFFFF',
-    borderBottomWidth: 1.5,
-    borderBottomColor: '#FFFFFF',
-    paddingVertical: 8,
-    fontSize: 16,
-  },
-  loginButton: {
-    backgroundColor: '#F97316',
-    width: width * 0.55,
-    paddingVertical: height * 0.02,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginTop: height * 0.035,
+    marginBottom: SIZES.margin.medium,
   },
   loginButtonDisabled: {
     opacity: 0.7,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
   forgotPasswordButton: {
-    marginTop: height * 0.02,
+    marginTop: SIZES.margin.medium,
   },
   forgotPasswordText: {
-    color: '#FFFFFF',
-    fontSize: 15,
+    color: COLORS.white,
+    fontSize: SIZES.font,
     textDecorationLine: 'underline',
   },
   footerContainer: {
     width: '100%',
     height: height * 0.15,
-    marginTop: height * 0.03,
+    marginTop: SIZES.margin.large,
     position: 'relative',
   },
   footerImage: {
@@ -224,13 +211,9 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   createAccountButton: {
-    backgroundColor: '#F97316',
-    width: width * 0.55,
-    paddingVertical: 18,
-    borderRadius: 24,
-    alignItems: 'center',
+    backgroundColor: COLORS.secondary,
     position: 'absolute',
-    bottom: height * 0.03,
+    bottom: SIZES.margin.medium,
     alignSelf: 'center',
   },
 });
