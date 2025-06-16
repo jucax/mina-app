@@ -1,9 +1,5 @@
-import { View, Text } from 'react-native';
+import OwnerDashboardScreen from '../../../src/screens/owner/OwnerDashboardScreen';
 
-export default function OwnerHome() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Owner Home Screen</Text>
-    </View>
-  );
+export default function HomeScreen() {
+  return <OwnerDashboardScreen />;
 } 
