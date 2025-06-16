@@ -15,8 +15,15 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
+import { router } from 'expo-router';
+// import * as WebBrowser from 'expo-web-browser';
+// import { makeRedirectUri } from 'expo-auth-session';
+// import * as Google from 'expo-auth-session/providers/google';
 
 const { width, height } = Dimensions.get('window');
+
+// Initialize WebBrowser for OAuth
+// WebBrowser.maybeCompleteAuthSession();
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -28,6 +35,14 @@ const RegisterScreen = () => {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Google OAuth configuration
+  // const [request, response, promptAsync] = Google.useAuthRequest({
+  //   expoClientId: 'YOUR_EXPO_CLIENT_ID',
+  //   iosClientId: 'YOUR_IOS_CLIENT_ID',
+  //   androidClientId: 'YOUR_ANDROID_CLIENT_ID',
+  //   webClientId: 'YOUR_WEB_CLIENT_ID',
+  // });
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -47,6 +62,10 @@ const RegisterScreen = () => {
     if (!result.canceled) {
       setProfileImage(result.assets[0].uri);
     }
+  };
+
+  const handleGoogleSignIn = async () => {
+    Alert.alert('En desarrollo', 'Esta funcionalidad estará disponible próximamente');
   };
 
   const handleRegister = async () => {
@@ -69,7 +88,8 @@ const RegisterScreen = () => {
       setLoading(true);
       console.log('🔄 Intentando registrar con:', email);
 
-      const { data, error } = await supabase.auth.signUp({
+      // Register with Supabase
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -81,17 +101,22 @@ const RegisterScreen = () => {
         },
       });
 
-      if (error) {
-        console.error('❌ Error de registro:', error.message);
-        throw error;
+      if (authError) {
+        console.error('❌ Error de registro:', authError.message);
+        throw authError;
+      }
+
+      if (!authData.user) {
+        throw new Error('No se pudo crear el usuario');
       }
 
       console.log('✅ Registro exitoso!');
-      console.log('Datos del usuario:', data.user);
+      console.log('Datos del usuario:', authData.user);
 
+      // Upload profile image if selected
       if (profileImage) {
         const fileExt = profileImage.split('.').pop();
-        const fileName = `${data.user?.id}.${fileExt}`;
+        const fileName = `${authData.user.id}.${fileExt}`;
         const filePath = `${fileName}`;
 
         const response = await fetch(profileImage);
@@ -107,10 +132,30 @@ const RegisterScreen = () => {
           console.error('❌ Error al subir la imagen:', uploadError.message);
         } else {
           console.log('✅ Imagen de perfil subida exitosamente');
+          
+          // Get the public URL
+          const { data: { publicUrl } } = supabase.storage
+            .from('profile-images')
+            .getPublicUrl(filePath);
+
+          // The profile will be updated by the trigger when the user confirms their email
+          console.log('✅ URL de la imagen guardada para actualización posterior');
         }
       }
 
-      Alert.alert('Éxito', '¡Registro exitoso! Por favor, verifica tu correo electrónico.');
+      Alert.alert(
+        'Registro Exitoso',
+        'Por favor, verifica tu correo electrónico para activar tu cuenta. Te redirigiremos a la pantalla de inicio de sesión.',
+        [
+          {
+            text: 'OK',
+            onPress: () => {
+              // Navigate to login screen
+              router.replace('/login');
+            },
+          },
+        ]
+      );
     } catch (error: any) {
       console.error('❌ Registro fallido:', error?.message);
       Alert.alert('Error', error?.message || 'Ocurrió un error durante el registro');
@@ -234,16 +279,33 @@ const RegisterScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Privacy Policy */}
+            {/* Google Sign In Button */}
             <TouchableOpacity
-              style={styles.privacyContainer}
-              onPress={() => setPrivacyAccepted(!privacyAccepted)}
+              style={[styles.googleButton, loading && styles.buttonDisabled]}
+              onPress={handleGoogleSignIn}
+              disabled={loading}
             >
-              <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]} />
-              <Text style={styles.privacyText}>
-                Acepto la política de privacidad y los términos de servicio
+              <Image
+                source={require('../../../assets/images/logos/google_logo.png')}
+                style={styles.googleIcon}
+              />
+              <Text style={styles.googleButtonText}>
+                Continuar con Google
               </Text>
             </TouchableOpacity>
+
+            {/* Privacy Policy */}
+            <View style={styles.privacyContainer}>
+              <TouchableOpacity
+                style={styles.privacyContent}
+                onPress={() => setPrivacyAccepted(!privacyAccepted)}
+              >
+                <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]} />
+                <Text style={styles.privacyText}>
+                  Acepto la política de privacidad y los términos de servicio
+                </Text>
+              </TouchableOpacity>
+            </View>
 
             {/* Register Button */}
             <TouchableOpacity
@@ -341,10 +403,13 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   privacyContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    width: width * 0.8,
     marginTop: SIZES.margin.medium,
     marginBottom: SIZES.margin.large,
+  },
+  privacyContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   checkbox: {
     width: 20,
@@ -363,6 +428,30 @@ const styles = StyleSheet.create({
     fontSize: SIZES.font,
   },
   registerButtonDisabled: {
+    opacity: 0.7,
+  },
+  googleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.white,
+    width: width * 0.8,
+    paddingVertical: SIZES.padding.medium,
+    borderRadius: 24,
+    marginTop: SIZES.margin.medium,
+    marginBottom: SIZES.margin.medium,
+  },
+  googleIcon: {
+    width: 24,
+    height: 24,
+    marginRight: SIZES.margin.small,
+  },
+  googleButtonText: {
+    color: COLORS.black,
+    fontSize: SIZES.font,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
     opacity: 0.7,
   },
 });
