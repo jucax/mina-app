@@ -252,7 +252,7 @@ const AgentRegistrationScreen = () => {
 
           <TouchableOpacity
             style={styles.registerButton}
-            onPress={() => router.push('/submission')}
+            onPress={() => router.push('/(agent)/submission')}
           >
             <Text style={styles.registerButtonText}>Registrarme</Text>
           </TouchableOpacity>

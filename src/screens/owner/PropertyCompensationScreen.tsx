@@ -59,7 +59,7 @@ const PropertyCompensationScreen = () => {
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/(owner)/home')}
+          onPress={() => router.push('/(owner)/submission')}
         >
           <Text style={styles.continueButtonText}>Finalizar</Text>
         </TouchableOpacity>

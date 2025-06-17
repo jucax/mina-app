@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,12 +9,31 @@ import {
   Dimensions,
 } from 'react-native';
 import { router } from 'expo-router';
+import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
 const AgentSubmissionScreen = () => {
+  useEffect(() => {
+    // Mark registration as complete
+    const markRegistrationComplete = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await supabase.auth.updateUser({
+            data: { has_completed_registration: true }
+          });
+        }
+      } catch (error) {
+        console.error('Error marking registration complete:', error);
+      }
+    };
+
+    markRegistrationComplete();
+  }, []);
+
   return (
     <View style={styles.container}>
       <Image

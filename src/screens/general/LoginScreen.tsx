@@ -47,11 +47,21 @@ const LoginScreen = () => {
       console.log('User data:', data.user);
       console.log('Session:', data.session);
 
-      // Navigate to the appropriate screen based on user type
-      const userType = data.user?.user_metadata?.is_owner ? 'owner' : 'agent';
-      router.replace({
-        pathname: `/(${userType})/home` as any,
-      });
+      // Check if user has completed registration
+      const isOwner = data.user?.user_metadata?.is_owner;
+      const hasCompletedRegistration = data.user?.user_metadata?.has_completed_registration;
+
+      if (!hasCompletedRegistration) {
+        // Redirect to the appropriate registration screen based on user type
+        if (isOwner) {
+          router.replace('/(owner)/intent' as any);
+        } else {
+          router.replace('/(agent)/registration' as any);
+        }
+      } else {
+        // User has completed registration, go to home screen
+        router.replace(`/(${isOwner ? 'owner' : 'agent'})/home` as any);
+      }
     } catch (error: any) {
       console.error('❌ Login failed:', error?.message);
       Alert.alert('Error', error?.message || 'An error occurred during login');

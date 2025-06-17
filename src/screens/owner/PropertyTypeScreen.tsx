@@ -95,7 +95,7 @@ const PropertyTypeScreen = () => {
             styles.continueButton,
             !selectedType && styles.continueButtonDisabled
           ]}
-          onPress={() => router.push('/property/documentation')}
+          onPress={() => router.push('/(owner)/property/documentation')}
           disabled={!selectedType}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>

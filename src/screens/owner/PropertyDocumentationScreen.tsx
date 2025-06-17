@@ -88,7 +88,7 @@ const PropertyDocumentationScreen = () => {
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/property/details')}
+          onPress={() => router.push('/(owner)/property/details')}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>

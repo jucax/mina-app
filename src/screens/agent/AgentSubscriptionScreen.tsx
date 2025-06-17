@@ -99,8 +99,16 @@ const AgentSubscriptionScreen = () => {
           </Text>
 
           <TouchableOpacity
-            style={styles.continueButton}
-            onPress={() => router.push('/(agent)/register')}
+            style={[
+              styles.continueButton,
+              selectedIndex === null && styles.disabledButton
+            ]}
+            onPress={() => {
+              if (selectedIndex !== null) {
+                router.push('/(agent)/agent-registration');
+              }
+            }}
+            disabled={selectedIndex === null}
           >
             <Text style={styles.continueButtonText}>Continuar</Text>
           </TouchableOpacity>
@@ -239,6 +247,9 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     padding: 16,
+  },
+  disabledButton: {
+    backgroundColor: COLORS.gray,
   },
 });
 

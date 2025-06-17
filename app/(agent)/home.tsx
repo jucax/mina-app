@@ -1,9 +1,6 @@
-import { View, Text } from 'react-native';
+import React from 'react';
+import AgentPropertyListScreen from '../../src/screens/agent/AgentPropertyListScreen';
 
-export default function AgentHome() {
-  return (
-    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-      <Text>Agent Home Screen</Text>
-    </View>
-  );
+export default function AgentHomeRoute() {
+  return <AgentPropertyListScreen />;
 } 

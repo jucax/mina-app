@@ -9,6 +9,24 @@ export default function AgentLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="registration"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="agent-registration"
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="submission"
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 } 

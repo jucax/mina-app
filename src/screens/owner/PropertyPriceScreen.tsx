@@ -49,7 +49,7 @@ const PropertyPriceScreen = () => {
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/property/type')}
+          onPress={() => router.push('/(owner)/property/type')}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>

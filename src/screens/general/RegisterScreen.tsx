@@ -97,6 +97,7 @@ const RegisterScreen = () => {
             full_name: name,
             phone,
             is_owner: isOwner,
+            has_completed_registration: false,
           },
         },
       });
