@@ -146,13 +146,17 @@ const RegisterScreen = () => {
 
       Alert.alert(
         'Registro Exitoso',
-        'Por favor, verifica tu correo electrónico para activar tu cuenta. Te redirigiremos a la pantalla de inicio de sesión.',
+        'Tu cuenta ha sido creada exitosamente. Te redirigiremos a completar tu registro.',
         [
           {
             text: 'OK',
             onPress: () => {
-              // Navigate to login screen
-              router.replace('/login');
+              // Navigate directly to the appropriate registration screen based on user type
+              if (isOwner) {
+                router.replace('/(owner)/intent' as any);
+              } else {
+                router.replace('/(agent)/registration' as any);
+              }
             },
           },
         ]
@@ -178,7 +182,7 @@ const RegisterScreen = () => {
           {/* Logo */}
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
-            style={[commonStyles.headerLogo]}
+            style={commonStyles.headerLogo}
             resizeMode="contain"
           />
 

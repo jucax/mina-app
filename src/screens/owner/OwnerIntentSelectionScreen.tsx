@@ -6,54 +6,64 @@ import {
   TouchableOpacity,
   ScrollView,
   Image,
+  Dimensions,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
+const { width, height } = Dimensions.get('window');
+const BUTTON_WIDTH = width * 0.8; // Use 80% of width for all buttons
+
+const timeOptions = [
+  'De inmediato',
+  '1 a 3 meses',
+  '4 meses o mas',
+  'En cuanto se pueda',
+];
+
 const OwnerIntentSelectionScreen = () => {
   const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
+  const [selectedTime, setSelectedTime] = useState<string | null>(null);
 
   const intents = [
     {
       id: 'sell',
       title: 'Vender',
-      description: 'Quiero vender mi propiedad',
       icon: 'cash',
     },
     {
       id: 'rent',
       title: 'Rentar',
-      description: 'Quiero rentar mi propiedad',
       icon: 'home',
     },
     {
       id: 'both',
       title: 'Ambos',
-      description: 'Quiero vender o rentar mi propiedad',
       icon: 'swap-horizontal',
     },
   ];
 
   const handleContinue = () => {
-    if (selectedIntent) {
+    if (selectedIntent && selectedTime) {
       router.push({
         pathname: '/(owner)/property/price',
-        params: { intent: selectedIntent }
+        params: { intent: selectedIntent, when: selectedTime }
       });
     }
   };
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContent} keyboardShouldPersistTaps="handled">
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
-          </TouchableOpacity>
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
             style={styles.logo}
@@ -61,10 +71,11 @@ const OwnerIntentSelectionScreen = () => {
           />
         </View>
 
-        <Text style={styles.title}>¿Qué te gustaría hacer con tu propiedad?</Text>
-        <Text style={styles.subtitle}>
-          Selecciona la opción que mejor se adapte a tus necesidades
-        </Text>
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Cuando piensas</Text>
+          <Text style={styles.titleHighlight}>Vender o Rentar?</Text>
+          <Text style={styles.title}>tu propiedad</Text>
+        </View>
 
         <View style={styles.intentsContainer}>
           {intents.map((intent) => (
@@ -74,56 +85,67 @@ const OwnerIntentSelectionScreen = () => {
                 styles.intentCard,
                 selectedIntent === intent.id && styles.selectedIntentCard,
               ]}
-              onPress={() => setSelectedIntent(intent.id)}
+              onPress={() => {
+                setSelectedIntent(intent.id);
+                setSelectedTime(null); // reset time when changing intent
+              }}
             >
-              <View style={styles.intentIconContainer}>
-                <Ionicons
-                  name={intent.icon as any}
-                  size={32}
-                  color={selectedIntent === intent.id ? COLORS.white : COLORS.primary}
-                />
-              </View>
-              <View style={styles.intentTextContainer}>
-                <Text
-                  style={[
-                    styles.intentTitle,
-                    selectedIntent === intent.id && styles.selectedIntentText,
-                  ]}
-                >
-                  {intent.title}
-                </Text>
-                <Text
-                  style={[
-                    styles.intentDescription,
-                    selectedIntent === intent.id && styles.selectedIntentText,
-                  ]}
-                >
-                  {intent.description}
-                </Text>
-              </View>
-              {selectedIntent === intent.id && (
-                <View style={styles.checkmarkContainer}>
-                  <Ionicons name="checkmark-circle" size={24} color={COLORS.white} />
-                </View>
-              )}
+              <Ionicons
+                name={intent.icon as any}
+                size={24}
+                color={selectedIntent === intent.id ? COLORS.white : COLORS.primary}
+                style={{ marginRight: 12 }}
+              />
+              <Text
+                style={[
+                  styles.intentTitle,
+                  selectedIntent === intent.id && styles.selectedIntentText,
+                ]}
+              >
+                {intent.title}
+              </Text>
             </TouchableOpacity>
           ))}
         </View>
-      </ScrollView>
 
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={[
-            styles.continueButton,
-            !selectedIntent && styles.disabledButton,
-          ]}
-          onPress={handleContinue}
-          disabled={!selectedIntent}
-        >
-          <Text style={styles.continueButtonText}>Continuar</Text>
-          <Ionicons name="arrow-forward" size={24} color={COLORS.white} />
-        </TouchableOpacity>
-      </View>
+        <View style={styles.timeOptionsContainer}>
+          {timeOptions.map((option) => (
+            <TouchableOpacity
+              key={option}
+              style={[
+                styles.timeOption,
+                selectedTime === option && styles.selectedTimeOption,
+                !selectedIntent && styles.disabledTimeOption,
+              ]}
+              onPress={() => selectedIntent && setSelectedTime(option)}
+              disabled={!selectedIntent}
+            >
+              <Text
+                style={[
+                  styles.timeOptionText,
+                  selectedTime === option && styles.selectedTimeOptionText,
+                  !selectedIntent && styles.disabledTimeOptionText,
+                ]}
+              >
+                {option}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        <View style={styles.footer}>
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              (!selectedIntent || !selectedTime) && styles.disabledButton,
+            ]}
+            onPress={handleContinue}
+            disabled={!selectedIntent || !selectedTime}
+          >
+            <Text style={styles.continueButtonText}>Continuar</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
     </View>
   );
 };
@@ -131,116 +153,129 @@ const OwnerIntentSelectionScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: COLORS.primary,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingBottom: 100,
+    paddingBottom: 32,
+    alignItems: 'center',
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  backButton: {
-    padding: 8,
+    marginTop: Platform.OS === 'ios' ? 60 : 40, // More space for iPhone camera area
+    marginBottom: 40,
+    width: '100%',
   },
   logo: {
-    width: 120,
     height: 40,
-    marginLeft: 16,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 36,
+    width: '100%',
   },
   title: {
     ...FONTS.title,
-    fontSize: 28,
+    fontSize: 36,
+    color: COLORS.white,
+    fontWeight: 'normal',
     textAlign: 'center',
-    paddingHorizontal: 24,
   },
-  subtitle: {
-    ...FONTS.regular,
-    fontSize: 16,
-    color: COLORS.gray,
+  titleHighlight: {
+    ...FONTS.title,
+    fontSize: 36,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
     textAlign: 'center',
-    marginTop: 8,
-    paddingHorizontal: 24,
   },
   intentsContainer: {
-    paddingHorizontal: 24,
-    marginTop: 32,
+    marginBottom: 24,
+    width: BUTTON_WIDTH,
   },
   intentCard: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 24,
     marginBottom: 16,
-    borderWidth: 2,
-    borderColor: COLORS.lightGray,
+    justifyContent: 'center',
+    width: '100%',
+    alignSelf: 'center',
   },
   selectedIntentCard: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  intentIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.lightGray,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  intentTextContainer: {
-    flex: 1,
-    marginLeft: 16,
+    backgroundColor: COLORS.secondary,
   },
   intentTitle: {
-    ...FONTS.title,
-    fontSize: 18,
-    color: COLORS.black,
-  },
-  intentDescription: {
     ...FONTS.regular,
-    fontSize: 14,
-    color: COLORS.gray,
-    marginTop: 4,
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: 'bold',
   },
   selectedIntentText: {
     color: COLORS.white,
   },
-  checkmarkContainer: {
-    marginLeft: 16,
+  timeOptionsContainer: {
+    marginTop: 8,
+    width: BUTTON_WIDTH,
+    alignSelf: 'center',
+  },
+  timeOption: {
+    backgroundColor: '#E6ECF2',
+    borderRadius: 8,
+    paddingVertical: 16,
+    marginBottom: 16,
+    alignItems: 'center',
+    width: '100%',
+    alignSelf: 'center',
+  },
+  selectedTimeOption: {
+    backgroundColor: COLORS.secondary,
+  },
+  timeOptionText: {
+    ...FONTS.regular,
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  selectedTimeOptionText: {
+    color: COLORS.white,
+  },
+  disabledTimeOption: {
+    opacity: 0.5,
+  },
+  disabledTimeOptionText: {
+    color: COLORS.gray,
   },
   footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: COLORS.white,
-    paddingHorizontal: 24,
-    paddingVertical: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.lightGray,
+    marginTop: 16,
+    marginBottom: 32,
+    width: BUTTON_WIDTH,
+    alignSelf: 'center',
   },
   continueButton: {
-    flexDirection: 'row',
+    backgroundColor: COLORS.secondary,
+    borderRadius: 24,
+    paddingVertical: 18,
     alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: COLORS.primary,
-    borderRadius: 12,
-    paddingVertical: 16,
+    width: '100%',
   },
   disabledButton: {
-    backgroundColor: COLORS.lightGray,
+    backgroundColor: COLORS.gray,
   },
   continueButtonText: {
     ...FONTS.regular,
     color: COLORS.white,
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginRight: 8,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 0,
+    padding: 16,
+    zIndex: 10,
   },
 });
 
