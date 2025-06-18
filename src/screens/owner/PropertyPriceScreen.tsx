@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -19,6 +20,12 @@ const PropertyPriceScreen = () => {
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
       <View style={styles.content}>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
@@ -37,14 +44,17 @@ const PropertyPriceScreen = () => {
           <Text style={styles.inputLabel}>
             Precio aproximado:
           </Text>
-          <TextInput
-            style={styles.input}
-            value={price}
-            onChangeText={setPrice}
-            keyboardType="numeric"
-            placeholder="$ "
-            placeholderTextColor={COLORS.black}
-          />
+          <View style={styles.inputRow}>
+            <Text style={styles.inputPrefix}>$</Text>
+            <TextInput
+              style={styles.input}
+              value={price}
+              onChangeText={setPrice}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={COLORS.black}
+            />
+          </View>
         </View>
 
         <TouchableOpacity
@@ -54,13 +64,6 @@ const PropertyPriceScreen = () => {
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
       </View>
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -77,7 +80,8 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 40,
-    marginTop: 32,
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
+    marginBottom: 0,
   },
   title: {
     ...FONTS.title,
@@ -105,12 +109,26 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginBottom: 16,
   },
-  input: {
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
-    padding: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 0,
+  },
+  inputPrefix: {
     fontSize: 32,
     color: COLORS.black,
+    fontWeight: 'bold',
+    marginRight: 4,
+  },
+  input: {
+    flex: 1,
+    fontSize: 32,
+    color: COLORS.black,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
   },
   continueButton: {
     backgroundColor: COLORS.secondary,
@@ -119,6 +137,7 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     position: 'absolute',
     bottom: 32,
+    alignSelf: 'center',
   },
   continueButtonText: {
     ...FONTS.regular,
@@ -129,9 +148,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     padding: 16,
+    zIndex: 10,
   },
 });
 

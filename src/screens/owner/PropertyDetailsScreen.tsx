@@ -8,13 +8,14 @@ import {
   TextInput,
   Dimensions,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 interface DropdownProps {
   label: string;
@@ -59,6 +60,7 @@ const PropertyDetailsScreen = () => {
   const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
   const [selectedColonia, setSelectedColonia] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const [showDeleteIndex, setShowDeleteIndex] = useState<number | null>(null);
 
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -72,8 +74,19 @@ const PropertyDetailsScreen = () => {
     }
   };
 
+  const removeImage = (index: number) => {
+    setSelectedImages(selectedImages.filter((_, i) => i !== index));
+    setShowDeleteIndex(null);
+  };
+
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
@@ -85,8 +98,8 @@ const PropertyDetailsScreen = () => {
           Datos de ubicacion:
         </Text>
 
-        <View style={styles.row}>
-          <View style={styles.inputContainer}>
+        <View style={styles.rowGap}>
+          <View style={styles.inputContainerSmall}>
             <Text style={styles.inputLabel}>Código Postal:</Text>
             <TextInput
               style={styles.input}
@@ -95,22 +108,28 @@ const PropertyDetailsScreen = () => {
               keyboardType="numeric"
             />
           </View>
-          <Dropdown
-            label="País:"
-            value={selectedPais}
-            items={['México']}
-            onChange={setSelectedPais}
-          />
+          <View style={styles.inputContainerSmall}>
+            <Text style={styles.inputLabel}>País:</Text>
+            <TextInput
+              style={styles.input}
+              value={selectedPais || ''}
+              editable={false}
+              placeholder="México"
+            />
+          </View>
         </View>
 
-        <View style={styles.row}>
-          <Dropdown
-            label="Estado:"
-            value={selectedEstado}
-            items={['CDMX', 'Edo. Mex.']}
-            onChange={setSelectedEstado}
-          />
-          <View style={styles.inputContainer}>
+        <View style={styles.rowGap}>
+          <View style={styles.inputContainerSmall}>
+            <Text style={styles.inputLabel}>Estado:</Text>
+            <TextInput
+              style={styles.input}
+              value={selectedEstado || ''}
+              editable={false}
+              placeholder="CDMX"
+            />
+          </View>
+          <View style={styles.inputContainerSmall}>
             <Text style={styles.inputLabel}>Alcaldia o municipio</Text>
             <TextInput
               style={styles.input}
@@ -120,14 +139,17 @@ const PropertyDetailsScreen = () => {
           </View>
         </View>
 
-        <View style={styles.row}>
-          <Dropdown
-            label="Colonia:"
-            value={selectedColonia}
-            items={['Colonia 1', 'Colonia 2']}
-            onChange={setSelectedColonia}
-          />
-          <View style={styles.inputContainer}>
+        <View style={styles.rowGap}>
+          <View style={styles.inputContainerSmall}>
+            <Text style={styles.inputLabel}>Colonia:</Text>
+            <TextInput
+              style={styles.input}
+              value={selectedColonia || ''}
+              editable={false}
+              placeholder="Colonia 1"
+            />
+          </View>
+          <View style={styles.inputContainerSmall}>
             <Text style={styles.inputLabel}>Calle:</Text>
             <TextInput
               style={styles.input}
@@ -137,12 +159,12 @@ const PropertyDetailsScreen = () => {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleSmall}>
           Características de la propiedad:
         </Text>
 
-        <View style={styles.row}>
-          <View style={styles.inputContainer}>
+        <View style={styles.rowGap3}>
+          <View style={styles.inputContainerTiny}>
             <Text style={styles.inputLabel}>Superficie:</Text>
             <TextInput
               style={styles.input}
@@ -151,7 +173,7 @@ const PropertyDetailsScreen = () => {
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <View style={styles.inputContainerTiny}>
             <Text style={styles.inputLabel}>Construccion:</Text>
             <TextInput
               style={styles.input}
@@ -162,8 +184,8 @@ const PropertyDetailsScreen = () => {
           </View>
         </View>
 
-        <View style={styles.row}>
-          <View style={styles.inputContainer}>
+        <View style={styles.rowGap3}>
+          <View style={styles.inputContainerTiny3}>
             <Text style={styles.inputLabel}>Cuartos:</Text>
             <TextInput
               style={styles.input}
@@ -172,7 +194,7 @@ const PropertyDetailsScreen = () => {
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <View style={styles.inputContainerTiny3}>
             <Text style={styles.inputLabel}>Baños:</Text>
             <TextInput
               style={styles.input}
@@ -181,7 +203,7 @@ const PropertyDetailsScreen = () => {
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <View style={styles.inputContainerTiny3}>
             <Text style={styles.inputLabel}>Medios Baños:</Text>
             <TextInput
               style={styles.input}
@@ -192,7 +214,7 @@ const PropertyDetailsScreen = () => {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleSmall}>
           Cuenta con amenidades?
         </Text>
 
@@ -205,7 +227,7 @@ const PropertyDetailsScreen = () => {
           multiline
         />
 
-        <Text style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleSmall}>
           Información adicional que deba saber el asesor.
         </Text>
 
@@ -218,7 +240,7 @@ const PropertyDetailsScreen = () => {
           multiline
         />
 
-        <Text style={styles.sectionTitle}>
+        <Text style={styles.sectionTitleSmall}>
           Sube imágenes de tu propiedad
         </Text>
         <Text style={styles.subtitle}>
@@ -237,11 +259,25 @@ const PropertyDetailsScreen = () => {
           ) : (
             <ScrollView horizontal>
               {selectedImages.map((uri, index) => (
-                <Image
+                <TouchableOpacity
                   key={index}
-                  source={{ uri }}
-                  style={styles.uploadedImage}
-                />
+                  style={styles.uploadedImageWrapper}
+                  activeOpacity={0.8}
+                  onPress={() => setShowDeleteIndex(index)}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={styles.uploadedImage}
+                  />
+                  {showDeleteIndex === index && (
+                    <TouchableOpacity
+                      style={styles.deleteIcon}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Ionicons name="trash" size={28} color={COLORS.secondary} />
+                    </TouchableOpacity>
+                  )}
+                </TouchableOpacity>
               ))}
             </ScrollView>
           )}
@@ -254,13 +290,6 @@ const PropertyDetailsScreen = () => {
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -272,10 +301,11 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    paddingBottom: 32,
   },
   logo: {
     height: 40,
-    marginTop: 32,
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
     alignSelf: 'center',
   },
   sectionTitle: {
@@ -285,6 +315,14 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     marginTop: 32,
     marginBottom: 18,
+  },
+  sectionTitleSmall: {
+    ...FONTS.title,
+    fontSize: 18,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
   },
   subtitle: {
     ...FONTS.regular,
@@ -297,9 +335,33 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  rowGap: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 16,
+  },
+  rowGap3: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    gap: 8,
+  },
   inputContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  inputContainerSmall: {
+    flex: 1,
+    maxWidth: width * 0.45,
+  },
+  inputContainerTiny: {
+    flex: 1,
+    maxWidth: width * 0.45,
+  },
+  inputContainerTiny3: {
+    flex: 1,
+    maxWidth: width * 0.29,
   },
   inputLabel: {
     ...FONTS.regular,
@@ -376,11 +438,23 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginTop: 4,
   },
+  uploadedImageWrapper: {
+    position: 'relative',
+    margin: 4,
+  },
   uploadedImage: {
     width: 80,
     height: 80,
-    margin: 4,
     borderRadius: 8,
+  },
+  deleteIcon: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+    borderRadius: 16,
+    padding: 2,
+    zIndex: 10,
   },
   continueButton: {
     backgroundColor: COLORS.secondary,
@@ -400,9 +474,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     padding: 16,
+    zIndex: 10,
   },
 });
 

@@ -8,12 +8,13 @@ import {
   TextInput,
   Dimensions,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
 
 const propertyTypes = [
   'Casa',
@@ -23,14 +24,35 @@ const propertyTypes = [
   'Local',
   'Bodega',
   'Edificio',
+  'Otro',
 ];
+
+function chunkArray(array: string[], size: number) {
+  const result = [];
+  for (let i = 0; i < array.length; i += size) {
+    result.push(array.slice(i, i + size));
+  }
+  return result;
+}
+
+const GRID_COLUMNS = 2;
+const GRID_BUTTON_WIDTH = width * 0.38; // More compact, still fits 'Departamento' with some compression
 
 const PropertyTypeScreen = () => {
   const [selectedType, setSelectedType] = useState<string | null>(null);
   const [otherType, setOtherType] = useState('');
 
+  // Split propertyTypes into rows of 2 for a two-column grid
+  const typeRows = chunkArray(propertyTypes, GRID_COLUMNS);
+
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
@@ -46,39 +68,29 @@ const PropertyTypeScreen = () => {
         </Text>
 
         <View style={styles.gridContainer}>
-          {propertyTypes.map((type) => (
-            <TouchableOpacity
-              key={type}
-              style={[
-                styles.typeButton,
-                selectedType === type && styles.typeButtonSelected
-              ]}
-              onPress={() => setSelectedType(type)}
-            >
-              <Text style={[
-                styles.typeButtonText,
-                selectedType === type && styles.typeButtonTextSelected
-              ]}>
-                {type}
-              </Text>
-            </TouchableOpacity>
+          {typeRows.map((row, rowIndex) => (
+            <View style={styles.row} key={rowIndex}>
+              {row.map((type) => (
+                <TouchableOpacity
+                  key={type}
+                  style={[
+                    styles.typeButton,
+                    selectedType === type && styles.typeButtonSelected
+                  ]}
+                  onPress={() => setSelectedType(type)}
+                >
+                  <Text style={[
+                    styles.typeButtonText,
+                    selectedType === type && styles.typeButtonTextSelected
+                  ]}>
+                    {type}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+              {row.length < GRID_COLUMNS && <View style={[styles.typeButton, {backgroundColor: 'transparent'}]} />} {/* Empty cell for alignment if odd number */}
+            </View>
           ))}
         </View>
-
-        <TouchableOpacity
-          style={[
-            styles.otherButton,
-            selectedType === 'Otro' && styles.otherButtonSelected
-          ]}
-          onPress={() => setSelectedType('Otro')}
-        >
-          <Text style={[
-            styles.otherButtonText,
-            selectedType === 'Otro' && styles.otherButtonTextSelected
-          ]}>
-            Otro
-          </Text>
-        </TouchableOpacity>
 
         {selectedType === 'Otro' && (
           <TextInput
@@ -101,13 +113,6 @@ const PropertyTypeScreen = () => {
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -124,7 +129,7 @@ const styles = StyleSheet.create({
   },
   logo: {
     height: 40,
-    marginTop: 32,
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
   },
   title: {
     ...FONTS.title,
@@ -141,18 +146,22 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   gridContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
     marginTop: 40,
-    gap: 16,
+    width: '100%',
+    alignItems: 'center',
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 16,
   },
   typeButton: {
-    width: width * 0.4,
+    width: GRID_BUTTON_WIDTH,
     backgroundColor: COLORS.white,
     borderRadius: 12,
-    padding: 8,
+    padding: 12,
     marginHorizontal: 8,
+    alignItems: 'center',
   },
   typeButtonSelected: {
     backgroundColor: COLORS.secondary,
@@ -167,34 +176,15 @@ const styles = StyleSheet.create({
   typeButtonTextSelected: {
     color: COLORS.white,
   },
-  otherButton: {
-    width: '100%',
-    backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 16,
-    marginTop: 16,
-  },
-  otherButtonSelected: {
-    backgroundColor: COLORS.secondary,
-  },
-  otherButtonText: {
-    ...FONTS.regular,
-    fontSize: 18,
-    color: COLORS.primary,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  otherButtonTextSelected: {
-    color: COLORS.white,
-  },
   otherInput: {
-    width: '100%',
+    width: GRID_BUTTON_WIDTH * 2 + 16, // full grid width
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 12,
     padding: 12,
-    marginTop: 16,
+    marginTop: 8,
     fontSize: 18,
     color: COLORS.black,
+    alignSelf: 'center',
   },
   continueButton: {
     backgroundColor: COLORS.secondary,
@@ -203,6 +193,7 @@ const styles = StyleSheet.create({
     width: width * 0.8,
     marginTop: 40,
     marginBottom: 32,
+    alignSelf: 'center',
   },
   continueButtonDisabled: {
     opacity: 0.5,
@@ -216,9 +207,10 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     padding: 16,
+    zIndex: 10,
   },
 });
 
