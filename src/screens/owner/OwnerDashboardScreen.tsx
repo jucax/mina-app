@@ -81,7 +81,7 @@ const OwnerDashboardScreen = () => {
           </View>
           <TouchableOpacity
             style={styles.notificationButton}
-            onPress={() => router.push('/(owner)/notifications')}
+            onPress={() => router.push({ pathname: '/(owner)/notifications' })}
           >
             <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
           </TouchableOpacity>
@@ -189,10 +189,12 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    marginTop: 40,
   },
   searchContainer: {
     paddingHorizontal: 24,
     marginBottom: 24,
+    position: 'relative',
   },
   searchInput: {
     backgroundColor: COLORS.white,
@@ -202,11 +204,13 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 22,
     color: COLORS.gray,
+    paddingLeft: 48,
   },
   searchIcon: {
     position: 'absolute',
     left: 36,
-    top: 12,
+    top: 22,
+    zIndex: 1,
   },
   sectionTitle: {
     ...FONTS.regular,

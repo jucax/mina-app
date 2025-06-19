@@ -5,22 +5,45 @@ import {
   StyleSheet,
   Image,
   TouchableOpacity,
-  TextInput,
   Dimensions,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { router } from 'expo-router';
-import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
+import { COLORS, FONTS } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
-const { width, height } = Dimensions.get('window');
+const { width } = Dimensions.get('window');
+
+const commissionOptions = [
+  {
+    value: '4%',
+    description:
+      'Si bien pagaras menos en comisiones, es posible que la venta tome mas tiempo y no tenga tanta exposición. Te recomendamos analizar que te ofrece el asesor.',
+  },
+  {
+    value: '5%',
+    description:
+      'Con esta comisión recibirás un servicio de buena calidad con estrategias de marketing adecuadas para vender tu propiedad de manera eficiente.',
+  },
+  {
+    value: '6%',
+    description:
+      'Recibirás un servicio profesional por asesores de inmobiliarias calificadas, lo que aumentará las posibilidades de vender tu propiedad de manera segura, rápida y al mejor precio.',
+  },
+];
 
 const PropertyCompensationScreen = () => {
-  const [compensation, setCompensation] = useState('');
-  const [comments, setComments] = useState('');
+  const [selectedCommission, setSelectedCommission] = useState<string | null>(null);
 
   return (
     <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
       <ScrollView contentContainerStyle={styles.content}>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
@@ -28,49 +51,57 @@ const PropertyCompensationScreen = () => {
           resizeMode="contain"
         />
 
-        <Text style={styles.sectionTitle}>
-          Compensación:
-        </Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>¿Cuánto esperas recibir por tu propiedad?</Text>
-          <TextInput
-            style={styles.input}
-            value={compensation}
-            onChangeText={setCompensation}
-            keyboardType="numeric"
-            placeholder="Ingresa el monto"
-            placeholderTextColor="rgba(0, 0, 0, 0.5)"
-          />
+        <Text style={styles.topTitle}>Por ultimo!</Text>
+        <View style={styles.centeredTitleBlock}>
+          <Text style={styles.mainTitleCentered}>Que porcentaje de comisión estas dispuest@ a compartir?</Text>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Comentarios adicionales:
-        </Text>
+        <View style={styles.cardsContainer}>
+          {commissionOptions.map((option, idx) => (
+            <View key={option.value} style={styles.cardRow}>
+              <View style={styles.percentCardSmall}>
+                <Text style={styles.percentCardTextSmall}>{option.value}</Text>
+              </View>
+              <Text style={styles.cardDescription}>{option.description}</Text>
+            </View>
+          ))}
+        </View>
 
-        <TextInput
-          style={styles.textArea}
-          value={comments}
-          onChangeText={setComments}
-          placeholder="Escribe aquí tus comentarios"
-          placeholderTextColor="rgba(0, 0, 0, 0.5)"
-          multiline
-        />
+        <Text style={styles.selectLabel}>Selecciona tu respuesta:</Text>
+        <View style={styles.percentButtonRow}>
+          {commissionOptions.map((option) => (
+            <TouchableOpacity
+              key={option.value}
+              style={[
+                styles.typeButton,
+                selectedCommission === option.value && styles.typeButtonSelected,
+              ]}
+              onPress={() => setSelectedCommission(option.value)}
+              activeOpacity={0.8}
+            >
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  selectedCommission === option.value && styles.typeButtonTextSelected,
+                ]}
+              >
+                {option.value}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
 
         <TouchableOpacity
-          style={styles.continueButton}
-          onPress={() => router.push('/(owner)/submission')}
+          style={[
+            styles.publishButton,
+            !selectedCommission && styles.publishButtonDisabled,
+          ]}
+          onPress={() => selectedCommission && router.push('/(owner)/submission')}
+          disabled={!selectedCommission}
         >
-          <Text style={styles.continueButtonText}>Finalizar</Text>
+          <Text style={styles.publishButtonText}>Publicar</Text>
         </TouchableOpacity>
       </ScrollView>
-
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
-        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
     </View>
   );
 };
@@ -82,71 +113,145 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    alignItems: 'center',
+    paddingBottom: 32,
   },
   logo: {
     height: 40,
-    marginTop: 32,
+    marginTop: Platform.OS === 'ios' ? 60 : 40,
     alignSelf: 'center',
-  },
-  sectionTitle: {
-    ...FONTS.title,
-    fontSize: 32,
-    color: COLORS.secondary,
-    fontWeight: 'bold',
-    marginTop: 32,
-    marginBottom: 18,
-  },
-  inputContainer: {
-    marginBottom: 24,
-  },
-  inputLabel: {
-    ...FONTS.regular,
-    fontSize: 15,
-    color: COLORS.white,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    padding: 12,
-    fontSize: 16,
-    color: COLORS.black,
-  },
-  textArea: {
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: COLORS.white,
-    padding: 12,
-    fontSize: 16,
-    color: COLORS.black,
-    height: 120,
-    textAlignVertical: 'top',
-  },
-  continueButton: {
-    backgroundColor: COLORS.secondary,
-    borderRadius: 24,
-    paddingVertical: 18,
-    width: width * 0.8,
-    marginTop: 32,
-    marginBottom: 32,
-    alignSelf: 'center',
-  },
-  continueButtonText: {
-    ...FONTS.regular,
-    fontSize: 20,
-    color: COLORS.white,
-    fontWeight: 'bold',
-    textAlign: 'center',
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     padding: 16,
+    zIndex: 10,
+  },
+  topTitle: {
+    ...FONTS.title,
+    fontSize: 28,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    marginTop: 32,
+    textAlign: 'left',
+    width: '100%',
+  },
+  centeredTitleBlock: {
+    width: '100%',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 24,
+  },
+  mainTitleCentered: {
+    ...FONTS.title,
+    fontSize: 22,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    width: '100%',
+    lineHeight: 28,
+  },
+  cardsContainer: {
+    width: '100%',
+    marginBottom: 24,
+  },
+  cardRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  percentCardSmall: {
+    backgroundColor: '#3EC1E9',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    marginRight: 10,
+    minWidth: 38,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  percentCardTextSmall: {
+    ...FONTS.title,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  cardDescription: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 15,
+    flex: 1,
+    flexWrap: 'wrap',
+    lineHeight: 20,
+  },
+  selectLabel: {
+    ...FONTS.title,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    fontSize: 26,
+    textAlign: 'center',
+    marginTop: 32,
+    marginBottom: 24,
+  },
+  percentButtonRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: 40,
+    width: '100%',
+  },
+  typeButton: {
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    marginHorizontal: 10,
+    borderWidth: 2,
+    borderColor: COLORS.secondary,
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    transform: [{ scale: 1 }],
+  },
+  typeButtonSelected: {
+    backgroundColor: COLORS.secondary,
+    borderColor: COLORS.secondary,
+    shadowColor: COLORS.secondary,
+    shadowOpacity: 0.4,
+    elevation: 6,
+    transform: [{ scale: 1.08 }],
+  },
+  typeButtonText: {
+    ...FONTS.title,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    fontSize: 18,
+    textAlign: 'center',
+  },
+  typeButtonTextSelected: {
+    color: COLORS.white,
+    textShadowColor: 'transparent',
+  },
+  publishButton: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+    paddingVertical: 18,
+    width: width * 0.7,
+    alignSelf: 'center',
+    marginTop: 16,
+  },
+  publishButtonDisabled: {
+    opacity: 0.5,
+  },
+  publishButtonText: {
+    ...FONTS.title,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 24,
+    textAlign: 'center',
   },
 });
 
