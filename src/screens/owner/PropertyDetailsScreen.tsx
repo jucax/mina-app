@@ -9,41 +9,110 @@ import {
   Dimensions,
   ScrollView,
   Platform,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
+
+// Mexican states data
+const estados = [
+  'Aguascalientes', 'Baja California', 'Baja California Sur', 'Campeche', 'Chiapas',
+  'Chihuahua', 'Ciudad de México', 'Coahuila', 'Colima', 'Durango', 'Estado de México',
+  'Guanajuato', 'Guerrero', 'Hidalgo', 'Jalisco', 'Michoacán', 'Morelos', 'Nayarit',
+  'Nuevo León', 'Oaxaca', 'Puebla', 'Querétaro', 'Quintana Roo', 'San Luis Potosí',
+  'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas'
+];
+
+// Municipalities by state (simplified - you can expand this)
+const municipiosPorEstado: { [key: string]: string[] } = {
+  'Ciudad de México': [
+    'Álvaro Obregón', 'Azcapotzalco', 'Benito Juárez', 'Coyoacán', 'Cuajimalpa de Morelos',
+    'Cuauhtémoc', 'Gustavo A. Madero', 'Iztacalco', 'Iztapalapa', 'La Magdalena Contreras',
+    'Miguel Hidalgo', 'Milpa Alta', 'Tláhuac', 'Tlalpan', 'Venustiano Carranza', 'Xochimilco'
+  ],
+  'Jalisco': [
+    'Guadalajara', 'Zapopan', 'San Pedro Tlaquepaque', 'Tonalá', 'Tlajomulco de Zúñiga',
+    'El Salto', 'Puerto Vallarta', 'Lagos de Moreno', 'Tepatitlán de Morelos', 'Zapotlán el Grande'
+  ],
+  'Nuevo León': [
+    'Monterrey', 'Guadalupe', 'San Nicolás de los Garza', 'General Escobedo', 'Santa Catarina',
+    'San Pedro Garza García', 'Juárez', 'Linares', 'Apodaca', 'General Zuazua'
+  ],
+  'Baja California': [
+    'Tijuana', 'Mexicali', 'Ensenada', 'San Quintín', 'Rosarito', 'Tecate', 'San Felipe'
+  ],
+  'Sonora': [
+    'Hermosillo', 'Ciudad Obregón', 'Nogales', 'San Luis Río Colorado', 'Huatabampo',
+    'Navojoa', 'Puerto Peñasco', 'Cananea', 'Guaymas', 'Héroes de Nacozari'
+  ],
+  // Add more states and their municipalities as needed
+};
 
 interface DropdownProps {
   label: string;
   value: string | null;
   items: string[];
   onChange: (value: string) => void;
+  disabled?: boolean;
 }
 
-const Dropdown = ({ label, value, items, onChange }: DropdownProps) => (
-  <View style={styles.dropdownContainer}>
-    <Text style={styles.dropdownLabel}>{label}</Text>
-    <View style={styles.dropdown}>
-      <TextInput
-        style={styles.dropdownInput}
-        value={value || 'Selecciona'}
-        editable={false}
-      />
+const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <View style={styles.dropdownContainer}>
+      <Text style={styles.dropdownLabel}>{label}</Text>
       <TouchableOpacity
-        style={styles.dropdownButton}
-        onPress={() => {
-          // TODO: Implement dropdown selection
-        }}
+        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        onPress={() => !disabled && setIsOpen(true)}
+        disabled={disabled}
       >
-        <Ionicons name="chevron-down" size={24} color={COLORS.black} />
+        <Text style={[styles.dropdownInput, disabled && styles.dropdownInputDisabled]}>
+          {value || 'Selecciona'}
+        </Text>
+        <Ionicons name="chevron-down" size={24} color={disabled ? COLORS.gray : COLORS.black} />
       </TouchableOpacity>
+
+      <Modal
+        visible={isOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{label}</Text>
+              <TouchableOpacity onPress={() => setIsOpen(false)}>
+                <Ionicons name="close" size={24} color={COLORS.black} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={items}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    onChange(item);
+                    setIsOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
     </View>
-  </View>
-);
+  );
+};
 
 const PropertyDetailsScreen = () => {
   const [cp, setCp] = useState('');
@@ -56,11 +125,19 @@ const PropertyDetailsScreen = () => {
   const [mediosBanos, setMediosBanos] = useState('');
   const [amenidades, setAmenidades] = useState('');
   const [infoAdicional, setInfoAdicional] = useState('');
-  const [selectedPais, setSelectedPais] = useState<string | null>(null);
+  const [selectedPais, setSelectedPais] = useState<string>('México');
   const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
   const [selectedColonia, setSelectedColonia] = useState<string | null>(null);
   const [selectedImages, setSelectedImages] = useState<string[]>([]);
   const [showDeleteIndex, setShowDeleteIndex] = useState<number | null>(null);
+
+  // Get municipalities based on selected state
+  const municipiosDisponibles = selectedEstado ? municipiosPorEstado[selectedEstado] || [] : [];
+
+  const handleEstadoChange = (estado: string) => {
+    setSelectedEstado(estado);
+    setSelectedColonia(null); // Reset colonia when estado changes
+  };
 
   const pickImages = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -109,32 +186,33 @@ const PropertyDetailsScreen = () => {
             />
           </View>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>País:</Text>
-            <TextInput
-              style={styles.input}
-              value={selectedPais || ''}
-              editable={false}
-              placeholder="México"
+            <Dropdown
+              label="País:"
+              value={selectedPais}
+              items={['México']}
+              onChange={setSelectedPais}
+              disabled={true}
             />
           </View>
         </View>
 
         <View style={styles.rowGap}>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Estado:</Text>
-            <TextInput
-              style={styles.input}
-              value={selectedEstado || ''}
-              editable={false}
-              placeholder="CDMX"
+            <Dropdown
+              label="Estado:"
+              value={selectedEstado}
+              items={estados}
+              onChange={handleEstadoChange}
             />
           </View>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Alcaldia o municipio</Text>
+            <Text style={styles.inputLabel}>Alcaldía o municipio:</Text>
             <TextInput
               style={styles.input}
               value={municipio}
               onChangeText={setMunicipio}
+              placeholder="Ingresa tu alcaldía o municipio"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
         </View>
@@ -478,6 +556,49 @@ const styles = StyleSheet.create({
     left: 0,
     padding: 16,
     zIndex: 10,
+  },
+  dropdownDisabled: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dropdownInputDisabled: {
+    color: COLORS.gray,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    width: width * 0.8,
+    maxHeight: height * 0.7,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.gray,
+  },
+  modalTitle: {
+    ...FONTS.title,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.black,
+  },
+  dropdownItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  dropdownItemText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.black,
   },
 });
 

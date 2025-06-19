@@ -8,6 +8,12 @@ export default function PropertyLayout() {
       <Stack.Screen name="documentation" options={{ headerShown: false }} />
       <Stack.Screen name="details" options={{ headerShown: false }} />
       <Stack.Screen name="compensation" options={{ headerShown: false }} />
+      <Stack.Screen 
+        name="[id]" 
+        options={{ 
+          headerShown: false,
+        }} 
+      />
     </Stack>
   );
 } 

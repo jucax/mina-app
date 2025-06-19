@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
@@ -61,12 +61,18 @@ const OwnerPropertyDetailScreen = () => {
   const { property } = useLocalSearchParams<{ property: string }>();
   const propertyData: Property = JSON.parse(property);
 
+  useEffect(() => {
+    // Set dynamic header title based on property type and location
+    const title = `${propertyData.type} en ${propertyData.location}`;
+    // Note: We'll handle the title display in the component itself
+  }, [propertyData]);
+
   return (
     <View style={styles.container}>
       <ScrollView>
         <View style={styles.imageContainer}>
           <Image
-            source={propertyData.image}
+            source={require('../../../assets/images/property1.png')}
             style={styles.propertyImage}
           />
           <TouchableOpacity

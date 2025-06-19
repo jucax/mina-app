@@ -37,6 +37,7 @@ interface Property {
 
 const OwnerDashboardScreen = () => {
   const [favoriteIndices, setFavoriteIndices] = useState<Set<number>>(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const [ownerProperties] = useState<Property[]>([
     {
       image: require('../../../assets/images/property1.png'),
@@ -92,9 +93,12 @@ const OwnerDashboardScreen = () => {
             style={styles.searchInput}
             placeholder="Búsqueda"
             placeholderTextColor={COLORS.gray}
-            editable={false}
+            value={searchQuery}
+            onChangeText={setSearchQuery}
           />
-          <Ionicons name="search" size={28} color={COLORS.secondary} style={styles.searchIcon} />
+          <View style={styles.searchIconContainer}>
+            <Ionicons name="search" size={28} color={COLORS.secondary} />
+          </View>
         </View>
 
         <Text style={styles.sectionTitle}>Mis propiedades:</Text>
@@ -189,7 +193,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
-    marginTop: 40,
   },
   searchContainer: {
     paddingHorizontal: 24,
@@ -204,13 +207,18 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 22,
     color: COLORS.gray,
-    paddingLeft: 48,
+    paddingLeft: 12,
+    paddingRight: 48,
   },
-  searchIcon: {
+  searchIconContainer: {
     position: 'absolute',
-    left: 36,
-    top: 22,
+    right: 12,
+    top: 0,
+    bottom: 0,
     zIndex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 48,
   },
   sectionTitle: {
     ...FONTS.regular,

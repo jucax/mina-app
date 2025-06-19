@@ -114,6 +114,25 @@ const RegisterScreen = () => {
       console.log('✅ Registro exitoso!');
       console.log('Datos del usuario:', authData.user);
 
+      // Insert into profiles table
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .insert([
+          {
+            id: authData.user.id,
+            full_name: name,
+            phone,
+            is_owner: isOwner,
+          },
+        ]);
+
+      if (profileError) {
+        console.error('❌ Error al crear perfil:', profileError.message);
+        throw profileError;
+      }
+
+      console.log('✅ Perfil creado exitosamente en la tabla profiles');
+
       // Upload profile image if selected
       if (profileImage) {
         const fileExt = profileImage.split('.').pop();
