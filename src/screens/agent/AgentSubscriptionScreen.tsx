@@ -137,6 +137,7 @@ const styles = StyleSheet.create({
   logo: {
     height: height * 0.05,
     alignSelf: 'center',
+    marginTop: 60,
     marginBottom: height * 0.04,
   },
   title: {
@@ -244,7 +245,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     position: 'absolute',
-    top: 0,
+    top: 40,
     left: 0,
     padding: 16,
   },

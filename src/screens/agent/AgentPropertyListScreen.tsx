@@ -31,6 +31,7 @@ const AgentPropertyListScreen = () => {
   const [selectedPropertyType, setSelectedPropertyType] = useState('All');
   const [selectedCommission, setSelectedCommission] = useState('All');
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [favoriteIndices, setFavoriteIndices] = useState<Set<number>>(new Set());
 
   const allProperties: Property[] = [
@@ -80,7 +81,7 @@ const AgentPropertyListScreen = () => {
 
   const locations = ['All', ...new Set(allProperties.map(p => p.location))].sort();
   const propertyTypes = ['All', 'Casa', 'Departamento', 'Terreno', 'Oficina', 'Local', 'Bodega', 'Edificio'];
-  const commissionPercentages = ['All', ...new Set(allProperties.map(p => p.commission))].sort();
+  const commissionPercentages = ['All', '3%', '5%', '6%'];
 
   const filteredProperties = allProperties.filter(property => {
     const matchesLocation = selectedLocation === 'All' || property.location === selectedLocation;
@@ -135,6 +136,41 @@ const AgentPropertyListScreen = () => {
       </Pressable>
     );
   };
+
+  const LocationDropdown = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showLocationDropdown}
+      onRequestClose={() => setShowLocationDropdown(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Seleccionar ubicación</Text>
+            <TouchableOpacity onPress={() => setShowLocationDropdown(false)}>
+              <Ionicons name="close" size={24} color={COLORS.black} />
+            </TouchableOpacity>
+          </View>
+          <FlatList
+            data={locations}
+            keyExtractor={(item) => item}
+            renderItem={({ item }) => (
+              <TouchableOpacity
+                style={styles.dropdownItem}
+                onPress={() => {
+                  setSelectedLocation(item);
+                  setShowLocationDropdown(false);
+                }}
+              >
+                <Text style={styles.dropdownItemText}>{item}</Text>
+              </TouchableOpacity>
+            )}
+          />
+        </View>
+      </View>
+    </Modal>
+  );
 
   const FilterModal = () => (
     <Modal
@@ -198,40 +234,27 @@ const AgentPropertyListScreen = () => {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.searchContainer}>
-          <Text style={styles.searchLabel}>Búsqueda actual</Text>
-          <View style={styles.locationSelector}>
+          <TouchableOpacity
+            style={styles.locationDropdownButton}
+            onPress={() => setShowLocationDropdown(true)}
+          >
             <Ionicons name="location" size={22} color={COLORS.secondary} />
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {locations.map((location) => (
-                <TouchableOpacity
-                  key={location}
-                  style={[
-                    styles.locationButton,
-                    selectedLocation === location && styles.locationButtonActive
-                  ]}
-                  onPress={() => setSelectedLocation(location)}
-                >
-                  <Text style={[
-                    styles.locationButtonText,
-                    selectedLocation === location && styles.locationButtonTextActive
-                  ]}>{location}</Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+            <Text style={styles.locationDropdownText}>{selectedLocation}</Text>
+            <Ionicons name="chevron-down" size={20} color={COLORS.secondary} />
+          </TouchableOpacity>
         </View>
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(general)/agent-profile')}
+            onPress={() => router.push('/(owner)/notifications')}
           >
             <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(agent)/home')}
+            onPress={() => router.push('/(general)/agent-profile')}
           >
-            <Ionicons name="heart" size={28} color={COLORS.secondary} />
+            <Ionicons name="person" size={28} color={COLORS.secondary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -268,6 +291,7 @@ const AgentPropertyListScreen = () => {
         />
       )}
 
+      <LocationDropdown />
       <FilterModal />
     </View>
   );
@@ -281,7 +305,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     paddingHorizontal: SIZES.padding.large,
     paddingTop: SIZES.padding.large,
     height: 100,
@@ -295,11 +319,9 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     marginBottom: 8,
   },
-  locationSelector: {
+  locationDropdownButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  locationButton: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -307,22 +329,18 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     marginRight: 8,
     backgroundColor: COLORS.white,
+    marginTop: 25,
   },
-  locationButtonActive: {
-    backgroundColor: COLORS.secondary,
-    borderColor: COLORS.secondary,
-  },
-  locationButtonText: {
+  locationDropdownText: {
     ...FONTS.regular,
     fontWeight: '600',
     color: COLORS.black,
-  },
-  locationButtonTextActive: {
-    color: COLORS.white,
+    marginHorizontal: 8,
   },
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 22,
   },
   headerButton: {
     width: 44,
@@ -509,6 +527,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: 'bold',
     color: COLORS.white,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  dropdownItem: {
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  dropdownItemText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.black,
   },
 });
 

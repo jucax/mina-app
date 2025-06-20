@@ -158,8 +158,17 @@ const RegisterScreen = () => {
             .from('profile-images')
             .getPublicUrl(filePath);
 
-          // The profile will be updated by the trigger when the user confirms their email
-          console.log('✅ URL de la imagen guardada para actualización posterior');
+          // Update the profile with the image URL
+          const { error: updateError } = await supabase
+            .from('profiles')
+            .update({ profile_image: publicUrl })
+            .eq('id', authData.user.id);
+
+          if (updateError) {
+            console.error('❌ Error al actualizar perfil con imagen:', updateError.message);
+          } else {
+            console.log('✅ URL de la imagen guardada en el perfil');
+          }
         }
       }
 
