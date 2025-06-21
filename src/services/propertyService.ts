@@ -11,13 +11,42 @@ export class PropertyService {
         throw new Error('User not authenticated');
       }
 
+      // Validate required fields
+      if (!formData.intent) {
+        throw new Error('Intent is required');
+      }
+      if (!formData.timeline) {
+        throw new Error('Timeline is required');
+      }
+      if (!formData.price) {
+        throw new Error('Price is required');
+      }
+      if (!formData.property_type) {
+        throw new Error('Property type is required');
+      }
+      if (!formData.state) {
+        throw new Error('State is required');
+      }
+      if (!formData.municipality) {
+        throw new Error('Municipality is required');
+      }
+      if (!formData.street) {
+        throw new Error('Street is required');
+      }
+      if (!formData.postal_code) {
+        throw new Error('Postal code is required');
+      }
+      if (!formData.commission_percentage) {
+        throw new Error('Commission percentage is required');
+      }
+
       // Transform form data to database format
       const propertyData: Partial<Property> = {
         owner_id: user.id,
-        intent: formData.intent!,
-        timeline: formData.timeline!,
+        intent: formData.intent,
+        timeline: formData.timeline,
         price: parseFloat(formData.price),
-        property_type: formData.property_type!,
+        property_type: formData.property_type,
         other_type: formData.other_type || undefined,
         
         // Documentation
@@ -33,7 +62,7 @@ export class PropertyService {
         
         // Location
         country: formData.country,
-        state: formData.state!,
+        state: formData.state,
         municipality: formData.municipality,
         neighborhood: formData.neighborhood || undefined,
         street: formData.street,
@@ -52,11 +81,14 @@ export class PropertyService {
         images: formData.images.length > 0 ? formData.images : undefined,
         
         // Commission
-        commission_percentage: parseFloat(formData.commission_percentage!),
+        commission_percentage: parseFloat(formData.commission_percentage),
         
         // Status
         status: 'draft'
       };
+
+      console.log('📝 Form data being saved:', formData);
+      console.log('💾 Property data to insert:', propertyData);
 
       const { data, error } = await supabase
         .from('properties')

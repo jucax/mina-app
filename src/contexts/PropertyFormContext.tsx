@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { PropertyFormData } from '../types/property';
 
 interface PropertyFormContextType {
@@ -6,6 +7,7 @@ interface PropertyFormContextType {
   updateFormData: (updates: Partial<PropertyFormData>) => void;
   resetFormData: () => void;
   isFormComplete: () => boolean;
+  isLoaded: boolean;
 }
 
 const initialFormData: PropertyFormData = {
@@ -73,16 +75,50 @@ interface PropertyFormProviderProps {
 
 export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Load form data from AsyncStorage on mount
+  useEffect(() => {
+    const loadFormData = async () => {
+      try {
+        const savedData = await AsyncStorage.getItem('propertyFormData');
+        if (savedData) {
+          const parsedData = JSON.parse(savedData);
+          console.log('📱 Loaded form data from storage:', parsedData);
+          setFormData(parsedData);
+        }
+      } catch (error) {
+        console.error('Error loading form data:', error);
+      } finally {
+        setIsLoaded(true);
+      }
+    };
+
+    loadFormData();
+  }, []);
 
   const updateFormData = (updates: Partial<PropertyFormData>) => {
-    setFormData(prev => ({
-      ...prev,
-      ...updates,
-    }));
+    console.log('🔄 Updating form data:', updates);
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        ...updates,
+      };
+      console.log('📊 New form data state:', newData);
+      
+      // Save to AsyncStorage
+      AsyncStorage.setItem('propertyFormData', JSON.stringify(newData))
+        .catch(error => console.error('Error saving form data:', error));
+      
+      return newData;
+    });
   };
 
   const resetFormData = () => {
+    console.log('🔄 Resetting form data');
     setFormData(initialFormData);
+    AsyncStorage.removeItem('propertyFormData')
+      .catch(error => console.error('Error removing form data:', error));
   };
 
   const isFormComplete = (): boolean => {
@@ -104,6 +140,7 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     updateFormData,
     resetFormData,
     isFormComplete,
+    isLoaded,
   };
 
   return (

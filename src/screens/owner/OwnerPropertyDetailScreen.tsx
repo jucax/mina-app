@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,10 +7,13 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
+  Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { PropertyService } from '../../services/propertyService';
+import { Property as PropertyType } from '../../types/property';
 
 const { width, height } = Dimensions.get('window');
 
@@ -58,22 +61,75 @@ const CounterInfo = ({ icon, label, count }: { icon: string; label: string; coun
 );
 
 const OwnerPropertyDetailScreen = () => {
-  const { property } = useLocalSearchParams<{ property: string }>();
-  const propertyData: Property = JSON.parse(property);
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set dynamic header title based on property type and location
-    const title = `${propertyData.type} en ${propertyData.location}`;
-    // Note: We'll handle the title display in the component itself
-  }, [propertyData]);
+    const fetchPropertyData = async () => {
+      try {
+        if (id) {
+          const data = await PropertyService.getPropertyById(id);
+          setPropertyData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching property data:', error);
+        Alert.alert(
+          'Error',
+          'No se pudo cargar la información de la propiedad.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando propiedad...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!propertyData) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Propiedad no encontrada</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const getPropertyImage = (property: PropertyType) => {
+    if (property.images && property.images.length > 0) {
+      return { uri: property.images[0] };
+    }
+    return require('../../../assets/images/property1.png');
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView>
         <View style={styles.imageContainer}>
           <Image
-            source={require('../../../assets/images/property1.png')}
+            source={getPropertyImage(propertyData)}
             style={styles.propertyImage}
+            resizeMode="cover"
           />
           <TouchableOpacity
             style={styles.backButton}
@@ -84,14 +140,16 @@ const OwnerPropertyDetailScreen = () => {
             </View>
           </TouchableOpacity>
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>{propertyData.price} mxn</Text>
+            <Text style={styles.priceText}>{formatPrice(propertyData.price)}</Text>
             <View style={styles.locationContainer}>
               <Ionicons name="location" size={22} color={COLORS.secondary} />
-              <Text style={styles.locationText}>{propertyData.location}</Text>
+              <Text style={styles.locationText}>
+                {propertyData.municipality}, {propertyData.state}
+              </Text>
             </View>
           </View>
           <View style={styles.commissionContainer}>
-            <Text style={styles.commissionValue}>{propertyData.commission}%</Text>
+            <Text style={styles.commissionValue}>{propertyData.commission_percentage}%</Text>
             <Text style={styles.commissionLabel}>comisión</Text>
           </View>
         </View>
@@ -99,7 +157,7 @@ const OwnerPropertyDetailScreen = () => {
         <View style={styles.typeContainer}>
           <View style={styles.typeDot} />
           <Text style={styles.typeText}>
-            En venta {propertyData.type}
+            En {propertyData.intent === 'sell' ? 'venta' : propertyData.intent === 'rent' ? 'renta' : 'venta/renta'} {propertyData.property_type}
           </Text>
         </View>
 
@@ -107,12 +165,12 @@ const OwnerPropertyDetailScreen = () => {
           <CounterInfo
             icon="eye"
             label="Vistas"
-            count={propertyData.views}
+            count={0}
           />
           <CounterInfo
             icon="gift"
             label="Ofertas"
-            count={propertyData.offers}
+            count={0}
           />
         </View>
 
@@ -121,39 +179,43 @@ const OwnerPropertyDetailScreen = () => {
         </Text>
 
         <View style={styles.infoIconsContainer}>
-          <InfoIconText icon="bed" label={`${propertyData.bedrooms} cuartos`} />
-          <InfoIconText icon="water" label={`${propertyData.bathrooms} baños`} />
-          <InfoIconText icon="car" label={`${propertyData.parking} estacionamientos`} />
+          <InfoIconText icon="bed" label={`${propertyData.bedrooms || 0} cuartos`} />
+          <InfoIconText icon="water" label={`${propertyData.bathrooms || 0} baños`} />
+          <InfoIconText icon="car" label="2 estacionamientos" />
         </View>
 
         <View style={styles.areaInfoContainer}>
-          <AreaInfo label="Construcción" value={`${propertyData.construction_area}m²`} />
-          <AreaInfo label="Terreno" value={`${propertyData.land_area}m²`} />
-          <AreaInfo label="Total" value={`${propertyData.total_area}m²`} />
+          <AreaInfo label="Construcción" value={`${propertyData.construction_area || 0}m²`} />
+          <AreaInfo label="Terreno" value={`${propertyData.land_area || 0}m²`} />
+          <AreaInfo label="Total" value={`${(propertyData.construction_area || 0) + (propertyData.land_area || 0)}m²`} />
         </View>
 
         <View style={styles.documentationContainer}>
           <Text style={styles.documentationLabel}>Documentación:</Text>
           <View style={[
             styles.documentationStatus,
-            { borderColor: propertyData.documentation_complete ? COLORS.secondary : COLORS.gray }
+            { borderColor: COLORS.gray }
           ]}>
             <Text style={[
               styles.documentationStatusText,
-              { color: propertyData.documentation_complete ? COLORS.secondary : COLORS.gray }
+              { color: COLORS.gray }
             ]}>
-              {propertyData.documentation_complete ? 'Completa' : 'Incompleta'}
+              Pendiente
             </Text>
           </View>
         </View>
 
-        <Text style={styles.descriptionText}>
-          {propertyData.amenities}
-        </Text>
+        {propertyData.amenities && (
+          <Text style={styles.descriptionText}>
+            {propertyData.amenities}
+          </Text>
+        )}
 
-        <Text style={styles.descriptionText}>
-          {propertyData.description}
-        </Text>
+        {propertyData.additional_info && (
+          <Text style={styles.descriptionText}>
+            {propertyData.additional_info}
+          </Text>
+        )}
 
         <TouchableOpacity
           style={styles.editButton}
@@ -361,6 +423,16 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginLeft: 8,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.gray,
   },
 });
 

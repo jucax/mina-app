@@ -19,13 +19,28 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 const OwnerSubmissionScreen = () => {
-  const { formData, resetFormData } = usePropertyForm();
+  const { formData, resetFormData, isLoaded } = usePropertyForm();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const saveProperty = async () => {
+      // Wait for form data to be loaded
+      if (!isLoaded) {
+        console.log('⏳ Waiting for form data to load...');
+        return;
+      }
+
       setIsLoading(true);
       try {
+        // Debug: Log the form data
+        console.log('🔍 Form data before saving:', formData);
+        console.log('🔍 Intent value:', formData.intent);
+        console.log('🔍 Timeline value:', formData.timeline);
+        console.log('🔍 Price value:', formData.price);
+        console.log('🔍 Property type value:', formData.property_type);
+        console.log('🔍 State value:', formData.state);
+        console.log('🔍 Commission value:', formData.commission_percentage);
+
         // Mark registration as complete
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -62,7 +77,7 @@ const OwnerSubmissionScreen = () => {
     };
 
     saveProperty();
-  }, [formData, resetFormData]);
+  }, [isLoaded]); // Only depend on isLoaded
 
   return (
     <View style={styles.container}>
@@ -73,7 +88,16 @@ const OwnerSubmissionScreen = () => {
           resizeMode="contain"
         />
 
-        {isLoading ? (
+        {!isLoaded ? (
+          <>
+            <Text style={styles.title}>
+              Cargando datos...
+            </Text>
+            <Text style={styles.subtitle}>
+              Por favor espera mientras cargamos tu información.
+            </Text>
+          </>
+        ) : isLoading ? (
           <>
             <Text style={styles.title}>
               Guardando tu propiedad...

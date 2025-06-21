@@ -171,64 +171,45 @@ const OwnerDashboardScreen = () => {
   const renderPropertyCard = ({ item: property, index }: { item: Property; index: number }) => (
     <TouchableOpacity
       style={styles.propertyCard}
-      onPress={() => router.push({
-        pathname: '/(owner)/property/[id]',
-        params: { id: property.id }
-      })}
+      onPress={() => {
+        if (property.id) {
+          router.push({
+            pathname: '/(owner)/property/[id]',
+            params: { id: property.id }
+          });
+        }
+      }}
     >
       <Image
         source={getPropertyImage(property)}
         style={styles.propertyImage}
         resizeMode="cover"
       />
+      <TouchableOpacity
+        style={styles.favoriteButton}
+        onPress={() => toggleFavorite(index)}
+      >
+        <Ionicons
+          name={favoriteIndices.has(index) ? "heart" : "heart-outline"}
+          size={28}
+          color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
+        />
+      </TouchableOpacity>
       <View style={styles.propertyInfo}>
-        <View style={styles.propertyHeader}>
-          <Text style={styles.propertyType}>{property.property_type}</Text>
-          <TouchableOpacity
-            onPress={() => toggleFavorite(index)}
-            style={styles.favoriteButton}
-          >
-            <Ionicons
-              name={favoriteIndices.has(index) ? "heart" : "heart-outline"}
-              size={24}
-              color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.gray}
-            />
-          </TouchableOpacity>
-        </View>
-        
-        <Text style={styles.propertyLocation}>
-          {property.municipality}, {property.state}
-        </Text>
-        
-        <Text style={styles.propertyPrice}>
-          {formatPrice(property.price)}
-        </Text>
-        
-        <View style={styles.propertyStats}>
-          <View style={styles.statItem}>
-            <Ionicons name="bed-outline" size={16} color={COLORS.gray} />
-            <Text style={styles.statText}>{property.bedrooms || 0}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="water-outline" size={16} color={COLORS.gray} />
-            <Text style={styles.statText}>{property.bathrooms || 0}</Text>
-          </View>
-          <View style={styles.statItem}>
-            <Ionicons name="car-outline" size={16} color={COLORS.gray} />
-            <Text style={styles.statText}>2</Text>
-          </View>
-        </View>
-        
-        <View style={styles.propertyStatus}>
-          <View style={[
-            styles.statusBadge,
-            property.status === 'published' && styles.statusPublished,
-            property.status === 'draft' && styles.statusDraft,
-          ]}>
-            <Text style={styles.statusText}>
-              {property.status === 'published' ? 'Publicado' : 'Borrador'}
+        <View style={styles.locationContainer}>
+          <Ionicons name="location" size={22} color={COLORS.secondary} />
+          <View style={styles.locationTextContainer}>
+            <Text style={styles.locationText}>
+              {property.municipality}, {property.state}
+            </Text>
+            <Text style={styles.propertyTypeText}>
+              {property.property_type} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
             </Text>
           </View>
+        </View>
+        <View style={styles.commissionContainer}>
+          <Text style={styles.commissionText}>{property.commission_percentage}%</Text>
+          <Text style={styles.commissionLabel}>Comisión</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -518,70 +499,54 @@ const styles = StyleSheet.create({
     left: 18,
     right: 18,
     bottom: 18,
-    backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 12,
     shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
   },
-  propertyHeader: {
+  locationContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    flex: 1,
   },
-  propertyType: {
+  locationTextContainer: {
+    marginLeft: 6,
+  },
+  locationText: {
     ...FONTS.regular,
     fontWeight: '600',
   },
-  favoriteButton: {
-    padding: 8,
-  },
-  propertyLocation: {
+  propertyTypeText: {
     ...FONTS.regular,
-    fontWeight: '600',
   },
-  propertyPrice: {
-    ...FONTS.title,
-    fontSize: 28,
-    color: COLORS.secondary,
-  },
-  propertyStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 8,
-  },
-  statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  statText: {
-    ...FONTS.regular,
-    marginLeft: 8,
-  },
-  propertyStatus: {
+  commissionContainer: {
     alignItems: 'flex-end',
   },
-  statusBadge: {
-    padding: 4,
-    borderRadius: 8,
-    backgroundColor: COLORS.gray,
+  commissionText: {
+    ...FONTS.title,
+    fontSize: 28,
   },
-  statusPublished: {
-    backgroundColor: COLORS.secondary,
-  },
-  statusDraft: {
-    backgroundColor: COLORS.gray,
-  },
-  statusText: {
-    ...FONTS.regular,
+  commissionLabel: {
     fontSize: 14,
-    color: COLORS.white,
+    color: 'rgba(0, 0, 0, 0.5)',
+  },
+  favoriteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   modalContainer: {
     flex: 1,
