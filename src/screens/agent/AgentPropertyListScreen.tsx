@@ -13,6 +13,7 @@ import {
   Pressable,
 } from 'react-native';
 import { router } from 'expo-router';
+import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,6 +26,12 @@ interface Property {
   type: string;
 }
 
+interface UserProfile {
+  id: string;
+  full_name: string;
+  avatar_url?: string;
+}
+
 const AgentPropertyListScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('All');
@@ -33,6 +40,56 @@ const AgentPropertyListScreen = () => {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [favoriteIndices, setFavoriteIndices] = useState<Set<number>>(new Set());
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [imageLoadError, setImageLoadError] = useState(false);
+
+  // Fetch user profile on component mount
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🔍 Current user:', user?.id);
+        
+        if (user) {
+          const { data: profile, error } = await supabase
+            .from('profiles')
+            .select('id, full_name, avatar_url')
+            .eq('id', user.id)
+            .single();
+
+          if (error) {
+            console.error('❌ Error fetching user profile:', error);
+          } else {
+            console.log('✅ Profile fetched successfully:', profile);
+            console.log('🖼️ Avatar URL:', profile.avatar_url);
+            
+            // Test if the image URL is accessible
+            if (profile.avatar_url) {
+              try {
+                const response = await fetch(profile.avatar_url, { method: 'HEAD' });
+                console.log('🖼️ Image URL status:', response.status, response.ok ? '✅ Accessible' : '❌ Not accessible');
+              } catch (fetchError) {
+                console.error('❌ Error testing image URL:', fetchError);
+              }
+            }
+            
+            setUserProfile(profile);
+          }
+        }
+      } catch (error) {
+        console.error('❌ Error fetching user profile:', error);
+      }
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  // Log avatar URL when it changes
+  useEffect(() => {
+    if (userProfile?.avatar_url) {
+      console.log('🧪 Final avatar URL to load (Agent):', userProfile.avatar_url);
+    }
+  }, [userProfile?.avatar_url]);
 
   const allProperties: Property[] = [
     {
@@ -107,7 +164,13 @@ const AgentPropertyListScreen = () => {
     return (
       <Pressable
         style={styles.propertyCard}
-        onPress={() => router.push('/(agent)/home')}
+        onPress={() => router.push({
+          pathname: '/(agent)/property/[id]',
+          params: { 
+            id: originalIndex.toString(),
+            property: JSON.stringify(item)
+          }
+        })}
       >
         <Image source={item.image as any} style={styles.propertyImage} />
         <TouchableOpacity
@@ -254,7 +317,21 @@ const AgentPropertyListScreen = () => {
             style={styles.headerButton}
             onPress={() => router.push('/(general)/agent-profile')}
           >
-            <Ionicons name="person" size={28} color={COLORS.secondary} />
+            {userProfile?.avatar_url && !imageLoadError ? (
+              <Image 
+                source={{ uri: userProfile.avatar_url }} 
+                style={styles.profileImage}
+                onError={(error) => {
+                  console.error('❌ Image loading error:', error.nativeEvent.error);
+                  setImageLoadError(true);
+                }}
+                onLoad={() => console.log('✅ Image loaded successfully:', userProfile.avatar_url)}
+              />
+            ) : (
+              <View style={styles.profileImagePlaceholder}>
+                <Ionicons name="person" size={20} color={COLORS.secondary} />
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -451,7 +528,6 @@ const styles = StyleSheet.create({
   },
   propertyTypeText: {
     ...FONTS.regular,
-    fontWeight: 'bold',
   },
   commissionContainer: {
     alignItems: 'flex-end',
@@ -543,6 +619,19 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.black,
+  },
+  profileImage: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+  },
+  profileImagePlaceholder: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: COLORS.white,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 

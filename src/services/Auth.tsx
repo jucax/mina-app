@@ -6,7 +6,7 @@ export interface AuthUser {
   is_owner: boolean;
   name?: string;
   phone?: string;
-  profile_image?: string;
+  avatar_url?: string;
 }
 
 export interface AuthError {
@@ -33,7 +33,7 @@ export const Auth = {
         is_owner: data.user.user_metadata?.is_owner || false,
         name: data.user.user_metadata?.name,
         phone: data.user.user_metadata?.phone,
-        profile_image: data.user.user_metadata?.profile_image,
+        avatar_url: data.user.user_metadata?.avatar_url,
       };
 
       return { user, error: null };
@@ -52,7 +52,7 @@ export const Auth = {
             is_owner: userData.is_owner,
             name: userData.name,
             phone: userData.phone,
-            profile_image: userData.profile_image,
+            avatar_url: userData.avatar_url,
           },
         },
       });
@@ -69,7 +69,7 @@ export const Auth = {
         is_owner: userData.is_owner || false,
         name: userData.name,
         phone: userData.phone,
-        profile_image: userData.profile_image,
+        avatar_url: userData.avatar_url,
       };
 
       return { user, error: null };
@@ -113,7 +113,7 @@ export const Auth = {
         is_owner: user.user_metadata?.is_owner || false,
         name: user.user_metadata?.name,
         phone: user.user_metadata?.phone,
-        profile_image: user.user_metadata?.profile_image,
+        avatar_url: user.user_metadata?.avatar_url,
       };
 
       return { user: authUser, error: null };
@@ -128,7 +128,7 @@ export const Auth = {
         data: {
           name: userData.name,
           phone: userData.phone,
-          profile_image: userData.profile_image,
+          avatar_url: userData.avatar_url,
         },
       });
 
@@ -141,7 +141,7 @@ export const Auth = {
         is_owner: user.user_metadata?.is_owner || false,
         name: user.user_metadata?.name,
         phone: user.user_metadata?.phone,
-        profile_image: user.user_metadata?.profile_image,
+        avatar_url: user.user_metadata?.avatar_url,
       };
 
       return { user: authUser, error: null };

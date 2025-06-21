@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -115,20 +116,25 @@ const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownP
 };
 
 const PropertyDetailsScreen = () => {
-  const [cp, setCp] = useState('');
-  const [municipio, setMunicipio] = useState('');
-  const [calle, setCalle] = useState('');
-  const [superficie, setSuperficie] = useState('');
-  const [construccion, setConstruccion] = useState('');
-  const [cuartos, setCuartos] = useState('');
-  const [banos, setBanos] = useState('');
-  const [mediosBanos, setMediosBanos] = useState('');
-  const [amenidades, setAmenidades] = useState('');
-  const [infoAdicional, setInfoAdicional] = useState('');
-  const [selectedPais, setSelectedPais] = useState<string>('México');
-  const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
-  const [selectedColonia, setSelectedColonia] = useState<string | null>(null);
-  const [selectedImages, setSelectedImages] = useState<string[]>([]);
+  const { formData, updateFormData } = usePropertyForm();
+  
+  // Location fields
+  const [cp, setCp] = useState(formData.postal_code);
+  const [municipio, setMunicipio] = useState(formData.municipality);
+  const [calle, setCalle] = useState(formData.street);
+  const [selectedPais, setSelectedPais] = useState<string>(formData.country);
+  const [selectedEstado, setSelectedEstado] = useState<string | null>(formData.state);
+  const [selectedColonia, setSelectedColonia] = useState<string | null>(formData.neighborhood);
+  
+  // Property characteristics
+  const [superficie, setSuperficie] = useState(formData.land_area);
+  const [construccion, setConstruccion] = useState(formData.construction_area);
+  const [cuartos, setCuartos] = useState(formData.bedrooms);
+  const [banos, setBanos] = useState(formData.bathrooms);
+  const [mediosBanos, setMediosBanos] = useState(formData.half_bathrooms);
+  const [amenidades, setAmenidades] = useState(formData.amenities);
+  const [infoAdicional, setInfoAdicional] = useState(formData.additional_info);
+  const [selectedImages, setSelectedImages] = useState<string[]>(formData.images);
   const [showDeleteIndex, setShowDeleteIndex] = useState<number | null>(null);
 
   // Get municipalities based on selected state
@@ -154,6 +160,28 @@ const PropertyDetailsScreen = () => {
   const removeImage = (index: number) => {
     setSelectedImages(selectedImages.filter((_, i) => i !== index));
     setShowDeleteIndex(null);
+  };
+
+  const handleContinue = () => {
+    // Save to context
+    updateFormData({
+      postal_code: cp,
+      municipality: municipio,
+      street: calle,
+      country: selectedPais,
+      state: selectedEstado,
+      neighborhood: selectedColonia,
+      land_area: superficie,
+      construction_area: construccion,
+      bedrooms: cuartos,
+      bathrooms: banos,
+      half_bathrooms: mediosBanos,
+      amenities: amenidades,
+      additional_info: infoAdicional,
+      images: selectedImages,
+    });
+    
+    router.push('/(owner)/property/compensation');
   };
 
   return (
@@ -363,7 +391,7 @@ const PropertyDetailsScreen = () => {
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/(owner)/property/compensation')}
+          onPress={handleContinue}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>

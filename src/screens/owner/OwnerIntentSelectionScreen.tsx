@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width, height } = Dimensions.get('window');
 const BUTTON_WIDTH = width * 0.8; // Use 80% of width for all buttons
@@ -24,8 +25,9 @@ const timeOptions = [
 ];
 
 const OwnerIntentSelectionScreen = () => {
-  const [selectedIntent, setSelectedIntent] = useState<string | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const { formData, updateFormData } = usePropertyForm();
+  const [selectedIntent, setSelectedIntent] = useState<string | null>(formData.intent);
+  const [selectedTime, setSelectedTime] = useState<string | null>(formData.timeline);
 
   const intents = [
     {
@@ -47,6 +49,12 @@ const OwnerIntentSelectionScreen = () => {
 
   const handleContinue = () => {
     if (selectedIntent && selectedTime) {
+      // Save to context
+      updateFormData({
+        intent: selectedIntent as 'sell' | 'rent' | 'both',
+        timeline: selectedTime,
+      });
+      
       router.push({
         pathname: '/(owner)/property/price',
         params: { intent: selectedIntent, when: selectedTime }

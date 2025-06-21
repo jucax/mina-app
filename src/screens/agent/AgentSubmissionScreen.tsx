@@ -101,7 +101,7 @@ const styles = StyleSheet.create({
   },
   homeButton: {
     position: 'absolute',
-    top: 24,
+    top: 60,
     right: 24,
   },
 });

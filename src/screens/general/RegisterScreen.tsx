@@ -154,20 +154,31 @@ const RegisterScreen = () => {
           console.log('✅ Imagen de perfil subida exitosamente');
           
           // Get the public URL
-          const { data: { publicUrl } } = supabase.storage
+          const { data: { publicUrl } } = await supabase.storage
             .from('profile-images')
             .getPublicUrl(filePath);
+
+          console.log('🔗 Generated public URL:', publicUrl);
+          console.log('📁 File path:', filePath);
+
+          // Test if the URL is accessible
+          try {
+            const testResponse = await fetch(publicUrl, { method: 'HEAD' });
+            console.log('🖼️ URL accessibility test:', testResponse.status, testResponse.ok ? '✅ Accessible' : '❌ Not accessible');
+          } catch (fetchError) {
+            console.error('❌ Error testing URL accessibility:', fetchError);
+          }
 
           // Update the profile with the image URL
           const { error: updateError } = await supabase
             .from('profiles')
-            .update({ profile_image: publicUrl })
+            .update({ avatar_url: publicUrl })
             .eq('id', authData.user.id);
 
           if (updateError) {
             console.error('❌ Error al actualizar perfil con imagen:', updateError.message);
           } else {
-            console.log('✅ URL de la imagen guardada en el perfil');
+            console.log('✅ URL de la imagen guardada en el perfil:', publicUrl);
           }
         }
       }

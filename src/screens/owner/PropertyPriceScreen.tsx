@@ -12,11 +12,21 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width, height } = Dimensions.get('window');
 
 const PropertyPriceScreen = () => {
-  const [price, setPrice] = useState('');
+  const { formData, updateFormData } = usePropertyForm();
+  const [price, setPrice] = useState(formData.price);
+
+  const handleContinue = () => {
+    if (price) {
+      // Save to context
+      updateFormData({ price });
+      router.push('/(owner)/property/type');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -58,8 +68,12 @@ const PropertyPriceScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={styles.continueButton}
-          onPress={() => router.push('/(owner)/property/type')}
+          style={[
+            styles.continueButton,
+            !price && styles.continueButtonDisabled
+          ]}
+          onPress={handleContinue}
+          disabled={!price}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
@@ -138,6 +152,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     bottom: 32,
     alignSelf: 'center',
+  },
+  continueButtonDisabled: {
+    opacity: 0.5,
   },
   continueButtonText: {
     ...FONTS.regular,

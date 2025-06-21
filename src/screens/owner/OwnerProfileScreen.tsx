@@ -23,31 +23,31 @@ interface UserProfile {
   is_owner: boolean;
 }
 
-const AgentProfileScreen = () => {
+const OwnerProfileScreen = () => {
   const params = useLocalSearchParams();
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if we're viewing another agent's profile (from params) or current user's profile
+  // Check if we're viewing another owner's profile (from params) or current user's profile
   const isViewingOtherProfile = params.agentImage && params.agentName;
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         if (isViewingOtherProfile) {
-          // Use the profile data from params (for viewing other agents)
-          console.log('👥 Viewing other agent profile from params');
+          // Use the profile data from params (for viewing other owners)
+          console.log('👥 Viewing other owner profile from params');
           setUserProfile({
             id: '',
             full_name: params.agentName as string,
             phone: params.contact as string,
             avatar_url: params.agentImage as string,
-            is_owner: false,
+            is_owner: true,
           });
         } else {
           // Fetch current user's profile
           const { data: { user } } = await supabase.auth.getUser();
-          console.log('🔍 Current user (Agent Profile):', user?.id);
+          console.log('🔍 Current user (Owner Profile):', user?.id);
           
           if (user) {
             const { data: profile, error } = await supabase
@@ -57,16 +57,16 @@ const AgentProfileScreen = () => {
               .single();
 
             if (error) {
-              console.error('❌ Error fetching user profile (Agent Profile):', error);
+              console.error('❌ Error fetching user profile (Owner Profile):', error);
             } else {
-              console.log('✅ Profile fetched successfully (Agent Profile):', profile);
-              console.log('🖼️ Avatar URL (Agent Profile):', profile.avatar_url);
+              console.log('✅ Profile fetched successfully (Owner Profile):', profile);
+              console.log('🖼️ Avatar URL (Owner Profile):', profile.avatar_url);
               setUserProfile(profile);
             }
           }
         }
       } catch (error) {
-        console.error('❌ Error fetching profile (Agent Profile):', error);
+        console.error('❌ Error fetching profile (Owner Profile):', error);
       } finally {
         setLoading(false);
       }
@@ -78,7 +78,7 @@ const AgentProfileScreen = () => {
   // Log avatar URL when it changes
   useEffect(() => {
     if (userProfile?.avatar_url) {
-      console.log('🧪 Final avatar URL to load (Agent Profile):', userProfile.avatar_url);
+      console.log('🧪 Final avatar URL to load (Owner Profile):', userProfile.avatar_url);
     }
   }, [userProfile?.avatar_url]);
 
@@ -117,8 +117,8 @@ const AgentProfileScreen = () => {
               <Image
                 source={{ uri: userProfile.avatar_url }}
                 style={styles.profileImage}
-                onError={(error) => console.error('❌ Image loading error (Agent Profile):', error.nativeEvent.error)}
-                onLoad={() => console.log('✅ Image loaded successfully (Agent Profile):', userProfile.avatar_url)}
+                onError={(error) => console.error('❌ Image loading error (Owner Profile):', error.nativeEvent.error)}
+                onLoad={() => console.log('✅ Image loaded successfully (Owner Profile):', userProfile.avatar_url)}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>
@@ -127,13 +127,13 @@ const AgentProfileScreen = () => {
             )}
           </View>
 
-          {/* White Card with Agent Info */}
+          {/* White Card with Owner Info */}
           <View style={styles.infoCard}>
             <Text style={styles.agentName}>{userProfile.full_name}</Text>
-            <Text style={styles.agentTitle}>Asesora inmobiliaria</Text>
+            <Text style={styles.agentTitle}>Propietario</Text>
             <View style={styles.divider} />
             <Text style={styles.agentDescription}>
-              Hola, mi nombre es {userProfile.full_name} y estaré encantado de ayudarte a cumplir tu objetivo
+              Hola, mi nombre es {userProfile.full_name} y soy propietario de propiedades
             </Text>
           </View>
 
@@ -268,4 +268,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgentProfileScreen; 
+export default OwnerProfileScreen; 

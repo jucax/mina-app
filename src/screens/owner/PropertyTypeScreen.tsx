@@ -13,6 +13,7 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width } = Dimensions.get('window');
 
@@ -39,11 +40,23 @@ const GRID_COLUMNS = 2;
 const GRID_BUTTON_WIDTH = width * 0.38; // More compact, still fits 'Departamento' with some compression
 
 const PropertyTypeScreen = () => {
-  const [selectedType, setSelectedType] = useState<string | null>(null);
-  const [otherType, setOtherType] = useState('');
+  const { formData, updateFormData } = usePropertyForm();
+  const [selectedType, setSelectedType] = useState<string | null>(formData.property_type);
+  const [otherType, setOtherType] = useState(formData.other_type);
 
   // Split propertyTypes into rows of 2 for a two-column grid
   const typeRows = chunkArray(propertyTypes, GRID_COLUMNS);
+
+  const handleContinue = () => {
+    if (selectedType) {
+      // Save to context
+      updateFormData({
+        property_type: selectedType,
+        other_type: selectedType === 'Otro' ? otherType : '',
+      });
+      router.push('/(owner)/property/documentation');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -107,7 +120,7 @@ const PropertyTypeScreen = () => {
             styles.continueButton,
             !selectedType && styles.continueButtonDisabled
           ]}
-          onPress={() => router.push('/(owner)/property/documentation')}
+          onPress={handleContinue}
           disabled={!selectedType}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>

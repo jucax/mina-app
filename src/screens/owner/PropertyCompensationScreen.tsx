@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width } = Dimensions.get('window');
 
@@ -34,7 +35,18 @@ const commissionOptions = [
 ];
 
 const PropertyCompensationScreen = () => {
-  const [selectedCommission, setSelectedCommission] = useState<string | null>(null);
+  const { formData, updateFormData } = usePropertyForm();
+  const [selectedCommission, setSelectedCommission] = useState<string | null>(formData.commission_percentage);
+
+  const handlePublish = () => {
+    if (selectedCommission) {
+      // Save to context
+      updateFormData({
+        commission_percentage: selectedCommission,
+      });
+      router.push('/(owner)/submission');
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -96,7 +108,7 @@ const PropertyCompensationScreen = () => {
             styles.publishButton,
             !selectedCommission && styles.publishButtonDisabled,
           ]}
-          onPress={() => selectedCommission && router.push('/(owner)/submission')}
+          onPress={handlePublish}
           disabled={!selectedCommission}
         >
           <Text style={styles.publishButtonText}>Publicar</Text>

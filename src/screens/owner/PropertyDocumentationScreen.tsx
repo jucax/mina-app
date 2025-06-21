@@ -12,33 +12,55 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { usePropertyForm } from '../../contexts/PropertyFormContext';
 
 const { width, height } = Dimensions.get('window');
 
 interface DocItem {
   label: string;
   checked: boolean;
+  key: keyof typeof initialDocs;
 }
 
-const initialDocs: DocItem[] = [
-  { label: 'Identificación Oficial', checked: false },
-  { label: 'Constancia de situación fiscal actualizada', checked: false },
-  { label: 'Comprobante de domicilio', checked: false },
-  { label: 'Escritura de la propiedad', checked: false },
-  { label: 'Ultima boleta predial', checked: false },
-  { label: 'Ultima boleta de agua', checked: false },
-  { label: 'Ultima boleta de luz', checked: false },
-  { label: 'Consulta de folios', checked: false },
+const initialDocs: Record<string, boolean> = {
+  identification: false,
+  tax_constancy: false,
+  address_proof: false,
+  deed: false,
+  property_tax: false,
+  water_bill: false,
+  electricity_bill: false,
+  folio_consultation: false,
+};
+
+const docLabels = [
+  { label: 'Identificación Oficial', key: 'identification' as const },
+  { label: 'Constancia de situación fiscal actualizada', key: 'tax_constancy' as const },
+  { label: 'Comprobante de domicilio', key: 'address_proof' as const },
+  { label: 'Escritura de la propiedad', key: 'deed' as const },
+  { label: 'Ultima boleta predial', key: 'property_tax' as const },
+  { label: 'Ultima boleta de agua', key: 'water_bill' as const },
+  { label: 'Ultima boleta de luz', key: 'electricity_bill' as const },
+  { label: 'Consulta de folios', key: 'folio_consultation' as const },
 ];
 
 const PropertyDocumentationScreen = () => {
-  const [docs, setDocs] = useState<DocItem[]>(initialDocs);
-  const [comment, setComment] = useState('');
+  const { formData, updateFormData } = usePropertyForm();
+  const [docs, setDocs] = useState(formData.documentation);
+  const [comment, setComment] = useState(formData.documentation_comments);
 
-  const toggleDoc = (index: number) => {
-    const newDocs = [...docs];
-    newDocs[index].checked = !newDocs[index].checked;
+  const toggleDoc = (key: keyof typeof docs) => {
+    const newDocs = { ...docs, [key]: !docs[key] };
     setDocs(newDocs);
+  };
+
+  const handleContinue = () => {
+    // Save to context
+    updateFormData({
+      documentation: docs,
+      documentation_comments: comment,
+    });
+    router.push('/(owner)/property/details');
   };
 
   return (
@@ -58,17 +80,17 @@ const PropertyDocumentationScreen = () => {
         </Text>
 
         <View style={styles.docsContainer}>
-          {docs.map((doc, index) => (
+          {docLabels.map((doc) => (
             <TouchableOpacity
-              key={doc.label}
+              key={doc.key}
               style={styles.docItem}
-              onPress={() => toggleDoc(index)}
+              onPress={() => toggleDoc(doc.key)}
             >
               <View style={[
                 styles.checkbox,
-                doc.checked && styles.checkboxSelected
+                docs[doc.key] && styles.checkboxSelected
               ]}>
-                {doc.checked && (
+                {docs[doc.key] && (
                   <Ionicons name="checkmark" size={20} color={COLORS.white} />
                 )}
               </View>
@@ -88,7 +110,7 @@ const PropertyDocumentationScreen = () => {
 
         <TouchableOpacity
           style={styles.continueButton}
-          onPress={() => router.push('/(owner)/property/details')}
+          onPress={handleContinue}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
