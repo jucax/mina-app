@@ -15,6 +15,7 @@ import {
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { useAgentForm } from '../../contexts/AgentFormContext';
 
 const { width, height } = Dimensions.get('window');
 
@@ -89,23 +90,46 @@ const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownP
 };
 
 const AgentRegistrationScreen = () => {
-  const [cp, setCp] = useState('');
-  const [municipio, setMunicipio] = useState('');
-  const [calle, setCalle] = useState('');
-  const [colonia, setColonia] = useState('');
-  const [experience, setExperience] = useState('');
-  const [propertiesSold, setPropertiesSold] = useState('');
-  const [agencyName, setAgencyName] = useState('');
-  const [description, setDescription] = useState('');
-  const [selectedPais, setSelectedPais] = useState<string>('México');
-  const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
-  const [selectedCommission, setSelectedCommission] = useState<number | null>(null);
-  const [worksAtAgency, setWorksAtAgency] = useState(false);
-  const [notWorksAtAgency, setNotWorksAtAgency] = useState(false);
+  const { formData, updateFormData } = useAgentForm();
+  
+  // Local state for form fields
+  const [cp, setCp] = useState(formData.postal_code);
+  const [municipio, setMunicipio] = useState(formData.municipality);
+  const [calle, setCalle] = useState(formData.street);
+  const [colonia, setColonia] = useState(formData.neighborhood);
+  const [experience, setExperience] = useState(formData.experience_years);
+  const [propertiesSold, setPropertiesSold] = useState(formData.properties_sold);
+  const [agencyName, setAgencyName] = useState(formData.agency_name);
+  const [description, setDescription] = useState(formData.description);
+  const [selectedPais, setSelectedPais] = useState<string>(formData.country);
+  const [selectedEstado, setSelectedEstado] = useState<string | null>(formData.state);
+  const [selectedCommission, setSelectedCommission] = useState<number | null>(formData.commission_percentage || null);
+  const [worksAtAgency, setWorksAtAgency] = useState(formData.works_at_agency);
+  const [notWorksAtAgency, setNotWorksAtAgency] = useState(!formData.works_at_agency);
 
   const handleAgencySelection = (isYes: boolean) => {
     setWorksAtAgency(isYes);
     setNotWorksAtAgency(!isYes);
+  };
+
+  const handleContinue = () => {
+    // Save to context
+    updateFormData({
+      postal_code: cp,
+      municipality: municipio,
+      street: calle,
+      neighborhood: colonia,
+      experience_years: experience,
+      properties_sold: propertiesSold,
+      country: selectedPais,
+      state: selectedEstado || '',
+      commission_percentage: selectedCommission || 0,
+      works_at_agency: worksAtAgency,
+      agency_name: agencyName,
+      description: description,
+    });
+    
+    router.push('/(agent)/submission');
   };
 
   return (
@@ -153,7 +177,6 @@ const AgentRegistrationScreen = () => {
               value={selectedPais}
               items={['México']}
               onChange={setSelectedPais}
-              disabled={true}
             />
           </View>
         </View>
@@ -311,7 +334,7 @@ const AgentRegistrationScreen = () => {
 
         <TouchableOpacity
           style={styles.registerButton}
-          onPress={() => router.push('/(agent)/submission')}
+          onPress={handleContinue}
         >
           <Text style={styles.registerButtonText}>Registrarme</Text>
         </TouchableOpacity>

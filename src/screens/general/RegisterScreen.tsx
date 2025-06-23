@@ -13,6 +13,7 @@ import {
   Alert,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { router } from 'expo-router';
@@ -181,6 +182,18 @@ const RegisterScreen = () => {
             console.log('✅ URL de la imagen guardada en el perfil:', publicUrl);
           }
         }
+      }
+
+      // Save basic registration data to AsyncStorage if user is an agent
+      if (!isOwner) {
+        const basicData = {
+          name,
+          email,
+          phone,
+        };
+        console.log('💾 Saving basic registration data to AsyncStorage:', basicData);
+        await AsyncStorage.setItem('agentRegistrationData', JSON.stringify(basicData));
+        console.log('✅ Basic registration data saved successfully');
       }
 
       Alert.alert(

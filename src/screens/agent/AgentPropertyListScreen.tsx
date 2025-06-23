@@ -20,10 +20,30 @@ import { Ionicons } from '@expo/vector-icons';
 const { width, height } = Dimensions.get('window');
 
 interface Property {
-  image: string;
-  commission: string;
-  location: string;
-  type: string;
+  id: string;
+  user_id: string;
+  intent: 'venta' | 'renta';
+  timeline: string;
+  price: number;
+  property_type: string;
+  documentation: string;
+  country: string;
+  state: string;
+  municipality: string;
+  neighborhood: string;
+  street: string;
+  postal_code: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  parking_spaces?: number;
+  construction_area?: number;
+  land_area?: number;
+  images: string[];
+  commission_percentage: number;
+  description?: string;
+  status: 'active' | 'inactive' | 'sold' | 'rented';
+  created_at: string;
+  updated_at: string;
 }
 
 interface UserProfile {
@@ -42,6 +62,38 @@ const AgentPropertyListScreen = () => {
   const [favoriteIndices, setFavoriteIndices] = useState<Set<number>>(new Set());
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [imageLoadError, setImageLoadError] = useState(false);
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Fetch properties from database
+  const fetchProperties = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('properties')
+        .select('*')
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('❌ Error fetching properties:', error);
+      } else {
+        console.log('✅ Properties fetched successfully:', data?.length || 0);
+        setProperties(data || []);
+      }
+    } catch (error) {
+      console.error('❌ Error in fetchProperties:', error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  };
+
+  // Fetch properties from database
+  useEffect(() => {
+    fetchProperties();
+  }, []);
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -91,60 +143,18 @@ const AgentPropertyListScreen = () => {
     }
   }, [userProfile?.avatar_url]);
 
-  const allProperties: Property[] = [
-    {
-      image: require('../../../assets/images/property1.png'),
-      commission: '4%',
-      location: 'Benito Juárez, CDMX.',
-      type: 'Departamento',
-    },
-    {
-      image: require('../../../assets/images/property2.png'),
-      commission: '3%',
-      location: 'San Juan de Aragón, CDMX.',
-      type: 'Casa',
-    },
-    {
-      image: require('../../../assets/images/property3.png'),
-      commission: '6%',
-      location: 'Vallejo, CDMX.',
-      type: 'Terreno',
-    },
-    {
-      image: require('../../../assets/images/property4.png'),
-      commission: '5%',
-      location: 'Polanco, CDMX.',
-      type: 'Oficina',
-    },
-    {
-      image: require('../../../assets/images/property5.png'),
-      commission: '4%',
-      location: 'Coyoacán, CDMX.',
-      type: 'Local',
-    },
-    {
-      image: require('../../../assets/images/property6.png'),
-      commission: '7%',
-      location: 'Santa Fe, CDMX.',
-      type: 'Bodega',
-    },
-    {
-      image: require('../../../assets/images/property1.png'),
-      commission: '4%',
-      location: 'Benito Juárez, CDMX.',
-      type: 'Edificio',
-    },
-  ];
+  const locations = ['All', ...new Set(properties.map(p => `${p.neighborhood}, ${p.municipality}`))].sort();
+  const propertyTypes = ['All', ...new Set(properties.map(p => p.property_type))].sort();
+  const commissionPercentages = ['All', ...new Set(properties.map(p => `${p.commission_percentage}%`))].sort();
 
-  const locations = ['All', ...new Set(allProperties.map(p => p.location))].sort();
-  const propertyTypes = ['All', 'Casa', 'Departamento', 'Terreno', 'Oficina', 'Local', 'Bodega', 'Edificio'];
-  const commissionPercentages = ['All', '3%', '5%', '6%'];
-
-  const filteredProperties = allProperties.filter(property => {
-    const matchesLocation = selectedLocation === 'All' || property.location === selectedLocation;
-    const matchesQuery = searchQuery === '' || property.location.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = selectedPropertyType === 'All' || property.type === selectedPropertyType;
-    const matchesCommission = selectedCommission === 'All' || property.commission === selectedCommission;
+  const filteredProperties = properties.filter(property => {
+    const propertyLocation = `${property.neighborhood}, ${property.municipality}`;
+    const matchesLocation = selectedLocation === 'All' || propertyLocation === selectedLocation;
+    const matchesQuery = searchQuery === '' || 
+      propertyLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      property.property_type.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = selectedPropertyType === 'All' || property.property_type === selectedPropertyType;
+    const matchesCommission = selectedCommission === 'All' || `${property.commission_percentage}%` === selectedCommission;
 
     return matchesLocation && matchesQuery && matchesType && matchesCommission;
   });
@@ -160,39 +170,43 @@ const AgentPropertyListScreen = () => {
   };
 
   const renderPropertyItem = ({ item, index }: { item: Property; index: number }) => {
-    const originalIndex = allProperties.indexOf(item);
+    const propertyLocation = `${item.neighborhood}, ${item.municipality}`;
+    const propertyImage = item.images && item.images.length > 0 
+      ? { uri: item.images[0] } 
+      : require('../../../assets/images/property1.png');
+
     return (
       <Pressable
         style={styles.propertyCard}
         onPress={() => router.push({
           pathname: '/(agent)/property/[id]',
           params: { 
-            id: originalIndex.toString(),
+            id: item.id,
             property: JSON.stringify(item)
           }
         })}
       >
-        <Image source={item.image as any} style={styles.propertyImage} />
+        <Image source={propertyImage} style={styles.propertyImage} />
         <TouchableOpacity
           style={styles.favoriteButton}
-          onPress={() => toggleFavorite(originalIndex)}
+          onPress={() => toggleFavorite(index)}
         >
           <Ionicons
-            name={favoriteIndices.has(originalIndex) ? 'heart' : 'heart-outline'}
+            name={favoriteIndices.has(index) ? 'heart' : 'heart-outline'}
             size={28}
-            color={favoriteIndices.has(originalIndex) ? COLORS.secondary : COLORS.primary}
+            color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
           />
         </TouchableOpacity>
         <View style={styles.propertyInfo}>
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={22} color={COLORS.secondary} />
             <View style={styles.locationTextContainer}>
-              <Text style={styles.locationText}>{item.location}</Text>
-              <Text style={styles.propertyTypeText}>Departamento en VENTA</Text>
+              <Text style={styles.locationText}>{propertyLocation}</Text>
+              <Text style={styles.propertyTypeText}>{item.property_type} en {item.intent.toUpperCase()}</Text>
             </View>
           </View>
           <View style={styles.commissionContainer}>
-            <Text style={styles.commissionText}>{item.commission}</Text>
+            <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
             <Text style={styles.commissionLabel}>Comision</Text>
           </View>
         </View>
@@ -293,6 +307,11 @@ const AgentPropertyListScreen = () => {
     </Modal>
   );
 
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchProperties();
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -355,16 +374,26 @@ const AgentPropertyListScreen = () => {
         </TouchableOpacity>
       </View>
 
-      {filteredProperties.length === 0 ? (
+      {loading ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No se encontraron propiedades.</Text>
+          <Text style={styles.emptyText}>Cargando propiedades...</Text>
+        </View>
+      ) : filteredProperties.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>
+            {searchQuery || selectedLocation !== 'All' || selectedPropertyType !== 'All' || selectedCommission !== 'All'
+              ? 'No se encontraron propiedades con los filtros aplicados.'
+              : 'No hay propiedades disponibles en este momento.'}
+          </Text>
         </View>
       ) : (
         <FlatList
           data={filteredProperties}
           renderItem={renderPropertyItem}
-          keyExtractor={(item, index) => index.toString()}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.propertyList}
+          onRefresh={onRefresh}
+          refreshing={refreshing}
         />
       )}
 
