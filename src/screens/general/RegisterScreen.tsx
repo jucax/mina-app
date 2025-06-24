@@ -186,14 +186,27 @@ const RegisterScreen = () => {
 
       // Save basic registration data to AsyncStorage if user is an agent
       if (!isOwner) {
-        const basicData = {
-          name,
-          email,
-          phone,
-        };
-        console.log('💾 Saving basic registration data to AsyncStorage:', basicData);
-        await AsyncStorage.setItem('agentRegistrationData', JSON.stringify(basicData));
-        console.log('✅ Basic registration data saved successfully');
+        // Create agent record in the agents table with basic info
+        const { error: agentError } = await supabase
+          .from('agents')
+          .insert([
+            {
+              user_id: authData.user.id,
+              full_name: name,
+              email: email,
+              phone: phone,
+              country: 'México',
+              status: 'pending',
+              is_verified: false,
+            },
+          ]);
+
+        if (agentError) {
+          console.error('❌ Error creating agent record:', agentError.message);
+          throw agentError;
+        }
+
+        console.log('✅ Agent record created successfully');
       }
 
       Alert.alert(

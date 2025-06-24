@@ -65,35 +65,13 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
       try {
         console.log('🔄 Loading agent form data...');
         const savedData = await AsyncStorage.getItem('agentFormData');
-        const basicRegistrationData = await AsyncStorage.getItem('agentRegistrationData');
-        
-        console.log('📱 Saved agent form data:', savedData);
-        console.log('📱 Basic registration data:', basicRegistrationData);
         
         if (savedData) {
           const parsedData = JSON.parse(savedData);
           console.log('📱 Loaded agent form data from storage:', parsedData);
           setFormData(parsedData);
-        } else if (basicRegistrationData) {
-          // If no form data exists but basic registration data does, use that
-          const parsedBasicData = JSON.parse(basicRegistrationData);
-          console.log('📱 Loaded basic registration data:', parsedBasicData);
-          const initialData = {
-            ...initialFormData,
-            full_name: parsedBasicData.name,
-            email: parsedBasicData.email,
-            phone: parsedBasicData.phone,
-          };
-          console.log('📱 Created initial form data:', initialData);
-          setFormData(initialData);
-          // Save to agentFormData for consistency
-          await AsyncStorage.setItem('agentFormData', JSON.stringify(initialData));
-          console.log('✅ Saved initial form data to agentFormData');
-          // Clean up the basic registration data
-          await AsyncStorage.removeItem('agentRegistrationData');
-          console.log('✅ Cleaned up basic registration data');
         } else {
-          console.log('📱 No saved data found, using initial form data');
+          console.log('📱 No saved form data found, using initial form data');
         }
       } catch (error) {
         console.error('Error loading agent form data:', error);

@@ -39,51 +39,74 @@ const AgentSubmissionScreen = () => {
         console.log('🔍 Email:', formData.email);
         console.log('🔍 Phone:', formData.phone);
 
-        // Validate required fields before saving
-        const missingFields = [];
-        if (!formData.full_name) missingFields.push('full_name');
-        if (!formData.email) missingFields.push('email');
-        if (!formData.phone) missingFields.push('phone');
-        if (!formData.state) missingFields.push('state');
-        if (!formData.municipality) missingFields.push('municipality');
-        if (!formData.street) missingFields.push('street');
-        if (!formData.postal_code) missingFields.push('postal_code');
-        if (!formData.commission_percentage || formData.commission_percentage === 0) missingFields.push('commission_percentage');
-        if (!formData.subscription_plan) missingFields.push('subscription_plan');
-
-        if (missingFields.length > 0) {
-          console.error('❌ Missing required fields:', missingFields);
-          Alert.alert(
-            'Campos Requeridos',
-            `Faltan los siguientes campos: ${missingFields.join(', ')}. Por favor, completa todos los campos requeridos.`,
-            [
-              {
-                text: 'OK',
-                onPress: () => router.back(),
-              },
-            ]
-          );
-          return;
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          throw new Error('User not authenticated');
         }
+
+        // Fetch existing agent record
+        const { data: existingAgent, error: fetchError } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+
+        if (fetchError) {
+          console.error('❌ Error fetching existing agent:', fetchError);
+          throw fetchError;
+        }
+
+        console.log('✅ Found existing agent record:', existingAgent);
+
+        // Update the agent record with additional form data
+        const updateData = {
+          // Location Information
+          state: formData.state,
+          municipality: formData.municipality,
+          neighborhood: formData.neighborhood,
+          street: formData.street,
+          postal_code: formData.postal_code,
+          
+          // Professional Information
+          experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined,
+          properties_sold: formData.properties_sold ? parseInt(formData.properties_sold) : undefined,
+          commission_percentage: formData.commission_percentage,
+          
+          // Agency Information
+          works_at_agency: formData.works_at_agency,
+          agency_name: formData.agency_name || undefined,
+          
+          // Description
+          description: formData.description || undefined,
+          
+          // Subscription Information
+          subscription_plan: formData.subscription_plan,
+          subscription_status: 'active',
+          subscription_start_date: new Date().toISOString(),
+        };
+
+        console.log('📝 Updating agent with data:', updateData);
+
+        const { error: updateError } = await supabase
+          .from('agents')
+          .update(updateData)
+          .eq('user_id', user.id);
+
+        if (updateError) {
+          console.error('❌ Error updating agent:', updateError);
+          throw updateError;
+        }
+
+        console.log('✅ Agent updated successfully');
 
         // Mark registration as complete
-        const { data: { user } } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.auth.updateUser({
-            data: { has_completed_registration: true }
-          });
-        }
+        await supabase.auth.updateUser({
+          data: { has_completed_registration: true }
+        });
 
-        // Save agent to database
-        const agent = await AgentService.createAgent(formData);
-        
-        if (agent) {
-          console.log('✅ Agent saved successfully:', agent.id);
-          // Reset form data after successful save
-          resetFormData();
-        } else {
-          throw new Error('Failed to save agent');
-        }
+        // Reset form data after successful save
+        resetFormData();
       } catch (error) {
         console.error('❌ Error saving agent:', error);
         Alert.alert(
