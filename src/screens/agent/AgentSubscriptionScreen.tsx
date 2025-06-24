@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -8,72 +8,98 @@ import {
   ScrollView,
   Dimensions,
   Platform,
+  Alert,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
-import { useAgentForm } from '../../contexts/AgentFormContext';
+import { agentService, userAuthService } from '../../services/databaseService';
+import { supabase } from '../../services/supabase';
+import { Agent } from '../../types/database';
 
 const { width, height } = Dimensions.get('window');
 
 const subscriptionPlans = [
   {
-    id: 'basic',
-    name: 'Básico',
-    price: '$299',
+    id: 'mensual',
+    name: 'Mensual',
+    price: '$1000',
     period: 'mes',
     features: [
-      'Acceso a 50 propiedades',
+      'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
       'Notificaciones de nuevas propiedades',
-      'Soporte por email'
+      'Soporte prioritario',
+      'Precio por mes: $1000'
     ],
-    description: 'Perfecto para comenzar en el mercado inmobiliario'
+    description: 'Pago mensual, cancela cuando quieras.'
   },
   {
-    id: 'premium',
-    name: 'Premium',
-    price: '$599',
-    period: 'mes',
+    id: 'semanal',
+    name: 'Semanal',
+    price: '$5400',
+    period: '6 meses',
     features: [
-      'Acceso ilimitado a propiedades',
+      'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
-      'Notificaciones prioritarias',
-      'Soporte telefónico',
-      'Estadísticas avanzadas',
-      'Perfil destacado'
+      'Notificaciones de nuevas propiedades',
+      'Soporte prioritario',
+      'Precio por mes: $900'
     ],
-    description: 'Ideal para agentes experimentados'
+    description: 'Pago semestral, ahorra más.'
   },
   {
-    id: 'enterprise',
-    name: 'Empresarial',
-    price: '$999',
-    period: 'mes',
+    id: 'anual',
+    name: 'Anual',
+    price: '$9600',
+    period: '12 meses',
     features: [
-      'Todo lo de Premium',
-      'Múltiples usuarios',
-      'API de integración',
-      'Soporte 24/7',
-      'Capacitación personalizada',
-      'Reportes personalizados'
+      'Acceso a todas las propiedades',
+      'Contacto directo con propietarios',
+      'Notificaciones de nuevas propiedades',
+      'Soporte prioritario',
+      'Precio por mes: $800'
     ],
-    description: 'Para agencias y equipos grandes'
+    description: 'Pago anual, la mejor tarifa.'
   }
 ];
 
 const AgentSubscriptionScreen = () => {
-  const { formData, updateFormData } = useAgentForm();
-  const [selectedPlan, setSelectedPlan] = useState<string | null>(formData.subscription_plan || null);
+  const params = useLocalSearchParams();
+  const [selectedPlan, setSelectedPlan] = useState<Agent['subscription_plan']>(undefined);
+  const [loading, setLoading] = useState(false);
 
-  const handleContinue = () => {
-    if (selectedPlan) {
-      // Save subscription plan to context
-      updateFormData({
-        subscription_plan: selectedPlan as 'basic' | 'premium' | 'enterprise'
+  const handleContinue = async () => {
+    if (!selectedPlan) {
+      Alert.alert('Error', 'Por favor selecciona un plan de suscripción');
+      return;
+    }
+
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Update the agent's subscription_plan and subscription_status
+      const { error: updateError } = await agentService.updateAgent(user.id, {
+        subscription_plan: selectedPlan,
+        subscription_status: 'active',
       });
-      
-      router.push('/(agent)/agent-registration');
+      if (updateError) throw updateError;
+
+      // Navigate to agent registration for additional details
+      router.replace('/(agent)/agent-registration');
+    } catch (error: any) {
+      console.error('Error updating agent subscription:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Ocurrió un error al actualizar la suscripción del agente'
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -81,7 +107,13 @@ const AgentSubscriptionScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={() => {
+          if (router.canGoBack?.()) {
+            router.back();
+          } else {
+            router.replace('/(general)/login');
+          }
+        }}
       >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
@@ -111,7 +143,7 @@ const AgentSubscriptionScreen = () => {
                 styles.planCard,
                 selectedPlan === plan.id && styles.planCardSelected
               ]}
-              onPress={() => setSelectedPlan(plan.id)}
+              onPress={() => setSelectedPlan(plan.id as Agent['subscription_plan'])}
             >
               <View style={styles.planHeader}>
                 <Text style={[
@@ -173,12 +205,14 @@ const AgentSubscriptionScreen = () => {
         <TouchableOpacity
           style={[
             styles.continueButton,
-            !selectedPlan && styles.continueButtonDisabled
+            (!selectedPlan || loading) && styles.continueButtonDisabled
           ]}
           onPress={handleContinue}
-          disabled={!selectedPlan}
+          disabled={!selectedPlan || loading}
         >
-          <Text style={styles.continueButtonText}>Continuar</Text>
+          <Text style={styles.continueButtonText}>
+            {loading ? 'Continuando...' : 'Continuar'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>

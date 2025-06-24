@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -11,11 +11,13 @@ import {
   Modal,
   FlatList,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
-import { useAgentForm } from '../../contexts/AgentFormContext';
+import { agentService } from '../../services/databaseService';
+import { supabase } from '../../services/supabase';
 
 const { width, height } = Dimensions.get('window');
 
@@ -90,46 +92,67 @@ const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownP
 };
 
 const AgentRegistrationScreen = () => {
-  const { formData, updateFormData } = useAgentForm();
-  
   // Local state for form fields
-  const [cp, setCp] = useState(formData.postal_code);
-  const [municipio, setMunicipio] = useState(formData.municipality);
-  const [calle, setCalle] = useState(formData.street);
-  const [colonia, setColonia] = useState(formData.neighborhood);
-  const [experience, setExperience] = useState(formData.experience_years);
-  const [propertiesSold, setPropertiesSold] = useState(formData.properties_sold);
-  const [agencyName, setAgencyName] = useState(formData.agency_name);
-  const [description, setDescription] = useState(formData.description);
-  const [selectedPais, setSelectedPais] = useState<string>(formData.country);
-  const [selectedEstado, setSelectedEstado] = useState<string | null>(formData.state);
-  const [selectedCommission, setSelectedCommission] = useState<number | null>(formData.commission_percentage || null);
-  const [worksAtAgency, setWorksAtAgency] = useState(formData.works_at_agency);
-  const [notWorksAtAgency, setNotWorksAtAgency] = useState(!formData.works_at_agency);
+  const [cp, setCp] = useState('');
+  const [municipio, setMunicipio] = useState('');
+  const [calle, setCalle] = useState('');
+  const [colonia, setColonia] = useState('');
+  const [experience, setExperience] = useState('');
+  const [propertiesSold, setPropertiesSold] = useState('');
+  const [agencyName, setAgencyName] = useState('');
+  const [description, setDescription] = useState('');
+  const [selectedPais, setSelectedPais] = useState<string>('México');
+  const [selectedEstado, setSelectedEstado] = useState<string | null>(null);
+  const [selectedCommission, setSelectedCommission] = useState<number | null>(null);
+  const [worksAtAgency, setWorksAtAgency] = useState(false);
+  const [notWorksAtAgency, setNotWorksAtAgency] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   const handleAgencySelection = (isYes: boolean) => {
     setWorksAtAgency(isYes);
     setNotWorksAtAgency(!isYes);
   };
 
-  const handleContinue = () => {
-    // Save to context
-    updateFormData({
-      postal_code: cp,
-      municipality: municipio,
-      street: calle,
-      neighborhood: colonia,
-      experience_years: experience,
-      properties_sold: propertiesSold,
-      country: selectedPais,
-      state: selectedEstado || '',
-      commission_percentage: selectedCommission || 0,
-      works_at_agency: worksAtAgency,
-      agency_name: agencyName,
-      description: description,
-    });
-    
-    router.push('/(agent)/submission');
+  const handleContinue = async () => {
+    setLoading(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Update agent profile with additional information
+      const { error: updateError } = await agentService.updateAgent(user.id, {
+        postal_code: cp,
+        municipality: municipio,
+        street: calle,
+        neighborhood: colonia,
+        experience_years: experience ? parseInt(experience) : undefined,
+        properties_sold: propertiesSold ? parseInt(propertiesSold) : undefined,
+        country: selectedPais,
+        state: selectedEstado || undefined,
+        commission_percentage: selectedCommission || undefined,
+        works_at_agency: worksAtAgency,
+        agency_name: agencyName || undefined,
+        description: description || undefined,
+      });
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Navigate to submission screen
+      router.replace('/(agent)/submission');
+    } catch (error: any) {
+      console.error('Error updating agent:', error);
+      Alert.alert(
+        'Error',
+        error.message || 'Ocurrió un error al actualizar el perfil'
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -333,10 +356,16 @@ const AgentRegistrationScreen = () => {
         />
 
         <TouchableOpacity
-          style={styles.registerButton}
+          style={[
+            styles.registerButton,
+            loading && styles.registerButtonDisabled
+          ]}
           onPress={handleContinue}
+          disabled={loading}
         >
-          <Text style={styles.registerButtonText}>Registrarme</Text>
+          <Text style={styles.registerButtonText}>
+            {loading ? 'Guardando...' : 'Registrarme'}
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -525,6 +554,9 @@ const styles = StyleSheet.create({
     marginTop: 32,
     width: width * 0.8,
     alignSelf: 'center',
+  },
+  registerButtonDisabled: {
+    opacity: 0.5,
   },
   registerButtonText: {
     ...FONTS.regular,

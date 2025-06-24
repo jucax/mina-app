@@ -17,6 +17,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { router } from 'expo-router';
+import { ownerService, agentService, userAuthService } from '../../services/databaseService';
 // import * as WebBrowser from 'expo-web-browser';
 // import { makeRedirectUri } from 'expo-auth-session';
 // import * as Google from 'expo-auth-session/providers/google';
@@ -89,7 +90,7 @@ const RegisterScreen = () => {
       setLoading(true);
       console.log('🔄 Intentando registrar con:', email);
 
-      // Register with Supabase
+      // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -112,120 +113,94 @@ const RegisterScreen = () => {
         throw new Error('No se pudo crear el usuario');
       }
 
-      console.log('✅ Registro exitoso!');
-      console.log('Datos del usuario:', authData.user);
-
-      // Insert into profiles table
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            id: authData.user.id,
-            full_name: name,
-            phone,
-            is_owner: isOwner,
-          },
-        ]);
-
-      if (profileError) {
-        console.error('❌ Error al crear perfil:', profileError.message);
-        throw profileError;
-      }
-
-      console.log('✅ Perfil creado exitosamente en la tabla profiles');
+      const userId = authData.user.id;
+      let avatarUrl: string | undefined = undefined;
 
       // Upload profile image if selected
       if (profileImage) {
-        const fileExt = profileImage.split('.').pop();
-        const fileName = `${authData.user.id}.${fileExt}`;
-        const filePath = `${fileName}`;
+        try {
+          const fileExt = profileImage.split('.').pop();
+          const fileName = `${userId}.${fileExt}`;
+          const filePath = `${fileName}`;
 
-        const response = await fetch(profileImage);
-        const blob = await response.blob();
+          const response = await fetch(profileImage);
+          const blob = await response.blob();
 
-        const { error: uploadError } = await supabase.storage
-          .from('profile-images')
-          .upload(filePath, blob, {
-            contentType: `image/${fileExt}`,
-          });
-
-        if (uploadError) {
-          console.error('❌ Error al subir la imagen:', uploadError.message);
-        } else {
-          console.log('✅ Imagen de perfil subida exitosamente');
-          
-          // Get the public URL
-          const { data: { publicUrl } } = await supabase.storage
+          // Upload the image
+          const { error: uploadError } = await supabase.storage
             .from('profile-images')
-            .getPublicUrl(filePath);
+            .upload(filePath, blob, {
+              contentType: `image/${fileExt}`,
+              upsert: true, // allow overwriting
+            });
 
-          console.log('🔗 Generated public URL:', publicUrl);
-          console.log('📁 File path:', filePath);
-
-          // Test if the URL is accessible
-          try {
-            const testResponse = await fetch(publicUrl, { method: 'HEAD' });
-            console.log('🖼️ URL accessibility test:', testResponse.status, testResponse.ok ? '✅ Accessible' : '❌ Not accessible');
-          } catch (fetchError) {
-            console.error('❌ Error testing URL accessibility:', fetchError);
-          }
-
-          // Update the profile with the image URL
-          const { error: updateError } = await supabase
-            .from('profiles')
-            .update({ avatar_url: publicUrl })
-            .eq('id', authData.user.id);
-
-          if (updateError) {
-            console.error('❌ Error al actualizar perfil con imagen:', updateError.message);
+          if (uploadError) {
+            console.error('❌ Error al subir la imagen:', uploadError.message);
           } else {
-            console.log('✅ URL de la imagen guardada en el perfil:', publicUrl);
+            // Wait a moment for the file to be available
+            await new Promise(res => setTimeout(res, 500));
+            // Get the public URL
+            const { data: { publicUrl } } = await supabase.storage
+              .from('profile-images')
+              .getPublicUrl(filePath);
+            avatarUrl = publicUrl;
           }
+        } catch (err) {
+          console.error('❌ Error uploading or fetching image:', err);
         }
       }
 
-      // Save basic registration data to AsyncStorage if user is an agent
-      if (!isOwner) {
-        // Create agent record in the agents table with basic info
-        const { error: agentError } = await supabase
-          .from('agents')
-          .insert([
+      if (isOwner) {
+        // Create owner profile FIRST
+        const { error: ownerError } = await ownerService.createOwner({
+          full_name: name,
+          email,
+          phone,
+          avatar_url: avatarUrl,
+        }, userId);
+        if (ownerError) throw ownerError;
+
+        // Now create user_auth record
+        const { error: authError2 } = await userAuthService.createUserAuth(userId, 'owner', userId);
+        if (authError2) throw authError2;
+
+        Alert.alert(
+          'Registro Exitoso',
+          'Tu cuenta ha sido creada exitosamente. Te redirigiremos a completar tu registro.',
+          [
             {
-              user_id: authData.user.id,
-              full_name: name,
-              email: email,
-              phone: phone,
-              country: 'México',
-              status: 'pending',
-              is_verified: false,
+              text: 'OK',
+              onPress: () => router.replace('/(owner)/intent' as any),
             },
-          ]);
+          ]
+        );
+      } else {
+        // Create agent profile FIRST
+        const { error: agentError } = await agentService.createAgent({
+          full_name: name,
+          email,
+          phone,
+          avatar_url: avatarUrl,
+          country: 'México',
+          works_at_agency: false,
+        }, userId);
+        if (agentError) throw agentError;
 
-        if (agentError) {
-          console.error('❌ Error creating agent record:', agentError.message);
-          throw agentError;
-        }
+        // Now create user_auth record
+        const { error: authError2 } = await userAuthService.createUserAuth(userId, 'agent', userId);
+        if (authError2) throw authError2;
 
-        console.log('✅ Agent record created successfully');
+        Alert.alert(
+          'Registro Exitoso',
+          'Tu cuenta ha sido creada exitosamente. Te redirigiremos a completar tu registro.',
+          [
+            {
+              text: 'OK',
+              onPress: () => router.replace('/(agent)/registration' as any),
+            },
+          ]
+        );
       }
-
-      Alert.alert(
-        'Registro Exitoso',
-        'Tu cuenta ha sido creada exitosamente. Te redirigiremos a completar tu registro.',
-        [
-          {
-            text: 'OK',
-            onPress: () => {
-              // Navigate directly to the appropriate registration screen based on user type
-              if (isOwner) {
-                router.replace('/(owner)/intent' as any);
-              } else {
-                router.replace('/(agent)/registration' as any);
-              }
-            },
-          },
-        ]
-      );
     } catch (error: any) {
       console.error('❌ Registro fallido:', error?.message);
       Alert.alert('Error', error?.message || 'Ocurrió un error durante el registro');

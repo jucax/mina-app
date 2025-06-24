@@ -24,11 +24,11 @@ export class AgentService {
 
       // Transform form data to database format
       const agentData: Partial<Agent> = {
-        user_id: user.id,
+        id: user.id,
         full_name: formData.full_name,
         email: formData.email,
         phone: formData.phone,
-        
+         
         // Location
         country: formData.country,
         state: formData.state,
@@ -86,7 +86,7 @@ export class AgentService {
       const { data, error } = await supabase
         .from('agents')
         .select('*')
-        .eq('user_id', userId)
+        .eq('id', userId)
         .single();
 
       if (error) {
