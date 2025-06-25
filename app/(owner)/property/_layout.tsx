@@ -14,6 +14,13 @@ export default function PropertyLayout() {
           headerShown: false,
         }} 
       />
+      <Stack.Screen 
+        name="[id]/edit" 
+        options={{ 
+          headerShown: false,
+          title: "Editar Propiedad"
+        }} 
+      />
     </Stack>
   );
 } 

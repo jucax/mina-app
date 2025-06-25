@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { PropertyService } from '../../services/propertyService';
+import { ViewTrackingService } from '../../services/viewTrackingService';
 import { Property as PropertyType } from '../../types/property';
 
 const { width } = Dimensions.get('window');
@@ -42,6 +43,9 @@ const AgentPropertyDetailScreen = () => {
         if (id) {
           const data = await PropertyService.getPropertyById(id);
           setPropertyData(data);
+          
+          // Record the view when agent opens the property
+          await ViewTrackingService.recordPropertyView(id);
         }
       } catch (error) {
         console.error('Error fetching property data:', error);
@@ -141,6 +145,23 @@ const AgentPropertyDetailScreen = () => {
             <Text style={styles.typeText}>
               En {propertyData.intent === 'sell' ? 'venta' : propertyData.intent === 'rent' ? 'renta' : 'venta/renta'} {propertyData.property_type}
             </Text>
+          </View>
+
+          <View style={styles.countersContainer}>
+            <View style={styles.counterContainer}>
+              <Ionicons name="eye" color={COLORS.secondary} size={24} />
+              <View style={styles.counterTextContainer}>
+                <Text style={styles.counterValue}>{propertyData.views_count || 0}</Text>
+                <Text style={styles.counterLabel}>Vistas</Text>
+              </View>
+            </View>
+            <View style={styles.counterContainer}>
+              <Ionicons name="gift" color={COLORS.secondary} size={24} />
+              <View style={styles.counterTextContainer}>
+                <Text style={styles.counterValue}>{propertyData.offers_count || 0}</Text>
+                <Text style={styles.counterLabel}>Ofertas</Text>
+              </View>
+            </View>
           </View>
 
           <Text style={styles.sectionTitle}>INFORMACION DE LA PROPIEDAD</Text>
@@ -371,6 +392,27 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.white,
     marginLeft: 8,
+  },
+  countersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 24,
+  },
+  counterContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  counterTextContainer: {
+    marginLeft: 8,
+  },
+  counterValue: {
+    ...FONTS.title,
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  counterLabel: {
+    ...FONTS.regular,
+    fontWeight: 'bold',
   },
 });
 

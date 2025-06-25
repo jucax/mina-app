@@ -210,10 +210,20 @@ const OwnerPropertyEditionScreen = () => {
 
       await PropertyService.updateProperty(propertyData.id, updates);
       
+      // Refresh the property data
+      const updatedData = await PropertyService.getPropertyById(propertyData.id);
+      setPropertyData(updatedData);
+      
       Alert.alert(
         'Éxito',
         'La propiedad ha sido actualizada correctamente.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ 
+          text: 'OK', 
+          onPress: () => {
+            // Navigate back to property detail screen
+            router.back();
+          }
+        }]
       );
     } catch (error) {
       console.error('Error updating property:', error);

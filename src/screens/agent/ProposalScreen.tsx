@@ -12,6 +12,7 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { ViewTrackingService } from '../../services/viewTrackingService';
 import { Property as PropertyType } from '../../types/property';
 
 const { width, height } = Dimensions.get('window');
@@ -47,6 +48,11 @@ const ProposalScreen = () => {
       // TODO: Implement proposal sending logic
       // This would typically involve saving to a proposals table
       // and sending notifications to the property owner
+      
+      // Increment offer count when proposal is sent
+      if (propertyId) {
+        await ViewTrackingService.incrementPropertyOffers(propertyId);
+      }
       
       Alert.alert(
         'Éxito',

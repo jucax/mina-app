@@ -47,6 +47,10 @@ export interface Property {
   // Commission
   commission_percentage: number;
   
+  // View and Offer Tracking
+  views_count?: number;
+  offers_count?: number;
+  
   // Status and Metadata
   status?: 'draft' | 'published' | 'sold' | 'rented' | 'inactive';
   created_at?: string;

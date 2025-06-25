@@ -285,7 +285,7 @@ export const propertyService = {
     }
   },
 
-  // Get all properties (for agents)
+  // Get all properties
   async getAllProperties(): Promise<DatabaseResponse<PropertyWithOwner[]>> {
     try {
       const { data, error } = await supabase
@@ -294,7 +294,7 @@ export const propertyService = {
           *,
           owner:owners(*)
         `)
-        .eq('status', 'active')
+        .eq('status', 'published')
         .order('created_at', { ascending: false });
 
       return { data, error };

@@ -64,6 +64,7 @@ const OwnerPropertyDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -86,6 +87,49 @@ const OwnerPropertyDetailScreen = () => {
 
     fetchPropertyData();
   }, [id]);
+
+  const handleToggleStatus = async () => {
+    if (!propertyData?.id) return;
+
+    const newStatus = propertyData.status === 'published' ? 'inactive' : 'published';
+    const statusText = newStatus === 'published' ? 'publicar' : 'pausar';
+    
+    Alert.alert(
+      'Confirmar acción',
+      `¿Estás seguro de que quieres ${statusText} esta publicación?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: async () => {
+            setUpdatingStatus(true);
+            try {
+              await PropertyService.updateProperty(propertyData.id!, { status: newStatus });
+              
+              // Refresh property data
+              const updatedData = await PropertyService.getPropertyById(propertyData.id!);
+              setPropertyData(updatedData);
+              
+              Alert.alert(
+                'Éxito',
+                `La publicación ha sido ${statusText === 'publicar' ? 'publicada' : 'pausada'} correctamente.`,
+                [{ text: 'OK' }]
+              );
+            } catch (error) {
+              console.error('Error updating property status:', error);
+              Alert.alert(
+                'Error',
+                `No se pudo ${statusText} la publicación. Por favor, intenta de nuevo.`,
+                [{ text: 'OK' }]
+              );
+            } finally {
+              setUpdatingStatus(false);
+            }
+          }
+        }
+      ]
+    );
+  };
 
   if (loading) {
     return (
@@ -165,12 +209,12 @@ const OwnerPropertyDetailScreen = () => {
           <CounterInfo
             icon="eye"
             label="Vistas"
-            count={0}
+            count={propertyData.views_count || 0}
           />
           <CounterInfo
             icon="gift"
             label="Ofertas"
-            count={0}
+            count={propertyData.offers_count || 0}
           />
         </View>
 
@@ -230,6 +274,29 @@ const OwnerPropertyDetailScreen = () => {
         >
           <Ionicons name="create" size={24} color={COLORS.white} />
           <Text style={styles.editButtonText}>Editar Publicación</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[
+            styles.statusButton,
+            propertyData?.status === 'inactive' ? styles.activateButton : styles.pauseButton
+          ]}
+          onPress={handleToggleStatus}
+          disabled={updatingStatus}
+        >
+          <Ionicons 
+            name={propertyData?.status === 'inactive' ? 'play' : 'pause'} 
+            size={24} 
+            color={COLORS.white} 
+          />
+          <Text style={styles.statusButtonText}>
+            {updatingStatus 
+              ? 'Actualizando...' 
+              : propertyData?.status === 'inactive' 
+                ? 'Activar Publicación' 
+                : 'Pausar Publicación'
+            }
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -319,9 +386,10 @@ const styles = StyleSheet.create({
   },
   countersContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
     paddingHorizontal: 24,
     marginTop: 24,
+    gap: 20,
   },
   counterContainer: {
     flexDirection: 'row',
@@ -333,6 +401,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    minWidth: 120,
+    justifyContent: 'center',
   },
   counterTextContainer: {
     marginLeft: 8,
@@ -418,11 +488,33 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.secondary,
     marginHorizontal: 24,
     marginTop: 32,
-    marginBottom: 32,
+    marginBottom: 16,
     paddingVertical: 16,
     borderRadius: 12,
   },
   editButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  statusButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginHorizontal: 24,
+    marginBottom: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  pauseButton: {
+    backgroundColor: '#FF6B35', // Orange for pause
+  },
+  activateButton: {
+    backgroundColor: '#4CAF50', // Green for activate
+  },
+  statusButtonText: {
     ...FONTS.regular,
     color: COLORS.white,
     fontWeight: 'bold',
