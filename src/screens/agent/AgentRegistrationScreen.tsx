@@ -242,6 +242,8 @@ const AgentRegistrationScreen = () => {
               style={styles.input}
               value={calle}
               onChangeText={setCalle}
+              placeholder="Ingresa tu calle"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
         </View>

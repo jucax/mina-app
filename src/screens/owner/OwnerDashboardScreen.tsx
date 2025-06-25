@@ -51,18 +51,37 @@ const OwnerDashboardScreen = () => {
       console.log('🔍 Current user (Owner):', user?.id);
       
       if (user) {
-        const { data: profile, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, avatar_url')
+        // First check if user is an owner
+        const { data: userAuth, error: userAuthError } = await supabase
+          .from('user_auth')
+          .select('user_type, owner_id')
           .eq('id', user.id)
           .single();
 
-        if (error) {
-          console.error('❌ Error fetching user profile (Owner):', error);
+        if (userAuthError) {
+          console.error('❌ Error fetching user auth (Owner):', userAuthError);
+          return;
+        }
+
+        console.log('🔍 User auth data (Owner):', userAuth);
+
+        if (userAuth?.user_type === 'owner' && userAuth?.owner_id) {
+          // Fetch owner profile
+          const { data: ownerProfile, error } = await supabase
+            .from('owners')
+            .select('id, full_name, avatar_url')
+            .eq('id', userAuth.owner_id)
+            .single();
+
+          if (error) {
+            console.error('❌ Error fetching owner profile (Owner):', error);
+          } else {
+            console.log('✅ Owner profile fetched successfully (Owner):', ownerProfile);
+            console.log('🖼️ Avatar URL (Owner):', ownerProfile.avatar_url);
+            setUserProfile(ownerProfile);
+          }
         } else {
-          console.log('✅ Profile fetched successfully (Owner):', profile);
-          console.log('🖼️ Avatar URL (Owner):', profile.avatar_url);
-          setUserProfile(profile);
+          console.log('⚠️ User is not an owner or owner_id not found (Owner)');
         }
       }
     } catch (error) {
@@ -239,21 +258,10 @@ const OwnerDashboardScreen = () => {
             style={styles.headerButton}
             onPress={() => router.push('/(owner)/owner-profile')}
           >
-            {userProfile?.avatar_url && !imageLoadError ? (
-              <Image 
-                source={{ uri: userProfile.avatar_url }} 
-                style={styles.profileImage}
-                onError={(error) => {
-                  console.error('❌ Image loading error (Owner):', error.nativeEvent.error);
-                  setImageLoadError(true);
-                }}
-                onLoad={() => console.log('✅ Image loaded successfully (Owner):', userProfile.avatar_url)}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={24} color={COLORS.white} />
-              </View>
-            )}
+            <Image 
+              source={require('../../../assets/images/icon.png')}
+              style={styles.profileImage}
+            />
           </TouchableOpacity>
         </View>
       </View>
@@ -381,14 +389,6 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-  },
-  profileImagePlaceholder: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: COLORS.white,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   searchBarContainer: {
     flexDirection: 'row',

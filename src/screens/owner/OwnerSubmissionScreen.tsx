@@ -52,8 +52,22 @@ const OwnerSubmissionScreen = () => {
         // Save property to database
         const property = await PropertyService.createProperty(formData);
         
-        if (property) {
+        if (property && property.id) {
           console.log('✅ Property saved successfully:', property.id);
+          
+          // Publish the property (change status from draft to active)
+          try {
+            const publishedProperty = await PropertyService.publishProperty(property.id);
+            if (publishedProperty) {
+              console.log('✅ Property published successfully:', publishedProperty.id);
+            } else {
+              console.log('⚠️ Property saved but could not be published');
+            }
+          } catch (publishError) {
+            console.error('❌ Error publishing property:', publishError);
+            // Don't fail the whole process if publishing fails
+          }
+          
           // Reset form data after successful save
           resetFormData();
         } else {

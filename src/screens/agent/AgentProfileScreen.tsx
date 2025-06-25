@@ -34,35 +34,52 @@ const AgentProfileScreen = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        if (isViewingOtherProfile) {
-          // Use the profile data from params (for viewing other agents)
-          console.log('👥 Viewing other agent profile from params');
-          setUserProfile({
-            id: '',
-            full_name: params.agentName as string,
-            phone: params.contact as string,
-            avatar_url: params.agentImage as string,
-            is_owner: false,
-          });
-        } else {
-          // Fetch current user's profile
-          const { data: { user } } = await supabase.auth.getUser();
-          console.log('🔍 Current user (Agent Profile):', user?.id);
-          
-          if (user) {
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('id, full_name, phone, avatar_url, is_owner')
-              .eq('id', user.id)
+        setLoading(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🔍 Current user (Agent Profile):', user?.id);
+        
+        if (user) {
+          // First check if user is an agent
+          const { data: userAuth, error: userAuthError } = await supabase
+            .from('user_auth')
+            .select('user_type, agent_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userAuthError) {
+            console.error('❌ Error fetching user auth (Agent Profile):', userAuthError);
+            return;
+          }
+
+          console.log('🔍 User auth data (Agent Profile):', userAuth);
+
+          if (userAuth?.user_type === 'agent' && userAuth?.agent_id) {
+            // Fetch agent profile
+            const { data: agentProfile, error } = await supabase
+              .from('agents')
+              .select('id, full_name, phone, avatar_url')
+              .eq('id', userAuth.agent_id)
               .single();
 
             if (error) {
-              console.error('❌ Error fetching user profile (Agent Profile):', error);
+              console.error('❌ Error fetching agent profile (Agent Profile):', error);
             } else {
-              console.log('✅ Profile fetched successfully (Agent Profile):', profile);
-              console.log('🖼️ Avatar URL (Agent Profile):', profile.avatar_url);
+              console.log('✅ Agent profile fetched successfully (Agent Profile):', agentProfile);
+              console.log('🖼️ Avatar URL (Agent Profile):', agentProfile.avatar_url);
+              
+              // Transform to match the expected interface
+              const profile = {
+                id: agentProfile.id,
+                full_name: agentProfile.full_name,
+                phone: agentProfile.phone || '',
+                avatar_url: agentProfile.avatar_url,
+                is_owner: false
+              };
+              
               setUserProfile(profile);
             }
+          } else {
+            console.log('⚠️ User is not an agent or agent_id not found (Agent Profile)');
           }
         }
       } catch (error) {
@@ -115,10 +132,8 @@ const AgentProfileScreen = () => {
             </TouchableOpacity>
             {userProfile.avatar_url ? (
               <Image
-                source={{ uri: userProfile.avatar_url }}
+                source={require('../../../assets/images/icon.png')}
                 style={styles.profileImage}
-                onError={(error) => console.error('❌ Image loading error (Agent Profile):', error.nativeEvent.error)}
-                onLoad={() => console.log('✅ Image loaded successfully (Agent Profile):', userProfile.avatar_url)}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>

@@ -220,7 +220,12 @@ const OwnerPropertyDetailScreen = () => {
         <TouchableOpacity
           style={styles.editButton}
           onPress={() => {
-            // TODO: Navigate to edit property screen
+            if (propertyData.id) {
+              router.push({
+                pathname: '/(owner)/property/[id]/edit',
+                params: { id: propertyData.id }
+              });
+            }
           }}
         >
           <Ionicons name="create" size={24} color={COLORS.white} />

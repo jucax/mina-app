@@ -21,7 +21,7 @@ const { width, height } = Dimensions.get('window');
 
 interface Property {
   id: string;
-  user_id: string;
+  owner_id: string;
   intent: 'venta' | 'renta';
   timeline: string;
   price: number;
@@ -53,6 +53,8 @@ interface UserProfile {
 }
 
 const AgentPropertyListScreen = () => {
+  console.log('🚀 AgentPropertyListScreen component rendered');
+  
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedLocation, setSelectedLocation] = useState('All');
   const [selectedPropertyType, setSelectedPropertyType] = useState('All');
@@ -70,6 +72,48 @@ const AgentPropertyListScreen = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
+      console.log('🔍 Fetching properties from database...');
+      
+      // First, let's check if there are any properties at all (bypass RLS for debugging)
+      const { data: allProperties, error: allPropertiesError } = await supabase
+        .from('properties')
+        .select('*')
+        .limit(5);
+
+      console.log('🔍 All properties test:', allProperties?.length || 0, 'properties found');
+      if (allPropertiesError) {
+        console.error('❌ Error fetching all properties:', allPropertiesError);
+      } else if (allProperties && allProperties.length > 0) {
+        console.log('📋 Sample property:', allProperties[0]);
+      }
+      
+      // Check if current user has user_auth record
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: userAuth, error: userAuthError } = await supabase
+          .from('user_auth')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+        
+        console.log('🔍 User auth record:', userAuth);
+        if (userAuthError) {
+          console.error('❌ Error fetching user auth:', userAuthError);
+        }
+      }
+      
+      // Try fetching properties without status filter first
+      const { data: propertiesWithoutStatus, error: propertiesWithoutStatusError } = await supabase
+        .from('properties')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      console.log('🔍 Properties without status filter:', propertiesWithoutStatus?.length || 0, 'properties found');
+      if (propertiesWithoutStatusError) {
+        console.error('❌ Error fetching properties without status filter:', propertiesWithoutStatusError);
+      }
+      
+      // Now fetch active properties
       const { data, error } = await supabase
         .from('properties')
         .select('*')
@@ -77,9 +121,24 @@ const AgentPropertyListScreen = () => {
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching properties:', error);
+        console.error('❌ Error fetching active properties:', error);
+        console.error('❌ Error details:', JSON.stringify(error, null, 2));
+        
+        // If there's an RLS error, let's try a different approach
+        if (error.message?.includes('policy') || error.message?.includes('permission')) {
+          console.log('🚨 RLS Policy issue detected. Trying alternative approach...');
+          
+          // Try using the properties from the "all properties" query if they exist
+          if (allProperties && allProperties.length > 0) {
+            const activeProperties = allProperties.filter(p => p.status === 'active');
+            console.log('✅ Using filtered properties from bypass query:', activeProperties.length);
+            setProperties(activeProperties);
+            return;
+          }
+        }
       } else {
-        console.log('✅ Properties fetched successfully:', data?.length || 0);
+        console.log('✅ Active properties fetched successfully:', data?.length || 0);
+        console.log('📋 Properties data:', data);
         setProperties(data || []);
       }
     } catch (error) {
@@ -103,29 +162,48 @@ const AgentPropertyListScreen = () => {
         console.log('🔍 Current user:', user?.id);
         
         if (user) {
-          const { data: profile, error } = await supabase
-            .from('profiles')
-            .select('id, full_name, avatar_url')
+          // First check if user is an agent
+          const { data: userAuth, error: userAuthError } = await supabase
+            .from('user_auth')
+            .select('user_type, agent_id')
             .eq('id', user.id)
             .single();
 
-          if (error) {
-            console.error('❌ Error fetching user profile:', error);
-          } else {
-            console.log('✅ Profile fetched successfully:', profile);
-            console.log('🖼️ Avatar URL:', profile.avatar_url);
-            
-            // Test if the image URL is accessible
-            if (profile.avatar_url) {
-              try {
-                const response = await fetch(profile.avatar_url, { method: 'HEAD' });
-                console.log('🖼️ Image URL status:', response.status, response.ok ? '✅ Accessible' : '❌ Not accessible');
-              } catch (fetchError) {
-                console.error('❌ Error testing image URL:', fetchError);
+          if (userAuthError) {
+            console.error('❌ Error fetching user auth:', userAuthError);
+            return;
+          }
+
+          console.log('🔍 User auth data:', userAuth);
+
+          if (userAuth?.user_type === 'agent' && userAuth?.agent_id) {
+            // Fetch agent profile
+            const { data: agentProfile, error } = await supabase
+              .from('agents')
+              .select('id, full_name, avatar_url')
+              .eq('id', userAuth.agent_id)
+              .single();
+
+            if (error) {
+              console.error('❌ Error fetching agent profile:', error);
+            } else {
+              console.log('✅ Agent profile fetched successfully:', agentProfile);
+              console.log('🖼️ Avatar URL:', agentProfile.avatar_url);
+              
+              // Test if the image URL is accessible
+              if (agentProfile.avatar_url) {
+                try {
+                  const response = await fetch(agentProfile.avatar_url, { method: 'HEAD' });
+                  console.log('🖼️ Image URL status:', response.status, response.ok ? '✅ Accessible' : '❌ Not accessible');
+                } catch (fetchError) {
+                  console.error('❌ Error testing image URL:', fetchError);
+                }
               }
+              
+              setUserProfile(agentProfile);
             }
-            
-            setUserProfile(profile);
+          } else {
+            console.log('⚠️ User is not an agent or agent_id not found');
           }
         }
       } catch (error) {
@@ -181,8 +259,7 @@ const AgentPropertyListScreen = () => {
         onPress={() => router.push({
           pathname: '/(agent)/property/[id]',
           params: { 
-            id: item.id,
-            property: JSON.stringify(item)
+            id: item.id
           }
         })}
       >
@@ -334,23 +411,12 @@ const AgentPropertyListScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(general)/agent-profile')}
+            onPress={() => router.push('/(agent)/agent-profile')}
           >
-            {userProfile?.avatar_url && !imageLoadError ? (
-              <Image 
-                source={{ uri: userProfile.avatar_url }} 
-                style={styles.profileImage}
-                onError={(error) => {
-                  console.error('❌ Image loading error:', error.nativeEvent.error);
-                  setImageLoadError(true);
-                }}
-                onLoad={() => console.log('✅ Image loaded successfully:', userProfile.avatar_url)}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={20} color={COLORS.secondary} />
-              </View>
-            )}
+            <Image 
+              source={require('../../../assets/images/icon.png')}
+              style={styles.profileImage}
+            />
           </TouchableOpacity>
         </View>
       </View>

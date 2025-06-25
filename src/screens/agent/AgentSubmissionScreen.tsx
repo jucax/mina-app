@@ -49,7 +49,7 @@ const AgentSubmissionScreen = () => {
         const { data: existingAgent, error: fetchError } = await supabase
           .from('agents')
           .select('*')
-          .eq('user_id', user.id)
+          .eq('id', user.id)
           .single();
 
         if (fetchError) {
@@ -91,7 +91,7 @@ const AgentSubmissionScreen = () => {
         const { error: updateError } = await supabase
           .from('agents')
           .update(updateData)
-          .eq('user_id', user.id);
+          .eq('id', user.id);
 
         if (updateError) {
           console.error('❌ Error updating agent:', updateError);

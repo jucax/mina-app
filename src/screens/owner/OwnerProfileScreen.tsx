@@ -50,18 +50,47 @@ const OwnerProfileScreen = () => {
           console.log('🔍 Current user (Owner Profile):', user?.id);
           
           if (user) {
-            const { data: profile, error } = await supabase
-              .from('profiles')
-              .select('id, full_name, phone, avatar_url, is_owner')
+            // First check if user is an owner
+            const { data: userAuth, error: userAuthError } = await supabase
+              .from('user_auth')
+              .select('user_type, owner_id')
               .eq('id', user.id)
               .single();
 
-            if (error) {
-              console.error('❌ Error fetching user profile (Owner Profile):', error);
+            if (userAuthError) {
+              console.error('❌ Error fetching user auth (Owner Profile):', userAuthError);
+              return;
+            }
+
+            console.log('🔍 User auth data (Owner Profile):', userAuth);
+
+            if (userAuth?.user_type === 'owner' && userAuth?.owner_id) {
+              // Fetch owner profile
+              const { data: ownerProfile, error } = await supabase
+                .from('owners')
+                .select('id, full_name, phone, avatar_url')
+                .eq('id', userAuth.owner_id)
+                .single();
+
+              if (error) {
+                console.error('❌ Error fetching owner profile (Owner Profile):', error);
+              } else {
+                console.log('✅ Owner profile fetched successfully (Owner Profile):', ownerProfile);
+                console.log('🖼️ Avatar URL (Owner Profile):', ownerProfile.avatar_url);
+                
+                // Transform to match the expected interface
+                const profile = {
+                  id: ownerProfile.id,
+                  full_name: ownerProfile.full_name,
+                  phone: ownerProfile.phone || '',
+                  avatar_url: ownerProfile.avatar_url,
+                  is_owner: true
+                };
+                
+                setUserProfile(profile);
+              }
             } else {
-              console.log('✅ Profile fetched successfully (Owner Profile):', profile);
-              console.log('🖼️ Avatar URL (Owner Profile):', profile.avatar_url);
-              setUserProfile(profile);
+              console.log('⚠️ User is not an owner or owner_id not found (Owner Profile)');
             }
           }
         }
@@ -115,10 +144,8 @@ const OwnerProfileScreen = () => {
             </TouchableOpacity>
             {userProfile.avatar_url ? (
               <Image
-                source={{ uri: userProfile.avatar_url }}
+                source={require('../../../assets/images/icon.png')}
                 style={styles.profileImage}
-                onError={(error) => console.error('❌ Image loading error (Owner Profile):', error.nativeEvent.error)}
-                onLoad={() => console.log('✅ Image loaded successfully (Owner Profile):', userProfile.avatar_url)}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>

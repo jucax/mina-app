@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -7,29 +7,15 @@ import {
   ScrollView,
   TouchableOpacity,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { PropertyService } from '../../services/propertyService';
+import { Property as PropertyType } from '../../types/property';
 
 const { width } = Dimensions.get('window');
-
-interface Property {
-  image: string;
-  price?: string;
-  location: string;
-  commission: string;
-  type: string;
-  bedrooms?: number;
-  bathrooms?: number;
-  parking?: number;
-  construction_area?: number;
-  land_area?: number;
-  total_area?: number;
-  documentation_complete?: boolean;
-  amenities?: string;
-  description?: string;
-}
 
 const InfoIconText = ({ icon, label }: { icon: string; label: string }) => (
   <View style={styles.infoIconContainer}>
@@ -46,22 +32,77 @@ const AreaInfo = ({ label, value }: { label: string; value: string }) => (
 );
 
 const AgentPropertyDetailScreen = () => {
-  const params = useLocalSearchParams();
-  const property: Property = params.property ? JSON.parse(params.property as string) : {
-    image: require('../../../assets/images/property1.png'),
-    price: '5,000,000',
-    location: 'Benito Juárez, CDMX.',
-    commission: '4%',
-    type: 'Departamento',
-    bedrooms: 2,
-    bathrooms: 2,
-    parking: 2,
-    construction_area: 63,
-    land_area: 63,
-    total_area: 63,
-    documentation_complete: true,
-    amenities: 'Alberca con área de camastros, Gimnasio totalmente equipado, Salón de usos múltiples, Áreas verdes y jardines, Juegos infantiles, Terraza con asadores, Seguridad 24/7 y acceso controlado, Estacionamiento para visitas',
-    description: 'La propiedad se encuentra en excelente estado, fue construida en 2015 y habitada por la familia durante los últimos 7 años. Se están vendiendo porque van a mudarse de ciudad por motivos laborales. Cuenta con cocina integral, clósets, persianas y minisplits, todo incluido en la venta. La casa fue remodelada recientemente en 2022, específicamente la cocina y los baños.',
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPropertyData = async () => {
+      try {
+        if (id) {
+          const data = await PropertyService.getPropertyById(id);
+          setPropertyData(data);
+        }
+      } catch (error) {
+        console.error('Error fetching property data:', error);
+        Alert.alert(
+          'Error',
+          'No se pudo cargar la información de la propiedad.',
+          [{ text: 'OK', onPress: () => router.back() }]
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPropertyData();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando propiedad...</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (!propertyData) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Propiedad no encontrada</Text>
+        </View>
+      </View>
+    );
+  }
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const getPropertyImage = (property: PropertyType) => {
+    if (property.images && property.images.length > 0) {
+      return { uri: property.images[0] };
+    }
+    return require('../../../assets/images/property1.png');
+  };
+
+  const handleSendOffer = () => {
+    if (propertyData.id) {
+      router.push({
+        pathname: '/(agent)/proposal',
+        params: { 
+          propertyId: propertyData.id,
+          propertyData: JSON.stringify(propertyData)
+        }
+      });
+    }
   };
 
   return (
@@ -69,7 +110,7 @@ const AgentPropertyDetailScreen = () => {
       <ScrollView>
         <View style={styles.imageContainer}>
           <Image
-            source={property.image as any}
+            source={getPropertyImage(propertyData)}
             style={styles.image}
             resizeMode="cover"
           />
@@ -80,14 +121,16 @@ const AgentPropertyDetailScreen = () => {
             <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
           </TouchableOpacity>
           <View style={styles.priceContainer}>
-            <Text style={styles.priceText}>{property.price} mxn</Text>
+            <Text style={styles.priceText}>{formatPrice(propertyData.price)}</Text>
             <View style={styles.locationContainer}>
               <Ionicons name="location" size={22} color={COLORS.secondary} />
-              <Text style={styles.locationText}>{property.location}</Text>
+              <Text style={styles.locationText}>
+                {propertyData.municipality}, {propertyData.state}
+              </Text>
             </View>
           </View>
           <View style={styles.commissionContainer}>
-            <Text style={styles.commissionText}>{property.commission}</Text>
+            <Text style={styles.commissionText}>{propertyData.commission_percentage}%</Text>
             <Text style={styles.commissionLabel}>comisión</Text>
           </View>
         </View>
@@ -95,42 +138,57 @@ const AgentPropertyDetailScreen = () => {
         <View style={styles.content}>
           <View style={styles.typeContainer}>
             <View style={styles.typeDot} />
-            <Text style={styles.typeText}>En venta {property.type}</Text>
+            <Text style={styles.typeText}>
+              En {propertyData.intent === 'sell' ? 'venta' : propertyData.intent === 'rent' ? 'renta' : 'venta/renta'} {propertyData.property_type}
+            </Text>
           </View>
 
           <Text style={styles.sectionTitle}>INFORMACION DE LA PROPIEDAD</Text>
 
           <View style={styles.infoContainer}>
-            <InfoIconText icon="bed" label={`${property.bedrooms} cuartos`} />
-            <InfoIconText icon="water" label={`${property.bathrooms} baños`} />
-            <InfoIconText icon="car" label={`${property.parking} estacionamientos`} />
+            <InfoIconText icon="bed" label={`${propertyData.bedrooms || 0} cuartos`} />
+            <InfoIconText icon="water" label={`${propertyData.bathrooms || 0} baños`} />
+            <InfoIconText icon="car" label="2 estacionamientos" />
           </View>
 
           <View style={styles.areaContainer}>
-            <AreaInfo label="Construcción" value={`${property.construction_area}m²`} />
-            <AreaInfo label="Terreno" value={`${property.land_area}m²`} />
-            <AreaInfo label="Total" value={`${property.total_area}m²`} />
+            <AreaInfo label="Construcción" value={`${propertyData.construction_area || 0}m²`} />
+            <AreaInfo label="Terreno" value={`${propertyData.land_area || 0}m²`} />
+            <AreaInfo label="Total" value={`${(propertyData.construction_area || 0) + (propertyData.land_area || 0)}m²`} />
           </View>
 
           <View style={styles.documentationContainer}>
             <Text style={styles.documentationLabel}>Documentación:</Text>
             <View style={[
               styles.documentationStatus,
-              { borderColor: property.documentation_complete ? COLORS.secondary : COLORS.black }
+              { borderColor: COLORS.gray }
             ]}>
               <Text style={[
                 styles.documentationStatusText,
-                { color: property.documentation_complete ? COLORS.secondary : COLORS.black }
+                { color: COLORS.gray }
               ]}>
-                {property.documentation_complete ? 'Completa' : 'Incompleta'}
+                Pendiente
               </Text>
             </View>
           </View>
 
-          <Text style={styles.descriptionText}>{property.amenities}</Text>
-          <Text style={styles.descriptionText}>{property.description}</Text>
+          {propertyData.amenities && (
+            <Text style={styles.descriptionText}>{propertyData.amenities}</Text>
+          )}
+
+          {propertyData.additional_info && (
+            <Text style={styles.descriptionText}>{propertyData.additional_info}</Text>
+          )}
         </View>
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.sendOfferButton}
+        onPress={handleSendOffer}
+      >
+        <Ionicons name="mail" size={24} color={COLORS.white} />
+        <Text style={styles.sendOfferButtonText}>Enviar Oferta</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -284,6 +342,35 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     color: COLORS.black,
     marginBottom: 16,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    ...FONTS.regular,
+    fontSize: 18,
+    color: COLORS.black,
+  },
+  sendOfferButton: {
+    position: 'absolute',
+    bottom: 24,
+    left: 24,
+    right: 24,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  sendOfferButtonText: {
+    ...FONTS.regular,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+    marginLeft: 8,
   },
 });
 

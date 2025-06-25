@@ -196,12 +196,12 @@ export class PropertyService {
     }
   }
 
-  // Publish a property (change status from draft to published)
+  // Publish a property (change status from draft to active)
   static async publishProperty(id: string): Promise<Property | null> {
     try {
       const { data, error } = await supabase
         .from('properties')
-        .update({ status: 'published' })
+        .update({ status: 'active' })
         .eq('id', id)
         .select()
         .single();

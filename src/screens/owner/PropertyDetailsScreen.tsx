@@ -261,6 +261,8 @@ const PropertyDetailsScreen = () => {
               style={styles.input}
               value={calle}
               onChangeText={setCalle}
+              placeholder="Ingresa la calle"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
         </View>
