@@ -35,6 +35,12 @@ export default function AgentLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="profile"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </AgentFormProvider>
   );

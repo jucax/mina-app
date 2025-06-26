@@ -279,7 +279,7 @@ const AgentPropertyListScreen = () => {
             <Ionicons name="location" size={22} color={COLORS.secondary} />
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationText}>{propertyLocation}</Text>
-              <Text style={styles.propertyTypeText}>{item.property_type} en {item.intent.toUpperCase()}</Text>
+              <Text style={styles.propertyTypeText}>{item.property_type || 'Propiedad'} en {item.intent.toUpperCase()}</Text>
             </View>
           </View>
           <View style={styles.commissionContainer}>
@@ -411,7 +411,7 @@ const AgentPropertyListScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(agent)/agent-profile')}
+            onPress={() => router.push('/(agent)/profile')}
           >
             <Image 
               source={require('../../../assets/images/icon.png')}

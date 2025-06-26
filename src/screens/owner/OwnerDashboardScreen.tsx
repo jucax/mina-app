@@ -222,7 +222,7 @@ const OwnerDashboardScreen = () => {
               {property.municipality}, {property.state}
             </Text>
             <Text style={styles.propertyTypeText}>
-              {property.property_type} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+              {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
             </Text>
           </View>
         </View>
@@ -256,7 +256,7 @@ const OwnerDashboardScreen = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(owner)/owner-profile')}
+            onPress={() => router.push('/(owner)/profile')}
           >
             <Image 
               source={require('../../../assets/images/icon.png')}

@@ -82,7 +82,9 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     }).format(price);
   };
 
-  const getPropertyTypeText = (type: string) => {
+  const getPropertyTypeText = (type: string | null | undefined) => {
+    if (!type) return 'Propiedad';
+    
     const typeMap: { [key: string]: string } = {
       'casa': 'Casa',
       'departamento': 'Departamento',
@@ -93,7 +95,8 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
     return typeMap[type.toLowerCase()] || type;
   };
 
-  const getIntentText = (intent: string) => {
+  const getIntentText = (intent: string | null | undefined) => {
+    if (!intent) return 'Venta';
     return intent === 'venta' ? 'Venta' : 'Renta';
   };
 

@@ -42,7 +42,7 @@ export default function OwnerLayout() {
           }}
         />
         <Stack.Screen
-          name="owner-profile"
+          name="profile"
           options={{
             headerShown: false,
           }}

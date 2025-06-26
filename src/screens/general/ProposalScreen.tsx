@@ -50,7 +50,7 @@ const ProposalScreen = () => {
 
   const handleAgentPress = () => {
     router.push({
-      pathname: '/(general)/agent-profile',
+      pathname: '/(agent)/profile',
       params: {
         agentImage: proposal.agentImage,
         agentName: proposal.agentName,

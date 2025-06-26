@@ -27,12 +27,6 @@ export default function GeneralLayout() {
           headerShown: false,
         }}
       />
-      <Stack.Screen
-        name="agent-profile"
-        options={{
-          headerShown: false,
-        }}
-      />
     </Stack>
   );
 } 

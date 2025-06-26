@@ -11,21 +11,22 @@ import {
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../../styles/globalStyles';
+import { COLORS, FONTS } from '../../styles/globalStyles';
 
 const { width, height } = Dimensions.get('window');
 
-interface UserProfile {
+interface OwnerProfile {
   id: string;
   full_name: string;
+  email: string;
   phone: string;
   avatar_url?: string;
-  is_owner: boolean;
+  created_at?: string;
 }
 
 const OwnerProfileScreen = () => {
   const params = useLocalSearchParams();
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [ownerProfile, setOwnerProfile] = useState<OwnerProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Check if we're viewing another owner's profile (from params) or current user's profile
@@ -37,12 +38,12 @@ const OwnerProfileScreen = () => {
         if (isViewingOtherProfile) {
           // Use the profile data from params (for viewing other owners)
           console.log('👥 Viewing other owner profile from params');
-          setUserProfile({
+          setOwnerProfile({
             id: '',
             full_name: params.agentName as string,
+            email: '',
             phone: params.contact as string,
             avatar_url: params.agentImage as string,
-            is_owner: true,
           });
         } else {
           // Fetch current user's profile
@@ -68,7 +69,7 @@ const OwnerProfileScreen = () => {
               // Fetch owner profile
               const { data: ownerProfile, error } = await supabase
                 .from('owners')
-                .select('id, full_name, phone, avatar_url')
+                .select('id, full_name, email, phone, avatar_url, created_at')
                 .eq('id', userAuth.owner_id)
                 .single();
 
@@ -76,18 +77,7 @@ const OwnerProfileScreen = () => {
                 console.error('❌ Error fetching owner profile (Owner Profile):', error);
               } else {
                 console.log('✅ Owner profile fetched successfully (Owner Profile):', ownerProfile);
-                console.log('🖼️ Avatar URL (Owner Profile):', ownerProfile.avatar_url);
-                
-                // Transform to match the expected interface
-                const profile = {
-                  id: ownerProfile.id,
-                  full_name: ownerProfile.full_name,
-                  phone: ownerProfile.phone || '',
-                  avatar_url: ownerProfile.avatar_url,
-                  is_owner: true
-                };
-                
-                setUserProfile(profile);
+                setOwnerProfile(ownerProfile);
               }
             } else {
               console.log('⚠️ User is not an owner or owner_id not found (Owner Profile)');
@@ -104,22 +94,36 @@ const OwnerProfileScreen = () => {
     fetchProfile();
   }, [isViewingOtherProfile]);
 
-  // Log avatar URL when it changes
-  useEffect(() => {
-    if (userProfile?.avatar_url) {
-      console.log('🧪 Final avatar URL to load (Owner Profile):', userProfile.avatar_url);
-    }
-  }, [userProfile?.avatar_url]);
+  const formatDate = (dateString: string) => {
+    if (!dateString) return 'N/A';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-MX', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
 
-  const InfoBox = ({ value, label }: { value: string; label: string }) => (
-    <View style={styles.infoBox}>
-      <Text style={styles.infoBoxText}>
-        {label === 'CONTACTO' || label === 'INMOBILIARIA'
-          ? `${label}: ${value}`
-          : `${value} ${label}`}
-      </Text>
+  const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
+    <View style={styles.infoRow}>
+      <View style={styles.infoIconContainer}>
+        <Ionicons name={icon as any} size={24} color={COLORS.primary} />
+      </View>
+      <View style={styles.infoContent}>
+        <Text style={styles.infoLabel}>{label}</Text>
+        <Text style={styles.infoValue}>{value || 'N/A'}</Text>
+      </View>
     </View>
   );
+
+  const handleEditProfile = () => {
+    if (ownerProfile?.id) {
+      router.push({
+        pathname: '/(owner)/profile/edit',
+        params: { id: ownerProfile.id }
+      });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -127,48 +131,75 @@ const OwnerProfileScreen = () => {
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Cargando perfil...</Text>
         </View>
-      ) : userProfile ? (
-        <ScrollView>
-          {/* Top Section with Logo and Profile Picture */}
-          <View style={styles.topSection}>
-            <Image
-              source={require('../../../assets/images/logo_login_screen.png')}
-              style={styles.logo}
-              resizeMode="contain"
-            />
+      ) : ownerProfile ? (
+        <ScrollView style={styles.scrollView}>
+          {/* Header with back button */}
+          <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
               onPress={() => router.back()}
             >
-              <Text style={styles.backButtonText}>←</Text>
+              <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
-            {userProfile.avatar_url ? (
+            <Text style={styles.headerTitle}>Perfil</Text>
+            <View style={styles.headerSpacer} />
+          </View>
+
+          {/* Profile Image Section */}
+          <View style={styles.profileImageSection}>
+            {ownerProfile.avatar_url ? (
               <Image
                 source={require('../../../assets/images/icon.png')}
                 style={styles.profileImage}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={70} color={COLORS.white} />
+                <Ionicons name="person" size={60} color={COLORS.white} />
               </View>
             )}
+            <Text style={styles.profileName}>{ownerProfile.full_name}</Text>
+            <Text style={styles.profileTitle}>Propietario</Text>
           </View>
 
-          {/* White Card with Owner Info */}
+          {/* Profile Info Card */}
           <View style={styles.infoCard}>
-            <Text style={styles.agentName}>{userProfile.full_name}</Text>
-            <Text style={styles.agentTitle}>Propietario</Text>
-            <View style={styles.divider} />
-            <Text style={styles.agentDescription}>
-              Hola, mi nombre es {userProfile.full_name} y soy propietario de propiedades
-            </Text>
+            <Text style={styles.sectionTitle}>Información Personal</Text>
+            
+            <InfoRow 
+              icon="person" 
+              label="Nombre completo" 
+              value={ownerProfile.full_name} 
+            />
+            
+            <InfoRow 
+              icon="mail" 
+              label="Correo electrónico" 
+              value={ownerProfile.email} 
+            />
+            
+            <InfoRow 
+              icon="call" 
+              label="Teléfono" 
+              value={ownerProfile.phone} 
+            />
+            
+            <InfoRow 
+              icon="calendar" 
+              label="Miembro desde" 
+              value={formatDate(ownerProfile.created_at || '')} 
+            />
           </View>
 
-          {/* Info Boxes */}
-          <View style={styles.infoBoxesContainer}>
-            <InfoBox value={userProfile.phone || 'N/A'} label="CONTACTO" />
-            <InfoBox value={userProfile.phone || 'N/A'} label="INMOBILIARIA" />
-          </View>
+          {/* Edit Button */}
+          {!isViewingOtherProfile && (
+            <TouchableOpacity
+              style={styles.editButton}
+              onPress={handleEditProfile}
+            >
+              <Ionicons name="create" size={24} color={COLORS.white} />
+              <Text style={styles.editButtonText}>Editar Perfil</Text>
+            </TouchableOpacity>
+          )}
         </ScrollView>
       ) : (
         <View style={styles.errorContainer}>
@@ -182,96 +213,120 @@ const OwnerProfileScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#144E7A',
+    backgroundColor: COLORS.primary,
   },
-  topSection: {
-    height: height * 0.28,
-    width: '100%',
-    backgroundColor: '#144E7A',
+  scrollView: {
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-  },
-  logo: {
-    height: 140,
-    width: '100%',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingTop: 60,
+    paddingBottom: 20,
   },
   backButton: {
-    position: 'absolute',
-    top: 16,
-    left: 8,
     padding: 8,
   },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: 32,
+  headerTitle: {
+    ...FONTS.title,
+    fontSize: 20,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  headerSpacer: {
+    width: 40,
+  },
+  profileImageSection: {
+    alignItems: 'center',
+    paddingVertical: 30,
   },
   profileImage: {
-    position: 'absolute',
-    top: height * 0.18,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#FFFFFF',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.white,
   },
   profileImagePlaceholder: {
-    position: 'absolute',
-    top: height * 0.18,
-    width: 140,
-    height: 140,
-    borderRadius: 70,
-    backgroundColor: '#FFFFFF',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: COLORS.secondary,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  infoCard: {
-    width: width * 0.9,
-    alignSelf: 'center',
-    backgroundColor: '#FFFFFF',
-    borderRadius: 40,
-    padding: 24,
-    marginTop: 0,
-  },
-  agentName: {
-    fontSize: 28,
+  profileName: {
+    ...FONTS.title,
+    fontSize: 24,
+    color: COLORS.white,
     fontWeight: 'bold',
-    color: '#000000',
-    textAlign: 'center',
-    marginTop: 50,
+    marginTop: 16,
   },
-  agentTitle: {
-    fontSize: 20,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 8,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: '#E0E0E0',
-    marginVertical: 8,
-  },
-  agentDescription: {
+  profileTitle: {
+    ...FONTS.regular,
     fontSize: 16,
-    color: '#666666',
-    textAlign: 'center',
-    marginTop: 8,
+    color: COLORS.white,
+    opacity: 0.8,
+    marginTop: 4,
   },
-  infoBoxesContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 24,
+  infoCard: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 24,
+    marginBottom: 20,
   },
-  infoBox: {
-    backgroundColor: '#FFA733',
-    borderRadius: 32,
-    paddingVertical: 16,
-    paddingHorizontal: 12,
-    marginVertical: 8,
+  sectionTitle: {
+    ...FONTS.title,
+    fontSize: 18,
+    color: COLORS.black,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  infoIconContainer: {
+    width: 40,
     alignItems: 'center',
   },
-  infoBoxText: {
-    color: '#FFFFFF',
-    fontSize: 18,
+  infoContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  infoLabel: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.gray,
+    marginBottom: 2,
+  },
+  infoValue: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.black,
     fontWeight: '500',
-    letterSpacing: 1.2,
+  },
+  editButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: COLORS.secondary,
+    marginHorizontal: 20,
+    marginBottom: 32,
+    paddingVertical: 16,
+    borderRadius: 12,
+  },
+  editButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    fontSize: 16,
+    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -279,9 +334,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
   },
   errorContainer: {
     flex: 1,
@@ -289,9 +344,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   errorText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
   },
 });
 
