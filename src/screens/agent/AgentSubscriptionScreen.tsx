@@ -35,8 +35,8 @@ const subscriptionPlans = [
     description: 'Pago mensual, cancela cuando quieras.'
   },
   {
-    id: 'semanal',
-    name: 'Semanal',
+    id: 'semestral',
+    name: 'Semestral',
     price: '$5400',
     period: '6 meses',
     features: [

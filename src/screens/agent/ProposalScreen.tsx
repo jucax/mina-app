@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { ViewTrackingService } from '../../services/viewTrackingService';
+import { ProposalService } from '../../services/proposalService';
 import { Property as PropertyType } from '../../types/property';
 
 const { width, height } = Dimensions.get('window');
@@ -43,27 +44,32 @@ const ProposalScreen = () => {
       return;
     }
 
+    if (!propertyId) {
+      Alert.alert('Error', 'ID de propiedad no válido.');
+      return;
+    }
+
     setSending(true);
     try {
-      // TODO: Implement proposal sending logic
-      // This would typically involve saving to a proposals table
-      // and sending notifications to the property owner
+      // Send the proposal
+      await ProposalService.createProposal({
+        property_id: propertyId,
+        proposal_text: proposalText.trim(),
+      });
       
       // Increment offer count when proposal is sent
-      if (propertyId) {
-        await ViewTrackingService.incrementPropertyOffers(propertyId);
-      }
+      await ViewTrackingService.incrementPropertyOffers(propertyId);
       
       Alert.alert(
-        'Éxito',
-        'Tu propuesta ha sido enviada correctamente al propietario.',
+        '¡Propuesta Enviada!',
+        'Tu propuesta ha sido enviada correctamente al propietario. Te notificaremos cuando responda.',
         [{ text: 'OK', onPress: () => router.back() }]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error sending proposal:', error);
       Alert.alert(
         'Error',
-        'No se pudo enviar la propuesta. Por favor, intenta de nuevo.',
+        error.message || 'No se pudo enviar la propuesta. Por favor, intenta de nuevo.',
         [{ text: 'OK' }]
       );
     } finally {

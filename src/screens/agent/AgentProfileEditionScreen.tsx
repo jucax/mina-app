@@ -8,6 +8,8 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS } from '../../styles/globalStyles';
@@ -41,6 +43,66 @@ interface AgentProfile {
   description?: string;
 }
 
+interface DropdownProps {
+  label: string;
+  value: string | null;
+  items: string[];
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownProps) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <View style={styles.dropdownContainer}>
+      <TouchableOpacity
+        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        onPress={() => !disabled && setIsOpen(true)}
+        disabled={disabled}
+      >
+        <Text style={[styles.dropdownInput, disabled && styles.dropdownInputDisabled]}>
+          {value || 'Selecciona'}
+        </Text>
+        <Ionicons name="chevron-down" size={24} color={disabled ? COLORS.gray : COLORS.black} />
+      </TouchableOpacity>
+
+      <Modal
+        visible={isOpen}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setIsOpen(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{label}</Text>
+              <TouchableOpacity onPress={() => setIsOpen(false)}>
+                <Ionicons name="close" size={24} color={COLORS.black} />
+              </TouchableOpacity>
+            </View>
+            <FlatList
+              data={items}
+              keyExtractor={(item) => item}
+              renderItem={({ item }) => (
+                <TouchableOpacity
+                  style={styles.dropdownItem}
+                  onPress={() => {
+                    onChange(item);
+                    setIsOpen(false);
+                  }}
+                >
+                  <Text style={styles.dropdownItemText}>{item}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
 const AgentProfileEditionScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [profileData, setProfileData] = useState<AgentProfile | null>(null);
@@ -61,7 +123,8 @@ const AgentProfileEditionScreen = () => {
   const [experienceYears, setExperienceYears] = useState('');
   const [propertiesSold, setPropertiesSold] = useState('');
   const [commissionPercentage, setCommissionPercentage] = useState('');
-  const [worksAtAgency, setWorksAtAgency] = useState('');
+  const [worksAtAgency, setWorksAtAgency] = useState<boolean | null>(null);
+  const [notWorksAtAgency, setNotWorksAtAgency] = useState<boolean | null>(null);
   const [description, setDescription] = useState('');
   const [subscriptionPlan, setSubscriptionPlan] = useState('');
 
@@ -102,10 +165,11 @@ const AgentProfileEditionScreen = () => {
           setNeighborhood(data.neighborhood || '');
           setStreet(data.street || '');
           setCountry(data.country || '');
-          setExperienceYears(data.experience_years || '');
-          setPropertiesSold(data.properties_sold || '');
-          setCommissionPercentage(data.commission_percentage || '');
-          setWorksAtAgency(data.works_at_agency || '');
+          setExperienceYears(data.experience_years?.toString() || '');
+          setPropertiesSold(data.properties_sold?.toString() || '');
+          setCommissionPercentage(data.commission_percentage?.toString() || '');
+          setWorksAtAgency(data.works_at_agency);
+          setNotWorksAtAgency(!data.works_at_agency);
           setDescription(data.description || '');
           setSubscriptionPlan(data.subscription_plan || '');
         }
@@ -156,10 +220,10 @@ const AgentProfileEditionScreen = () => {
         neighborhood: neighborhood.trim() || null,
         street: street.trim() || null,
         country: country.trim() || null,
-        experience_years: experienceYears.trim() || null,
-        properties_sold: propertiesSold.trim() || null,
-        commission_percentage: commissionPercentage.trim() || null,
-        works_at_agency: worksAtAgency.trim() || null,
+        experience_years: experienceYears.trim() ? parseInt(experienceYears.trim()) : null,
+        properties_sold: propertiesSold.trim() ? parseInt(propertiesSold.trim()) : null,
+        commission_percentage: commissionPercentage.trim() ? parseInt(commissionPercentage.trim()) : null,
+        works_at_agency: worksAtAgency,
         description: description.trim() || null,
         subscription_plan: subscriptionPlan.trim() || null,
       };
@@ -199,6 +263,11 @@ const AgentProfileEditionScreen = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleAgencySelection = (isYes: boolean) => {
+    setWorksAtAgency(isYes);
+    setNotWorksAtAgency(!isYes);
   };
 
   if (loading) {
@@ -390,14 +459,51 @@ const AgentProfileEditionScreen = () => {
         </View>
 
         <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Trabaja en Inmobiliaria:</Text>
-          <TextInput
-            style={styles.input}
-            value={worksAtAgency}
-            onChangeText={setWorksAtAgency}
-            placeholder="Ingresa el nombre de la inmobiliaria"
-            placeholderTextColor="rgba(0, 0, 0, 0.5)"
-          />
+          <Text style={styles.inputLabel}>¿Trabaja en inmobiliaria?</Text>
+          <View style={styles.agencyContainer}>
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => handleAgencySelection(true)}
+            >
+              <View style={[
+                styles.checkbox,
+                worksAtAgency === true && styles.checkboxSelected
+              ]}>
+                {worksAtAgency === true && (
+                  <Ionicons name="checkmark" size={20} color={COLORS.white} />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>Sí</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.checkboxContainer}
+              onPress={() => handleAgencySelection(false)}
+            >
+              <View style={[
+                styles.checkbox,
+                worksAtAgency === false && styles.checkboxSelected
+              ]}>
+                {worksAtAgency === false && (
+                  <Ionicons name="checkmark" size={20} color={COLORS.white} />
+                )}
+              </View>
+              <Text style={styles.checkboxLabel}>No</Text>
+            </TouchableOpacity>
+          </View>
+
+          {worksAtAgency === true && (
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Nombre de la inmobiliaria:</Text>
+              <TextInput
+                style={styles.input}
+                value={realEstateAgency}
+                onChangeText={setRealEstateAgency}
+                placeholder="Ingresa el nombre de la inmobiliaria"
+                placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              />
+            </View>
+          )}
         </View>
 
         <View style={styles.inputContainer}>
@@ -415,9 +521,9 @@ const AgentProfileEditionScreen = () => {
           <Text style={styles.inputLabel}>Plan de Suscripción:</Text>
           <Dropdown
             label="Plan de Suscripción"
-            value={planOptions.find(opt => opt.value === subscriptionPlan)?.label || ''}
+            value={subscriptionPlan ? planOptions.find(opt => opt.value === subscriptionPlan)?.label || '' : null}
             items={planOptions.map(opt => opt.label)}
-            onChange={label => {
+            onChange={(label: string) => {
               const found = planOptions.find(opt => opt.label === label);
               setSubscriptionPlan(found ? found.value : '');
             }}
@@ -516,6 +622,87 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.white,
+  },
+  dropdownContainer: {
+    marginBottom: 20,
+  },
+  dropdown: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  dropdownDisabled: {
+    opacity: 0.5,
+  },
+  dropdownInput: {
+    flex: 1,
+    fontSize: 16,
+    color: COLORS.black,
+  },
+  dropdownInputDisabled: {
+    color: COLORS.gray,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    padding: 24,
+    width: width * 0.8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    ...FONTS.title,
+    fontSize: 20,
+    color: COLORS.black,
+    flex: 1,
+  },
+  dropdownItem: {
+    padding: 16,
+  },
+  dropdownItemText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.black,
+  },
+  agencyContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    borderRadius: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  checkboxSelected: {
+    backgroundColor: COLORS.secondary,
+  },
+  checkboxLabel: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    marginLeft: 8,
   },
 });
 

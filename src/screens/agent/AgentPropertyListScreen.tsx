@@ -22,7 +22,7 @@ const { width, height } = Dimensions.get('window');
 interface Property {
   id: string;
   owner_id: string;
-  intent: 'venta' | 'renta';
+  intent: 'sell' | 'rent';
   timeline: string;
   price: number;
   property_type: string;
@@ -30,9 +30,9 @@ interface Property {
   country: string;
   state: string;
   municipality: string;
-  neighborhood: string;
-  street: string;
-  postal_code: string;
+  neighborhood?: string;
+  street?: string;
+  postal_code?: string;
   bedrooms?: number;
   bathrooms?: number;
   parking_spaces?: number;
@@ -248,7 +248,21 @@ const AgentPropertyListScreen = () => {
   };
 
   const renderPropertyItem = ({ item, index }: { item: Property; index: number }) => {
-    const propertyLocation = `${item.neighborhood}, ${item.municipality}`;
+    // Fix location display to show actual data
+    const neighborhood = item.neighborhood || '';
+    const municipality = item.municipality || '';
+    let propertyLocation = '';
+    
+    if (neighborhood && municipality) {
+      propertyLocation = `${neighborhood}, ${municipality}`;
+    } else if (municipality) {
+      propertyLocation = municipality;
+    } else if (neighborhood) {
+      propertyLocation = neighborhood;
+    } else {
+      propertyLocation = 'Sin especificar';
+    }
+    
     const propertyImage = item.images && item.images.length > 0 
       ? { uri: item.images[0] } 
       : require('../../../assets/images/property1.png');
@@ -279,7 +293,9 @@ const AgentPropertyListScreen = () => {
             <Ionicons name="location" size={22} color={COLORS.secondary} />
             <View style={styles.locationTextContainer}>
               <Text style={styles.locationText}>{propertyLocation}</Text>
-              <Text style={styles.propertyTypeText}>{item.property_type || 'Propiedad'} en {item.intent.toUpperCase()}</Text>
+              <Text style={styles.propertyTypeText}>
+                {item.property_type || 'Propiedad'} en {item.intent === 'sell' ? 'VENTA' : 'RENTA'}
+              </Text>
             </View>
           </View>
           <View style={styles.commissionContainer}>

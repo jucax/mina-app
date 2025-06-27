@@ -272,7 +272,12 @@ const AgentProfileScreen = () => {
             <InfoRow 
               icon="star" 
               label="Plan de suscripción" 
-              value={agentProfile.subscription_plan || 'No especificado'} 
+              value={
+                agentProfile.subscription_plan === 'mensual' ? 'Mensual' :
+                agentProfile.subscription_plan === 'semestral' ? 'Semestral' :
+                agentProfile.subscription_plan === 'anual' ? 'Anual' :
+                agentProfile.subscription_plan || 'No especificado'
+              } 
             />
           </View>
 

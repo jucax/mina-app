@@ -16,6 +16,7 @@ import {
 import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { PropertyService } from '../../services/propertyService';
+import { ProposalService } from '../../services/proposalService';
 import { Property } from '../../types/property';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
@@ -38,11 +39,13 @@ const OwnerDashboardScreen = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingProposalsCount, setPendingProposalsCount] = useState(0);
 
   // Fetch user profile and properties on component mount
   useEffect(() => {
     fetchUserProfile();
     fetchProperties();
+    fetchPendingProposalsCount();
   }, []);
 
   const fetchUserProfile = async () => {
@@ -102,9 +105,22 @@ const OwnerDashboardScreen = () => {
     }
   };
 
+  const fetchPendingProposalsCount = async () => {
+    try {
+      console.log('🔍 Fetching pending proposals count...');
+      const proposals = await ProposalService.getProposalsForOwner();
+      const pendingCount = proposals.filter(p => p.status === 'pending').length;
+      console.log('✅ Pending proposals count:', pendingCount);
+      setPendingProposalsCount(pendingCount);
+    } catch (error) {
+      console.error('❌ Error fetching pending proposals count:', error);
+    }
+  };
+
   const onRefresh = async () => {
     setRefreshing(true);
     await fetchProperties();
+    await fetchPendingProposalsCount();
     setRefreshing(false);
   };
 
@@ -253,6 +269,13 @@ const OwnerDashboardScreen = () => {
             onPress={() => router.push({ pathname: '/(owner)/notifications' })}
           >
             <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
+            {pendingProposalsCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {pendingProposalsCount > 99 ? '99+' : pendingProposalsCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
@@ -579,6 +602,20 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.black,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+    padding: 2,
+  },
+  notificationBadgeText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
 

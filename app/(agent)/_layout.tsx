@@ -41,6 +41,18 @@ export default function AgentLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="property"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="proposal"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </AgentFormProvider>
   );

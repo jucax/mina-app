@@ -1,5 +1,5 @@
-import NotificationsScreen from '../../src/screens/general/NotificationsScreen';
+import OwnerNotificationsScreen from '../../src/screens/owner/OwnerNotificationsScreen';
 
 export default function NotificationsRoute() {
-  return <NotificationsScreen />;
+  return <OwnerNotificationsScreen />;
 } 

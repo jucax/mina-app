@@ -111,7 +111,11 @@ const AgentPropertyDetailScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView>
+      <ScrollView 
+        style={styles.scrollView}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.imageContainer}>
           <Image
             source={getPropertyImage(propertyData)}
@@ -145,23 +149,6 @@ const AgentPropertyDetailScreen = () => {
             <Text style={styles.typeText}>
               En {propertyData.intent === 'sell' ? 'venta' : propertyData.intent === 'rent' ? 'renta' : 'venta/renta'} {propertyData.property_type}
             </Text>
-          </View>
-
-          <View style={styles.countersContainer}>
-            <View style={styles.counterContainer}>
-              <Ionicons name="eye" color={COLORS.secondary} size={24} />
-              <View style={styles.counterTextContainer}>
-                <Text style={styles.counterValue}>{propertyData.views_count || 0}</Text>
-                <Text style={styles.counterLabel}>Vistas</Text>
-              </View>
-            </View>
-            <View style={styles.counterContainer}>
-              <Ionicons name="gift" color={COLORS.secondary} size={24} />
-              <View style={styles.counterTextContainer}>
-                <Text style={styles.counterValue}>{propertyData.offers_count || 0}</Text>
-                <Text style={styles.counterLabel}>Ofertas</Text>
-              </View>
-            </View>
           </View>
 
           <Text style={styles.sectionTitle}>INFORMACION DE LA PROPIEDAD</Text>
@@ -203,13 +190,15 @@ const AgentPropertyDetailScreen = () => {
         </View>
       </ScrollView>
 
-      <TouchableOpacity
-        style={styles.sendOfferButton}
-        onPress={handleSendOffer}
-      >
-        <Ionicons name="mail" size={24} color={COLORS.white} />
-        <Text style={styles.sendOfferButtonText}>Enviar Oferta</Text>
-      </TouchableOpacity>
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity
+          style={styles.sendOfferButton}
+          onPress={handleSendOffer}
+        >
+          <Ionicons name="mail" size={24} color={COLORS.white} />
+          <Text style={styles.sendOfferButtonText}>Enviar Oferta</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 };
@@ -218,6 +207,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.white,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 100,
   },
   imageContainer: {
     height: 320,
@@ -374,17 +369,24 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.black,
   },
-  sendOfferButton: {
+  buttonContainer: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 32,
     left: 24,
     right: 24,
+  },
+  sendOfferButton: {
     height: 56,
     borderRadius: 28,
     backgroundColor: COLORS.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
   sendOfferButtonText: {
     ...FONTS.regular,
@@ -392,27 +394,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.white,
     marginLeft: 8,
-  },
-  countersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  counterContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  counterTextContainer: {
-    marginLeft: 8,
-  },
-  counterValue: {
-    ...FONTS.title,
-    fontSize: 22,
-    fontWeight: 'bold',
-  },
-  counterLabel: {
-    ...FONTS.regular,
-    fontWeight: 'bold',
   },
 });
 
