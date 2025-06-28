@@ -54,7 +54,7 @@ const OwnerProposalReceivedScreen = () => {
       Alert.alert(
         '¡Propuesta Aceptada!',
         '¡Felicidades! Tu información de contacto ha sido compartida con este agente. Él debería contactarte pronto para coordinar los siguientes pasos.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(owner)/notifications', params: { refresh: '1' } }) }]
       );
     } catch (error: any) {
       console.error('Error accepting proposal:', error);
@@ -78,7 +78,7 @@ const OwnerProposalReceivedScreen = () => {
       Alert.alert(
         'Propuesta Rechazada',
         'No te preocupes, hemos notificado al agente sobre tu decisión. Estamos seguros de que encontrarás al agente perfecto para tu propiedad.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(owner)/notifications', params: { refresh: '1' } }) }]
       );
     } catch (error: any) {
       console.error('Error rejecting proposal:', error);
@@ -129,18 +129,18 @@ const OwnerProposalReceivedScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      {/* Remove header: back button and title */}
+      {/* <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
       >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
+      <Text style={styles.title}>
+        Propuesta de Valor
+      </Text> */}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.title}>
-          Propuesta de Valor
-        </Text>
-
         <Text style={styles.subtitle}>
           ¡Dale un vistazo a la propuesta que tiene el asesor inmobiliario para ti!
         </Text>
@@ -244,14 +244,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 24,
     paddingBottom: 100,
-  },
-  title: {
-    ...FONTS.title,
-    fontSize: 28,
-    color: COLORS.white,
-    textAlign: 'center',
-    marginTop: 60,
-    marginBottom: 8,
   },
   subtitle: {
     ...FONTS.regular,
@@ -388,13 +380,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: COLORS.white,
     fontWeight: 'bold',
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    padding: 16,
-    zIndex: 10,
   },
   loadingContainer: {
     flex: 1,

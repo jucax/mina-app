@@ -26,17 +26,33 @@ const ProposalScreen = () => {
   const [proposalText, setProposalText] = useState('');
   const [sending, setSending] = useState(false);
   const [property, setProperty] = useState<PropertyType | null>(null);
+  const [proposalCount, setProposalCount] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (propertyData) {
+    const initializeScreen = async () => {
       try {
-        const parsedProperty = JSON.parse(propertyData);
-        setProperty(parsedProperty);
+        // Parse property data
+        if (propertyData) {
+          const parsedProperty = JSON.parse(propertyData);
+          setProperty(parsedProperty);
+        }
+
+        // Check proposal count for this property
+        if (propertyId) {
+          const count = await ProposalService.getAgentProposalCountForProperty(propertyId);
+          setProposalCount(count);
+          console.log(`Agent has sent ${count} proposals for this property`);
+        }
       } catch (error) {
-        console.error('Error parsing property data:', error);
+        console.error('Error initializing proposal screen:', error);
+      } finally {
+        setLoading(false);
       }
-    }
-  }, [propertyData]);
+    };
+
+    initializeScreen();
+  }, [propertyData, propertyId]);
 
   const handleSendProposal = async () => {
     if (!proposalText.trim()) {
@@ -46,6 +62,16 @@ const ProposalScreen = () => {
 
     if (!propertyId) {
       Alert.alert('Error', 'ID de propiedad no válido.');
+      return;
+    }
+
+    // Check if agent has already sent 3 proposals
+    if (proposalCount >= 3) {
+      Alert.alert(
+        'Límite de Propuestas Alcanzado',
+        'Has alcanzado el límite de 3 propuestas para esta propiedad.',
+        [{ text: 'OK' }]
+      );
       return;
     }
 
@@ -120,38 +146,54 @@ const ProposalScreen = () => {
           Tu Propuesta
         </Text>
 
-        <Text style={styles.description}>
-          Escribe tu propuesta para el propietario. Incluye información sobre:
-        </Text>
+        {loading ? (
+          <Text style={styles.loadingText}>Cargando información...</Text>
+        ) : (
+          <>
+            <Text style={styles.description}>
+              Escribe tu propuesta para el propietario. Incluye información sobre:
+            </Text>
 
-        <View style={styles.bulletPoints}>
-          <Text style={styles.bulletPoint}>• Tu experiencia en el mercado inmobiliario</Text>
-          <Text style={styles.bulletPoint}>• Tu estrategia de venta/renta</Text>
-          <Text style={styles.bulletPoint}>• Tiempo estimado para cerrar la operación</Text>
-          <Text style={styles.bulletPoint}>• Servicios adicionales que ofreces</Text>
-          <Text style={styles.bulletPoint}>• Por qué eres la mejor opción</Text>
-        </View>
+            <View style={styles.bulletPoints}>
+              <Text style={styles.bulletPoint}>• Tu experiencia en el mercado inmobiliario</Text>
+              <Text style={styles.bulletPoint}>• Tu estrategia de venta/renta</Text>
+              <Text style={styles.bulletPoint}>• Tiempo estimado para cerrar la operación</Text>
+              <Text style={styles.bulletPoint}>• Servicios adicionales que ofreces</Text>
+              <Text style={styles.bulletPoint}>• Por qué eres la mejor opción</Text>
+            </View>
 
-        <TextInput
-          style={styles.proposalInput}
-          value={proposalText}
-          onChangeText={setProposalText}
-          placeholder="Escribe tu propuesta aquí..."
-          placeholderTextColor="rgba(0, 0, 0, 0.5)"
-          multiline
-          textAlignVertical="top"
-        />
+            <TextInput
+              style={styles.proposalInput}
+              value={proposalText}
+              onChangeText={setProposalText}
+              placeholder="Escribe tu propuesta aquí..."
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              multiline
+              textAlignVertical="top"
+            />
 
-        <TouchableOpacity
-          style={[styles.sendButton, sending && styles.sendButtonDisabled]}
-          onPress={handleSendProposal}
-          disabled={sending}
-        >
-          <Ionicons name="send" size={24} color={COLORS.white} />
-          <Text style={styles.sendButtonText}>
-            {sending ? 'Enviando...' : 'Enviar Propuesta'}
-          </Text>
-        </TouchableOpacity>
+            <View style={styles.proposalCountContainer}>
+              <Text style={styles.proposalCountText}>
+                Propuestas enviadas: {proposalCount}/3
+              </Text>
+            </View>
+
+            <TouchableOpacity
+              style={[
+                styles.sendButton, 
+                (sending || proposalCount >= 3) && styles.sendButtonDisabled
+              ]}
+              onPress={handleSendProposal}
+              disabled={sending || proposalCount >= 3}
+            >
+              <Ionicons name="send" size={24} color={COLORS.white} />
+              <Text style={styles.sendButtonText}>
+                {sending ? 'Enviando...' : 
+                 proposalCount >= 3 ? 'Límite de Propuestas Alcanzado' : 'Enviar Propuesta'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
       </ScrollView>
     </View>
   );
@@ -266,6 +308,25 @@ const styles = StyleSheet.create({
     left: 0,
     padding: 16,
     zIndex: 10,
+  },
+  loadingText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    textAlign: 'center',
+    marginBottom: 24,
+  },
+  proposalCountContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 24,
+  },
+  proposalCountText: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: 'bold',
   },
 });
 

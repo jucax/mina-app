@@ -23,7 +23,7 @@ const PasswordScreen = () => {
 
   const handlePasswordReset = async () => {
     if (!email) {
-      Alert.alert('Error', 'Please enter your email address');
+      Alert.alert('Error', 'Por favor, introduce tu correo electrónico');
       return;
     }
 
@@ -53,7 +53,7 @@ const PasswordScreen = () => {
       );
     } catch (error: any) {
       console.error('❌ Password reset failed:', error?.message);
-      Alert.alert('Error', error?.message || 'An error occurred while sending the reset email');
+      Alert.alert('Error', error?.message || 'Ocurrió un error al enviar el correo de restablecimiento');
     } finally {
       setLoading(false);
     }

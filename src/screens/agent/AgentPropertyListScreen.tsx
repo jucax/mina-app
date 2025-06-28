@@ -16,6 +16,7 @@ import { router } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
+import { ProposalService } from '../../services/proposalService';
 
 const { width, height } = Dimensions.get('window');
 
@@ -67,6 +68,7 @@ const AgentPropertyListScreen = () => {
   const [properties, setProperties] = useState<Property[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [responseProposalsCount, setResponseProposalsCount] = useState(0);
 
   // Fetch properties from database
   const fetchProperties = async () => {
@@ -220,6 +222,21 @@ const AgentPropertyListScreen = () => {
       console.log('🧪 Final avatar URL to load (Agent):', userProfile.avatar_url);
     }
   }, [userProfile?.avatar_url]);
+
+  // Fetch agent proposal responses
+  const fetchResponseProposalsCount = async () => {
+    try {
+      const proposals = await ProposalService.getProposalsByAgent();
+      const count = proposals.filter(p => p.status !== 'pending').length;
+      setResponseProposalsCount(count);
+    } catch (error) {
+      console.error('❌ Error fetching agent proposal responses:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchResponseProposalsCount();
+  }, []);
 
   const locations = ['All', ...new Set(properties.map(p => `${p.neighborhood}, ${p.municipality}`))].sort();
   const propertyTypes = ['All', ...new Set(properties.map(p => p.property_type))].sort();
@@ -421,9 +438,16 @@ const AgentPropertyListScreen = () => {
         <View style={styles.headerButtons}>
           <TouchableOpacity
             style={styles.headerButton}
-            onPress={() => router.push('/(owner)/notifications')}
+            onPress={() => router.push('/(agent)/notifications')}
           >
             <Ionicons name="notifications-outline" size={28} color={COLORS.primary} />
+            {responseProposalsCount > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {responseProposalsCount > 99 ? '99+' : responseProposalsCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.headerButton}
@@ -743,6 +767,20 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 10,
+    right: 10,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 12,
+    padding: 2,
+  },
+  notificationBadgeText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    fontWeight: '600',
+    color: COLORS.white,
   },
 });
 

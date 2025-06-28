@@ -14,9 +14,11 @@ import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { PropertyService } from '../../services/propertyService';
 import { ViewTrackingService } from '../../services/viewTrackingService';
+import { ProposalService } from '../../services/proposalService';
 import { Property as PropertyType } from '../../types/property';
+import { supabase } from '../../services/supabase';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 const InfoIconText = ({ icon, label }: { icon: string; label: string }) => (
   <View style={styles.infoIconContainer}>
@@ -36,6 +38,10 @@ const AgentPropertyDetailScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [userType, setUserType] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [proposalCount, setProposalCount] = useState(0);
+  const [proposalCountLoading, setProposalCountLoading] = useState(true);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -60,6 +66,79 @@ const AgentPropertyDetailScreen = () => {
     };
 
     fetchPropertyData();
+  }, [id]);
+
+  useEffect(() => {
+    // Fetch userType and userId if not already set
+    const fetchUserTypeAndId = async () => {
+      if (!userType || !userId) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: userAuth, error } = await supabase
+              .from('user_auth')
+              .select('user_type, agent_id')
+              .eq('id', user.id)
+              .single();
+            if (!error && userAuth) {
+              setUserType(userAuth.user_type);
+              setUserId(userAuth.agent_id);
+              console.log('Fetched userType:', userAuth.user_type, 'userId:', userAuth.agent_id);
+            } else {
+              console.error('Error fetching user_auth:', error);
+            }
+          }
+        } catch (e) {
+          console.error('Error fetching userType/userId:', e);
+        }
+      }
+    };
+    fetchUserTypeAndId();
+  }, []);
+
+  useEffect(() => {
+    const incrementView = async () => {
+      console.log('incrementView called. propertyData:', propertyData, 'userType:', userType, 'userId:', userId);
+      if (propertyData && userType === 'agent' && propertyData.owner_id !== userId) {
+        try {
+          const oldViews = propertyData.views_count || 0;
+          console.log(`Current views_count for property ${propertyData.id}:`, oldViews);
+          const { data, error } = await supabase
+            .from('properties')
+            .update({ views_count: oldViews + 1 })
+            .eq('id', propertyData.id)
+            .select('views_count')
+            .single();
+          if (error) {
+            console.error('Error incrementing property views:', error);
+          } else {
+            console.log(`views_count incremented for property ${propertyData.id}:`, data.views_count);
+          }
+        } catch (e) {
+          console.error('Error incrementing property views:', e);
+        }
+      } else {
+        console.log('Not incrementing view: propertyData:', propertyData, 'userType:', userType, 'userId:', userId);
+      }
+    };
+    incrementView();
+  }, [propertyData, userType, userId]);
+
+  useEffect(() => {
+    const fetchProposalCount = async () => {
+      try {
+        if (id) {
+          const count = await ProposalService.getAgentProposalCountForProperty(id);
+          setProposalCount(count);
+        }
+      } catch (error) {
+        console.error('Error fetching proposal count:', error);
+      } finally {
+        setProposalCountLoading(false);
+      }
+    };
+
+    fetchProposalCount();
   }, [id]);
 
   if (loading) {
@@ -187,17 +266,34 @@ const AgentPropertyDetailScreen = () => {
           {propertyData.additional_info && (
             <Text style={styles.descriptionText}>{propertyData.additional_info}</Text>
           )}
+
+          {/* Show proposal count */}
+          <View style={styles.proposalCountContainer}>
+            <Text style={styles.proposalCountText}>
+              Propuestas enviadas: {proposalCount}/3
+            </Text>
+          </View>
         </View>
       </ScrollView>
 
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={styles.sendOfferButton}
-          onPress={handleSendOffer}
-        >
-          <Ionicons name="mail" size={24} color={COLORS.white} />
-          <Text style={styles.sendOfferButtonText}>Enviar Oferta</Text>
-        </TouchableOpacity>
+        {proposalCount >= 3 && (
+          <TouchableOpacity
+            style={styles.disabledSendOfferButton}
+            disabled
+          >
+            <Text style={styles.disabledSendOfferButtonText}>Límite de Ofertas Alcanzado</Text>
+          </TouchableOpacity>
+        )}
+        {proposalCount < 3 && (
+          <TouchableOpacity
+            style={styles.sendOfferButton}
+            onPress={handleSendOffer}
+          >
+            <Ionicons name="mail" size={24} color={COLORS.white} />
+            <Text style={styles.sendOfferButtonText}>Enviar Oferta</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -394,6 +490,29 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: COLORS.white,
     marginLeft: 8,
+  },
+  disabledSendOfferButton: {
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.gray,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  disabledSendOfferButtonText: {
+    ...FONTS.regular,
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: COLORS.white,
+  },
+  proposalCountContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 24,
+  },
+  proposalCountText: {
+    ...FONTS.regular,
+    fontWeight: 'bold',
   },
 });
 

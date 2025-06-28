@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -9,122 +9,163 @@ import {
   Dimensions,
   Platform,
   Animated,
+  RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
+import { ProposalService, Proposal } from '../../services/proposalService';
+import { FONTS } from '../../styles/globalStyles';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
-// Mock data for notifications
-const notifications = [
-  {
-    id: '1',
-    image: require('../../../assets/images/property1.png'),
-    title: '¡Tienes un interesado en tu propiedad!',
-    subtitle: 'Miguel de Mina esta interesado en vender tu propiedad, abre la notificación y ve que tiene para ofrecerte',
-    time: 'Hoy',
-  },
-  {
-    id: '2',
-    image: require('../../../assets/images/property2.png'),
-    title: '¡Alguien ha marcado tu propiedad como favorita!',
-    subtitle: 'Natalia Aguilar agrego tu propiedad a su lista de favoritos. Podría contactarte pronto!',
-    time: 'Hoy',
-  },
-  {
-    id: '3',
-    image: require('../../../assets/images/property3.png'),
-    title: '!Tienes un mensaje!',
-    subtitle: 'Miguel de Mina te ha mandado su propuesta de valor, abre el mensaje para ver que tiene para ofrecerte. Tu puedes ACEPTAR O RECHAZAR su propuesta',
-    time: 'Ayer',
-  },
-  {
-    id: '4',
-    image: require('../../../assets/images/property4.png'),
-    title: '!Tienes un mensaje!',
-    subtitle: 'Miguel de Mina te ha mandado su propuesta de valor, abre el mensaje para ver que tiene para ofrecerte. Tu puedes ACEPTAR O RECHAZAR su propuesta',
-    time: '3 días',
-  },
-  {
-    id: '5',
-    image: require('../../../assets/images/property5.png'),
-    title: '¡Tienes un interesado en tu propiedad!',
-    subtitle: 'Miguel de Mina esta interesado en vender tu propiedad, abre la notificación y ve que tiene para ofrecerte',
-    time: '5 días',
-  },
-  {
-    id: '6',
-    image: require('../../../assets/images/property6.png'),
-    title: '¡Tienes un interesado en tu propiedad!',
-    subtitle: 'Miguel de Mina esta interesado en vender tu propiedad, abre la notificación y ve que tiene para ofrecerte',
-    time: '1 semana',
-  },
-  {
-    id: '7',
-    image: require('../../../assets/images/property1.png'),
-    title: '¡Tienes un interesado en tu propiedad!',
-    subtitle: 'Miguel de Mina esta interesado en vender tu propiedad, abre la notificación y ve que tiene para ofrecerte',
-    time: '1 mes',
-  },
-];
-
-const NotificationsScreen = () => {
+const AgentNotificationsScreen = () => {
+  const [proposals, setProposals] = useState<Proposal[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+
+  const fetchProposals = async () => {
+    try {
+      setLoading(true);
+      const data = await ProposalService.getProposalsByAgent();
+      // Only show proposals that have been accepted or rejected
+      setProposals((data || []).filter(p => p.status !== 'pending'));
+    } catch (error) {
+      console.error('Error fetching agent proposals:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProposals();
+  }, []);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProposals();
+    }, [])
+  );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await fetchProposals();
+    setRefreshing(false);
+  };
 
   const handleNotificationPress = (index: number) => {
     setSelectedIndex(index);
-    // Navigate to proposal screen with the notification's data
-    router.push({
-      pathname: '/(general)/proposal',
-      params: { notificationId: notifications[index].id },
-    });
+    const proposal = proposals[index];
+    if (proposal) {
+      router.push({
+        pathname: '/(agent)/proposal-response',
+        params: { proposalId: proposal.id },
+      });
+    }
   };
+
+  const getPropertyImage = (proposal: Proposal) => {
+    if (proposal.property?.images && proposal.property.images.length > 0) {
+      return { uri: proposal.property.images[0] };
+    }
+    return require('../../../assets/images/property1.png');
+  };
+
+  const getNotificationTitle = (proposal: Proposal) => {
+    if (proposal.status === 'accepted') {
+      return '¡Propuesta Aceptada!';
+    } else if (proposal.status === 'rejected') {
+      return 'Propuesta Rechazada';
+    } else {
+      return 'Propuesta enviada';
+    }
+  };
+
+  const getNotificationSubtitle = (proposal: Proposal) => {
+    if (proposal.status === 'accepted') {
+      return 'El propietario ha aceptado tu propuesta. ¡Revisa los detalles!';
+    } else if (proposal.status === 'rejected') {
+      return 'El propietario ha rechazado tu propuesta.';
+    } else {
+      return 'Tu propuesta está pendiente de respuesta.';
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#fff" />
+          </TouchableOpacity>
+          <Text style={styles.customHeaderTitle}>Notificaciones:</Text>
+          <Image
+            source={require('../../../assets/images/logo_login_screen.png')}
+            style={styles.customHeaderLogo}
+            resizeMode="contain"
+          />
+        </View>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Cargando notificaciones...</Text>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
+      <View style={styles.customHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Notificaciones</Text>
+        <Text style={styles.customHeaderTitle}>Notificaciones:</Text>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
-          style={styles.logo}
+          style={styles.customHeaderLogo}
           resizeMode="contain"
         />
       </View>
-
-      {/* Notifications List */}
-      <ScrollView style={styles.notificationsList}>
-        {notifications.map((notification, index) => (
-          <TouchableOpacity
-            key={notification.id}
-            onPress={() => handleNotificationPress(index)}
-            style={[
-              styles.notificationItem,
-              selectedIndex === index && styles.notificationItemSelected,
-            ]}
-          >
-            <Image
-              source={notification.image}
-              style={styles.notificationImage}
-            />
-            <View style={styles.notificationContent}>
-              <View style={styles.notificationHeader}>
-                <Text style={styles.notificationTitle} numberOfLines={2}>
-                  {notification.title}
+      <ScrollView
+        style={styles.notificationsList}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+          />
+        }
+      >
+        {proposals.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyText}>No tienes notificaciones aún</Text>
+            <Text style={styles.emptySubtext}>Cuando los propietarios respondan tus propuestas, aparecerán aquí</Text>
+          </View>
+        ) : (
+          proposals.map((proposal, index) => (
+            <TouchableOpacity
+              key={proposal.id}
+              onPress={() => handleNotificationPress(index)}
+              style={[
+                styles.notificationItem,
+                selectedIndex === index && styles.notificationItemSelected,
+              ]}
+            >
+              <Image
+                source={getPropertyImage(proposal)}
+                style={styles.notificationImage}
+              />
+              <View style={styles.notificationContent}>
+                <View style={styles.notificationHeader}>
+                  <Text style={styles.notificationTitle} numberOfLines={2}>
+                    {getNotificationTitle(proposal)}
+                  </Text>
+                </View>
+                <Text style={styles.notificationSubtitle} numberOfLines={3}>
+                  {getNotificationSubtitle(proposal)}
                 </Text>
-                <Text style={styles.notificationTime}>{notification.time}</Text>
               </View>
-              <Text style={styles.notificationSubtitle} numberOfLines={3}>
-                {notification.subtitle}
-              </Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+            </TouchableOpacity>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -134,31 +175,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#144E7A',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: height * 0.025,
-    backgroundColor: '#144E7A',
-  },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: width * 0.075,
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'center',
-  },
-  logo: {
-    height: height * 0.05,
   },
   notificationsList: {
     flex: 1,
@@ -214,6 +230,56 @@ const styles = StyleSheet.create({
     color: '#666666',
     lineHeight: 20,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  emptyText: {
+    color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  emptySubtext: {
+    color: '#FFFFFF',
+    fontSize: 14,
+  },
+  customHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#175B87',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 18,
+    borderBottomWidth: 4,
+    borderBottomColor: '#FFE9CC',
+  },
+  customHeaderTitle: {
+    fontSize: 32,
+    color: '#fff',
+    fontWeight: 'bold',
+    letterSpacing: 1,
+  },
+  customHeaderLogo: {
+    height: 48,
+    width: 120,
+    marginLeft: 12,
+  },
+  backButton: {
+    marginRight: 16,
+  },
 });
 
-export default NotificationsScreen; 
+export default AgentNotificationsScreen; 

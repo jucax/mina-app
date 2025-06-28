@@ -25,7 +25,7 @@ const LoginScreen = () => {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Alert.alert('Error', 'Por favor, completa todos los campos');
       return;
     }
 
@@ -64,7 +64,7 @@ const LoginScreen = () => {
       }
     } catch (error: any) {
       console.error('❌ Login failed:', error?.message);
-      Alert.alert('Error', error?.message || 'An error occurred during login');
+      Alert.alert('Error', error?.message || 'Ocurrió un error durante el inicio de sesión');
     } finally {
       setLoading(false);
     }

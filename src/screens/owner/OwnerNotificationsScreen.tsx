@@ -13,6 +13,8 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { ProposalService, Proposal } from '../../services/proposalService';
+import { FONTS } from '../../styles/globalStyles';
+import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
 
@@ -115,17 +117,14 @@ const NotificationsScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backButtonText}>←</Text>
+        <View style={styles.customHeader}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <Ionicons name="arrow-back" size={28} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.title}>Notificaciones</Text>
+          <Text style={styles.customHeaderTitle}>Notificaciones:</Text>
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
-            style={styles.logo}
+            style={styles.customHeaderLogo}
             resizeMode="contain"
           />
         </View>
@@ -138,23 +137,17 @@ const NotificationsScreen = () => {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backButtonText}>←</Text>
+      <View style={styles.customHeader}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={28} color="#fff" />
         </TouchableOpacity>
-        <Text style={styles.title}>Notificaciones</Text>
+        <Text style={styles.customHeaderTitle}>Notificaciones:</Text>
         <Image
           source={require('../../../assets/images/logo_login_screen.png')}
-          style={styles.logo}
+          style={styles.customHeaderLogo}
           resizeMode="contain"
         />
       </View>
-
-      {/* Notifications List */}
       <ScrollView
         style={styles.notificationsList}
         refreshControl={
@@ -214,30 +207,27 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#144E7A',
   },
-  header: {
+  customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingVertical: height * 0.025,
-    backgroundColor: '#144E7A',
+    backgroundColor: '#175B87',
+    paddingHorizontal: 24,
+    paddingTop: 32,
+    paddingBottom: 18,
+    borderBottomWidth: 4,
+    borderBottomColor: '#FFE9CC',
   },
-  backButton: {
-    padding: 8,
-  },
-  backButtonText: {
-    color: '#FFFFFF',
-    fontSize: width * 0.075,
-  },
-  title: {
-    color: '#FFFFFF',
-    fontSize: 20,
+  customHeaderTitle: {
+    fontSize: 32,
+    color: '#fff',
     fontWeight: 'bold',
-    flex: 1,
-    textAlign: 'center',
+    letterSpacing: 1,
   },
-  logo: {
-    height: height * 0.05,
+  customHeaderLogo: {
+    height: 48,
+    width: 120,
+    marginLeft: 12,
   },
   notificationsList: {
     flex: 1,
@@ -335,6 +325,9 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 12,
     fontWeight: 'bold',
+  },
+  backButton: {
+    marginRight: 16,
   },
 });
 

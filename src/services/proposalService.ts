@@ -27,6 +27,11 @@ export interface Proposal {
     state: string;
     images?: string[];
   };
+  owner?: {
+    full_name: string;
+    email: string;
+    phone: string;
+  };
 }
 
 export interface CreateProposalData {
@@ -166,6 +171,11 @@ export class ProposalService {
             municipality,
             state,
             images
+          ),
+          owner:owners(
+            full_name,
+            email,
+            phone
           )
         `)
         .eq('id', id)
@@ -231,6 +241,11 @@ export class ProposalService {
             municipality,
             state,
             images
+          ),
+          owner:owners(
+            full_name,
+            email,
+            phone
           )
         `)
         .eq('agent_id', userAuth.agent_id)
@@ -244,6 +259,43 @@ export class ProposalService {
       return proposals || [];
     } catch (error) {
       console.error('Error in getProposalsByAgent:', error);
+      throw error;
+    }
+  }
+
+  // Check how many proposals an agent has sent for a specific property
+  static async getAgentProposalCountForProperty(propertyId: string): Promise<number> {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Usuario no autenticado');
+      }
+
+      // Get agent_id from user_auth
+      const { data: userAuth, error: userAuthError } = await supabase
+        .from('user_auth')
+        .select('agent_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userAuthError || !userAuth?.agent_id) {
+        throw new Error('Usuario no es un agente válido');
+      }
+
+      const { data: proposals, error } = await supabase
+        .from('proposals')
+        .select('id')
+        .eq('property_id', propertyId)
+        .eq('agent_id', userAuth.agent_id);
+
+      if (error) {
+        console.error('Error fetching agent proposal count:', error);
+        throw error;
+      }
+
+      return proposals?.length || 0;
+    } catch (error) {
+      console.error('Error in getAgentProposalCountForProperty:', error);
       throw error;
     }
   }
