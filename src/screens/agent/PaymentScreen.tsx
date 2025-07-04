@@ -13,6 +13,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { StripeService, SubscriptionPlan } from '../../services/stripeService';
+import TestCardInfo from '../../components/TestCardInfo';
 
 const PaymentScreen = () => {
   const { planId } = useLocalSearchParams<{ planId: string }>();
@@ -24,6 +25,7 @@ const PaymentScreen = () => {
   const [cardholderName, setCardholderName] = useState('');
 
   const plan = StripeService.getPlanById(planId || '');
+  const isTestMode = StripeService.isTestMode();
 
   if (!plan) {
     return (
@@ -105,6 +107,14 @@ const PaymentScreen = () => {
           <Text style={styles.planDescription}>{plan.description}</Text>
         </View>
 
+        {/* Test Mode Indicator */}
+        {isTestMode && (
+          <View style={styles.testModeIndicator}>
+            <Ionicons name="flask" size={16} color={COLORS.secondary} />
+            <Text style={styles.testModeText}>MODO PRUEBA</Text>
+          </View>
+        )}
+
         {/* Payment Form */}
         <View style={styles.formContainer}>
           <Text style={styles.sectionTitle}>Datos de la Tarjeta</Text>
@@ -182,6 +192,17 @@ const PaymentScreen = () => {
               Tus datos están protegidos con encriptación SSL
             </Text>
           </View>
+
+          {/* Stripe Branding */}
+          <View style={styles.stripeBranding}>
+            <Text style={styles.stripeText}>Pago seguro procesado por</Text>
+            <View style={styles.stripeLogoContainer}>
+              <Text style={styles.stripeLogo}>stripe</Text>
+            </View>
+          </View>
+
+          {/* Test Card Info - Only show in test mode */}
+          {isTestMode && <TestCardInfo />}
         </View>
       </ScrollView>
 
@@ -260,6 +281,24 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     textAlign: 'center',
   },
+  testModeIndicator: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 154, 51, 0.1)',
+    paddingVertical: 8,
+    marginHorizontal: 24,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.secondary,
+  },
+  testModeText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    marginLeft: 4,
+  },
   formContainer: {
     padding: 24,
   },
@@ -309,6 +348,31 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: COLORS.black,
     marginLeft: 8,
+  },
+  stripeBranding: {
+    alignItems: 'center',
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.lightGray,
+  },
+  stripeText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.gray,
+    marginBottom: 8,
+  },
+  stripeLogoContainer: {
+    backgroundColor: '#6772E5',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  stripeLogo: {
+    color: COLORS.white,
+    fontSize: 16,
+    fontWeight: 'bold',
+    fontFamily: 'monospace',
   },
   buttonContainer: {
     padding: 24,

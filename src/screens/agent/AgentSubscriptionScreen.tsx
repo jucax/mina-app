@@ -106,12 +106,13 @@ const AgentSubscriptionScreen = () => {
           </View>
         </View>
 
-        {/* Plan Selection - Three Squares */}
+        {/* Plan Selection - 2-1 Layout */}
         <View style={styles.plansContainer}>
           <Text style={styles.plansTitle}>Selecciona tu plan:</Text>
           
-          <View style={styles.plansGrid}>
-            {subscriptionPlans.map((plan) => (
+          {/* First Row - 2 plans */}
+          <View style={styles.plansRow}>
+            {subscriptionPlans.slice(0, 2).map((plan) => (
               <TouchableOpacity
                 key={plan.id}
                 style={[
@@ -146,6 +147,44 @@ const AgentSubscriptionScreen = () => {
                 )}
               </TouchableOpacity>
             ))}
+          </View>
+
+          {/* Second Row - 1 plan */}
+          <View style={styles.plansRow}>
+            <View style={styles.singlePlanContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.planSquare,
+                  selectedPlan === subscriptionPlans[2].id && styles.planSquareSelected
+                ]}
+                onPress={() => handlePlanSelection(subscriptionPlans[2].id)}
+              >
+                <Text style={[
+                  styles.planName,
+                  selectedPlan === subscriptionPlans[2].id && styles.planNameSelected
+                ]}>
+                  {subscriptionPlans[2].name}
+                </Text>
+                <Text style={[
+                  styles.planPrice,
+                  selectedPlan === subscriptionPlans[2].id && styles.planPriceSelected
+                ]}>
+                  {StripeService.formatPrice(subscriptionPlans[2].price)}
+                </Text>
+                <Text style={[
+                  styles.planPeriod,
+                  selectedPlan === subscriptionPlans[2].id && styles.planPeriodSelected
+                ]}>
+                  /{subscriptionPlans[2].period}
+                </Text>
+                
+                {selectedPlan === subscriptionPlans[2].id && (
+                  <View style={styles.selectedIndicator}>
+                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                  </View>
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
 
@@ -255,10 +294,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-  plansGrid: {
+  plansRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     gap: 12,
+    marginBottom: 12,
+  },
+  singlePlanContainer: {
+    flex: 1,
+    alignItems: 'center',
   },
   planSquare: {
     flex: 1,
@@ -269,6 +313,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: 'transparent',
     position: 'relative',
+    minHeight: 120,
   },
   planSquareSelected: {
     backgroundColor: COLORS.secondary,

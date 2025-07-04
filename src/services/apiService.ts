@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 
-const API_BASE_URL = 'https://your-backend-url.com/api'; // Replace with your actual backend URL
+// For local development - change this to your actual backend URL in production
+const API_BASE_URL = 'http://localhost:3000/api'; // Local development server
 
 export class ApiService {
   // Create payment intent
@@ -11,8 +12,9 @@ export class ApiService {
         throw new Error('User not authenticated');
       }
 
-      // In a real implementation, this would call your backend
-      // For now, we'll simulate the response
+      console.log('🌐 Making request to:', `${API_BASE_URL}/create-payment-intent`);
+      console.log('📦 Request data:', { planId, amount, currency, customerId: session.user.id });
+
       const response = await fetch(`${API_BASE_URL}/create-payment-intent`, {
         method: 'POST',
         headers: {
@@ -28,13 +30,17 @@ export class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create payment intent');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create payment intent');
       }
 
-      return await response.json();
+      const data = await response.json();
+      console.log('✅ Payment intent created successfully');
+      return data;
     } catch (error) {
-      console.error('Error creating payment intent:', error);
-      // For demo purposes, return a mock response
+      console.error('❌ Error creating payment intent:', error);
+      // For demo purposes, return a mock response if backend is not available
+      console.log('🔄 Falling back to mock response');
       return {
         clientSecret: 'pi_mock_secret_' + Date.now(),
         success: true,
@@ -63,7 +69,8 @@ export class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to confirm payment');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to confirm payment');
       }
 
       return await response.json();
@@ -98,7 +105,8 @@ export class ApiService {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create subscription');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create subscription');
       }
 
       return await response.json();

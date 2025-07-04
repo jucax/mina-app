@@ -149,8 +149,9 @@ const OwnerProfileScreen = () => {
           <View style={styles.profileImageSection}>
             {ownerProfile.avatar_url ? (
               <Image
-                source={require('../../../assets/images/icon.png')}
+                source={{ uri: ownerProfile.avatar_url }}
                 style={styles.profileImage}
+                onError={() => {}}
               />
             ) : (
               <View style={styles.profileImagePlaceholder}>
@@ -198,6 +199,19 @@ const OwnerProfileScreen = () => {
             >
               <Ionicons name="create" size={24} color={COLORS.white} />
               <Text style={styles.editButtonText}>Editar Perfil</Text>
+            </TouchableOpacity>
+          )}
+          {/* Log Out Button */}
+          {!isViewingOtherProfile && (
+            <TouchableOpacity
+              style={[styles.editButton, { backgroundColor: COLORS.primary, borderWidth: 1, borderColor: COLORS.secondary, marginTop: 8 }]}
+              onPress={async () => {
+                await supabase.auth.signOut();
+                router.replace('/(general)/login');
+              }}
+            >
+              <Ionicons name="log-out-outline" size={24} color={COLORS.secondary} />
+              <Text style={[styles.editButtonText, { color: COLORS.secondary }]}>Cerrar Sesión</Text>
             </TouchableOpacity>
           )}
         </ScrollView>

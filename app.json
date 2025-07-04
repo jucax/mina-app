@@ -37,6 +37,20 @@
     ],
     "experiments": {
       "typedRoutes": true
+    },
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "privacy": "public",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "a6ccc5ec-c71b-43b1-86d4-d617391fd941"
+      }
+    },
+    "owner": "mina-app",
+    "updates": {
+      "url": "https://u.expo.dev/a6ccc5ec-c71b-43b1-86d4-d617391fd941"
     }
   }
 }

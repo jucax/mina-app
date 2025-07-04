@@ -18,14 +18,15 @@ import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { router } from 'expo-router';
 import { ownerService, agentService, userAuthService } from '../../services/databaseService';
-// import * as WebBrowser from 'expo-web-browser';
-// import { makeRedirectUri } from 'expo-auth-session';
-// import * as Google from 'expo-auth-session/providers/google';
+import * as WebBrowser from 'expo-web-browser';
+import { makeRedirectUri } from 'expo-auth-session';
+import { useAuthRequest, discovery as googleDiscovery } from 'expo-auth-session/providers/google';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
 
 // Initialize WebBrowser for OAuth
-// WebBrowser.maybeCompleteAuthSession();
+WebBrowser.maybeCompleteAuthSession();
 
 const RegisterScreen = () => {
   const [name, setName] = useState('');
@@ -38,13 +39,16 @@ const RegisterScreen = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth configuration
-  // const [request, response, promptAsync] = Google.useAuthRequest({
-  //   expoClientId: 'YOUR_EXPO_CLIENT_ID',
-  //   iosClientId: 'YOUR_IOS_CLIENT_ID',
-  //   androidClientId: 'YOUR_ANDROID_CLIENT_ID',
-  //   webClientId: 'YOUR_WEB_CLIENT_ID',
-  // });
+  // Google OAuth configuration (must be inside the component)
+  const redirectUri = makeRedirectUri({ useProxy: true });
+  console.log('Expo Google OAuth redirectUri:', redirectUri);
+  const [request, response, promptAsync] = useAuthRequest({
+    androidClientId: 'YOUR_ANDROID_CLIENT_ID', // TODO: Replace with your Android client ID
+    iosClientId: 'YOUR_IOS_CLIENT_ID',         // TODO: Replace with your iOS client ID
+    webClientId: '985617163979-o5sh4q0qao5q2s12sg6bh2vu3md4o5hf.apps.googleusercontent.com',         // TODO: Replace with your Web client ID
+    redirectUri,
+    // Optionally add scopes if needed
+  }, googleDiscovery);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -67,7 +71,39 @@ const RegisterScreen = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    Alert.alert('En desarrollo', 'Esta funcionalidad estará disponible próximamente');
+    try {
+      setLoading(true);
+      const result = await promptAsync();
+      if (result.type === 'success' && result.authentication?.idToken) {
+        // Sign in with Supabase using the Google id token
+        const { data, error } = await supabase.auth.signInWithIdToken({
+          provider: 'google',
+          token: result.authentication.idToken,
+        });
+        if (error) {
+          Alert.alert('Error', error.message);
+          return;
+        }
+        // Redirect user after successful sign in
+        const isOwner = data.user?.user_metadata?.is_owner;
+        const hasCompletedRegistration = data.user?.user_metadata?.has_completed_registration;
+        if (!hasCompletedRegistration) {
+          if (isOwner) {
+            router.replace('/(owner)/intent' as any);
+          } else {
+            router.replace('/(agent)/registration' as any);
+          }
+        } else {
+          router.replace(`/(${isOwner ? 'owner' : 'agent'})/home` as any);
+        }
+      } else if (result.type === 'error') {
+        Alert.alert('Error', 'Google sign-in failed');
+      }
+    } catch (err: any) {
+      Alert.alert('Error', err?.message || 'Ocurrió un error durante el inicio de sesión con Google');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRegister = async () => {
@@ -219,6 +255,13 @@ const RegisterScreen = () => {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.content}>
+          {/* Back Arrow */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+          >
+            <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+          </TouchableOpacity>
           {/* Logo */}
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
@@ -345,9 +388,13 @@ const RegisterScreen = () => {
                 style={styles.privacyContent}
                 onPress={() => setPrivacyAccepted(!privacyAccepted)}
               >
-                <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]} />
+                <View style={[styles.checkbox, privacyAccepted && styles.checkboxChecked]}>
+                  {privacyAccepted && (
+                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                  )}
+                </View>
                 <Text style={styles.privacyText}>
-                  Acepto la política de privacidad y los términos de servicio
+                  Acepto Aviso de Privacidad
                 </Text>
               </TouchableOpacity>
             </View>
@@ -363,7 +410,7 @@ const RegisterScreen = () => {
               disabled={loading}
             >
               <Text style={commonStyles.buttonText}>
-                {loading ? 'Registrando...' : 'Crean una cuenta'}
+                {loading ? 'Registrando...' : 'Crear una cuenta'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -498,6 +545,13 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: {
     opacity: 0.7,
+  },
+  backButton: {
+    position: 'absolute',
+    top: Platform.OS === 'ios' ? 60 : 40,
+    left: 0,
+    padding: 16,
+    zIndex: 10,
   },
 });
 

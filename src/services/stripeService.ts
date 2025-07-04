@@ -3,8 +3,11 @@ import { supabase } from './supabase';
 import { ApiService } from './apiService';
 
 // Stripe configuration - you'll need to replace these with your actual Stripe keys
-const STRIPE_PUBLISHABLE_KEY = 'key'; // Replace with your actual publishable key
-const STRIPE_SECRET_KEY = 'key'; // This should be on your backend
+const STRIPE_PUBLISHABLE_KEY = ''; // Replace with your actual publishable key
+const STRIPE_SECRET_KEY = ''; // This should be on your backend
+
+// Test mode configuration
+const IS_TEST_MODE = true; // Set to false for production
 
 export interface SubscriptionPlan {
   id: string;
@@ -22,7 +25,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Mensual',
     price: 1000,
     period: 'mes',
-    stripePriceId: 'price_mensual_id', // Replace with your actual Stripe price ID
+    stripePriceId: 'price_1RfAkQP88QQAZhC3iEHYOfQF',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -36,7 +39,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Semestral',
     price: 5400,
     period: '6 meses',
-    stripePriceId: 'price_semestral_id', // Replace with your actual Stripe price ID
+    stripePriceId: 'price_1RfAksP88QQAZhC34D6VW4Gs',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -50,7 +53,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Anual',
     price: 9600,
     period: '12 meses',
-    stripePriceId: 'price_anual_id', // Replace with your actual Stripe price ID
+    stripePriceId: 'price_1RfAlIP88QQAZhC3rjQ9ZhxF',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -65,9 +68,15 @@ export class StripeService {
   // Initialize Stripe (call this in your app initialization)
   static async initializeStripe() {
     try {
-      // In a real app, you would initialize Stripe here
-      // For now, we'll just return success
-      console.log('Stripe initialized successfully');
+      if (IS_TEST_MODE) {
+        console.log('🧪 Stripe initialized in TEST MODE');
+        console.log('📋 Test card numbers:');
+        console.log('   Success: 4242 4242 4242 4242');
+        console.log('   Decline: 4000 0000 0000 0002');
+        console.log('   Auth required: 4000 0025 0000 3155');
+      } else {
+        console.log('🚀 Stripe initialized in PRODUCTION MODE');
+      }
       return true;
     } catch (error) {
       console.error('Error initializing Stripe:', error);
@@ -112,18 +121,33 @@ export class StripeService {
         throw new Error('User not authenticated');
       }
 
+      // Validate card details
+      this.validateCardDetails(cardDetails);
+
       // In a real implementation, you would:
       // 1. Create a payment intent
       // 2. Confirm the payment with Stripe
       // 3. Create a subscription
       // 4. Update the user's subscription status
 
-      // For now, we'll simulate a successful payment
-      console.log('Processing payment for plan:', planId);
-      console.log('Card details:', cardDetails);
+      console.log('💳 Processing payment for plan:', planId);
+      console.log('📝 Card details:', cardDetails);
 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 2000));
+
+      // Simulate different payment scenarios based on test card numbers
+      const cardNumber = cardDetails.number.replace(/\s/g, '');
+      
+      if (IS_TEST_MODE) {
+        if (cardNumber === '4000000000000002') {
+          throw new Error('Tarjeta rechazada. Por favor intenta con otra tarjeta.');
+        } else if (cardNumber === '4000000000009995') {
+          throw new Error('Fondos insuficientes. Por favor verifica tu saldo.');
+        } else if (cardNumber === '4000002500003155') {
+          throw new Error('Autenticación requerida. Por favor completa la verificación.');
+        }
+      }
 
       // Update user subscription in database
       const { error } = await supabase
@@ -149,6 +173,34 @@ export class StripeService {
     }
   }
 
+  // Validate card details
+  private static validateCardDetails(cardDetails: {
+    number: string;
+    expMonth: number;
+    expYear: number;
+    cvc: string;
+  }) {
+    const cardNumber = cardDetails.number.replace(/\s/g, '');
+    
+    // Basic validation
+    if (cardNumber.length < 13 || cardNumber.length > 19) {
+      throw new Error('Número de tarjeta inválido');
+    }
+    
+    if (cardDetails.expMonth < 1 || cardDetails.expMonth > 12) {
+      throw new Error('Mes de expiración inválido');
+    }
+    
+    const currentYear = new Date().getFullYear() % 100;
+    if (cardDetails.expYear < currentYear) {
+      throw new Error('Tarjeta expirada');
+    }
+    
+    if (cardDetails.cvc.length < 3 || cardDetails.cvc.length > 4) {
+      throw new Error('CVC inválido');
+    }
+  }
+
   // Get subscription plans
   static getSubscriptionPlans(): SubscriptionPlan[] {
     return subscriptionPlans;
@@ -166,5 +218,10 @@ export class StripeService {
       currency: 'MXN',
       minimumFractionDigits: 0,
     }).format(price);
+  }
+
+  // Check if we're in test mode
+  static isTestMode(): boolean {
+    return IS_TEST_MODE;
   }
 } 

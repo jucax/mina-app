@@ -8,6 +8,9 @@ import {
   TextInput,
   Dimensions,
   Platform,
+  KeyboardAvoidingView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -29,56 +32,63 @@ const PropertyPriceScreen = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
+    <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+      <KeyboardAvoidingView 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.container}
       >
-        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
-      <View style={styles.content}>
-        <Image
-          source={require('../../../assets/images/logo_login_screen.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
-        <Text style={styles.title}>
-          Valor aproximado
-        </Text>
-        <Text style={styles.subtitle}>
-          de tu Propiedad
-        </Text>
-
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>
-            Precio aproximado:
-          </Text>
-          <View style={styles.inputRow}>
-            <Text style={styles.inputPrefix}>$</Text>
-            <TextInput
-              style={styles.input}
-              value={price}
-              onChangeText={setPrice}
-              keyboardType="numeric"
-              placeholder="0"
-              placeholderTextColor={COLORS.black}
-            />
-          </View>
-        </View>
-
         <TouchableOpacity
-          style={[
-            styles.continueButton,
-            !price && styles.continueButtonDisabled
-          ]}
-          onPress={handleContinue}
-          disabled={!price}
+          style={styles.backButton}
+          onPress={() => router.back()}
         >
-          <Text style={styles.continueButtonText}>Continuar</Text>
+          <Ionicons name="arrow-back" size={28} color={COLORS.white} />
         </TouchableOpacity>
-      </View>
-    </View>
+        <View style={styles.content}>
+          <Image
+            source={require('../../../assets/images/logo_login_screen.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+
+          <Text style={styles.title}>
+            Valor aproximado
+          </Text>
+          <Text style={styles.subtitle}>
+            de tu Propiedad
+          </Text>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.inputLabel}>
+              Precio aproximado:
+            </Text>
+            <View style={styles.inputRow}>
+              <Text style={styles.inputPrefix}>$</Text>
+              <TextInput
+                style={styles.input}
+                value={price}
+                onChangeText={setPrice}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor={COLORS.black}
+                returnKeyType="done"
+                onSubmitEditing={handleContinue}
+              />
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={[
+              styles.continueButton,
+              !price && styles.continueButtonDisabled
+            ]}
+            onPress={handleContinue}
+            disabled={!price}
+          >
+            <Text style={styles.continueButtonText}>Continuar</Text>
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </TouchableWithoutFeedback>
   );
 };
 
@@ -149,8 +159,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     paddingVertical: 18,
     width: width * 0.8,
-    position: 'absolute',
-    bottom: 32,
+    marginTop: 32,
     alignSelf: 'center',
   },
   continueButtonDisabled: {
