@@ -11,6 +11,8 @@ import {
   Platform,
   Modal,
   FlatList,
+  Alert,
+  Animated,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -115,8 +117,22 @@ const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownP
   );
 };
 
+// Calculate responsive grid
+const calculateGridLayout = () => {
+  const containerWidth = width - 48; // Account for padding
+  const imageSize = 80;
+  const margin = 4;
+  const imagesPerRow = Math.floor((containerWidth - margin) / (imageSize + margin));
+  return {
+    imagesPerRow: Math.max(2, Math.min(4, imagesPerRow)), // Between 2-4 images per row
+    imageSize,
+    margin,
+  };
+};
+
 const PropertyDetailsScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
+  const gridLayout = calculateGridLayout();
   
   // Location fields
   const [cp, setCp] = useState(formData.postal_code);
@@ -136,6 +152,11 @@ const PropertyDetailsScreen = () => {
   const [infoAdicional, setInfoAdicional] = useState(formData.additional_info);
   const [selectedImages, setSelectedImages] = useState<string[]>(formData.images);
   const [showDeleteIndex, setShowDeleteIndex] = useState<number | null>(null);
+  
+  // Drag and drop state
+  const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
 
   // Get municipalities based on selected state
   const municipiosDisponibles = selectedEstado ? municipiosPorEstado[selectedEstado] || [] : [];
@@ -153,7 +174,27 @@ const PropertyDetailsScreen = () => {
     });
 
     if (!result.canceled) {
-      setSelectedImages([...selectedImages, ...result.assets.map(asset => asset.uri)]);
+      const newImages = result.assets.map(asset => asset.uri);
+      
+      // Check for duplicates by comparing URIs and file names
+      const duplicates = newImages.filter(newUri => {
+        const newFileName = newUri.split('/').pop()?.split('?')[0]; // Get filename without query params
+        return selectedImages.some(existingUri => {
+          const existingFileName = existingUri.split('/').pop()?.split('?')[0];
+          return existingUri === newUri || existingFileName === newFileName;
+        });
+      });
+      
+      if (duplicates.length > 0) {
+        Alert.alert(
+          'Imagen Duplicada',
+          'Has seleccionado una imagen que ya está incluida. Por favor, selecciona imágenes diferentes.',
+          [{ text: 'OK' }]
+        );
+        return;
+      }
+      
+      setSelectedImages([...selectedImages, ...newImages]);
     }
   };
 
@@ -162,7 +203,47 @@ const PropertyDetailsScreen = () => {
     setShowDeleteIndex(null);
   };
 
+  // Drag and drop functions
+  const startDrag = (index: number) => {
+    setDraggedIndex(index);
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (index: number) => {
+    if (isDragging && draggedIndex !== null && draggedIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const endDrag = () => {
+    if (draggedIndex !== null && dragOverIndex !== null && draggedIndex !== dragOverIndex) {
+      // Reorder the images
+      const newImages = [...selectedImages];
+      const draggedImage = newImages[draggedIndex];
+      newImages.splice(draggedIndex, 1);
+      newImages.splice(dragOverIndex, 0, draggedImage);
+      setSelectedImages(newImages);
+    }
+    
+    setDraggedIndex(null);
+    setDragOverIndex(null);
+    setIsDragging(false);
+  };
+
   const handleContinue = () => {
+    // Check for duplicate images before continuing
+    const imageNames = selectedImages.map(uri => uri.split('/').pop()?.split('?')[0]);
+    const uniqueNames = new Set(imageNames);
+    
+    if (uniqueNames.size !== selectedImages.length) {
+      Alert.alert(
+        'Imágenes Duplicadas',
+        'Hay imágenes duplicadas en tu selección. Por favor, elimina las duplicadas antes de continuar.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     // Save to context
     updateFormData({
       postal_code: cp,
@@ -251,8 +332,9 @@ const PropertyDetailsScreen = () => {
             <TextInput
               style={styles.input}
               value={selectedColonia || ''}
-              editable={false}
-              placeholder="Colonia 1"
+              onChangeText={setSelectedColonia}
+              placeholder="Ingresa tu colonia"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
           <View style={styles.inputContainerSmall}>
@@ -352,50 +434,108 @@ const PropertyDetailsScreen = () => {
           Sube imágenes de tu propiedad
         </Text>
         <Text style={styles.subtitle}>
-          (Fachada, sala, cocina, cuartos, etc.)
+          Necesitamos un mínimo de 5 imágenes.
+        </Text>
+        <Text style={styles.subtitle}>
+          Intenta mostrar: fachada, sala, cocina, cuartos, baños, etc.
+        </Text>
+        <Text style={styles.subtitle}>
+          Más y mejores imágenes atraerán más agentes y tendrás más posibilidades de encontrar un buen trato más rápido.
+        </Text>
+        <Text style={styles.subtitle}>
+          Mantén presionada una imagen para reordenarla.
+        </Text>
+        <Text style={styles.imageCountText}>
+          {selectedImages.length}/5 imágenes (mínimo requerido)
         </Text>
 
-        <TouchableOpacity
-          style={styles.imageUploadButton}
-          onPress={pickImages}
-        >
+        <View style={[
+          styles.imageContainer,
+          { 
+            minHeight: selectedImages.length > gridLayout.imagesPerRow ? 180 : 100,
+            paddingHorizontal: (width - (gridLayout.imagesPerRow * (gridLayout.imageSize + gridLayout.margin) + gridLayout.margin)) / 2
+          }
+        ]}>
           {selectedImages.length === 0 ? (
-            <View style={styles.uploadPlaceholder}>
-              <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
-              <Text style={styles.uploadText}>Subir archivos</Text>
-            </View>
+            <TouchableOpacity
+              style={styles.imageUploadButton}
+              onPress={pickImages}
+            >
+              <View style={styles.uploadPlaceholder}>
+                <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
+                <Text style={styles.uploadText}>Subir archivos</Text>
+              </View>
+            </TouchableOpacity>
           ) : (
-            <ScrollView horizontal>
-              {selectedImages.map((uri, index) => (
+            <View style={styles.imageGridContainer}>
+              <View style={[
+                styles.imageGrid,
+                { 
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  minHeight: selectedImages.length > gridLayout.imagesPerRow ? 180 : 100,
+                }
+              ]}>
+                {selectedImages.map((uri, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      styles.uploadedImageWrapper,
+                      draggedIndex === index && styles.draggedImage,
+                      dragOverIndex === index && styles.dragOverImage,
+                    ]}
+                    activeOpacity={0.8}
+                    onPress={() => setShowDeleteIndex(index)}
+                    onLongPress={() => startDrag(index)}
+                    onPressIn={() => handleDragOver(index)}
+                    onPressOut={endDrag}
+                  >
+                    <Image
+                      source={{ uri }}
+                      style={styles.uploadedImage}
+                    />
+                    {showDeleteIndex === index && (
+                      <TouchableOpacity
+                        style={styles.deleteIcon}
+                        onPress={() => removeImage(index)}
+                      >
+                        <Ionicons name="trash" size={28} color={COLORS.secondary} />
+                      </TouchableOpacity>
+                    )}
+                    {draggedIndex === index && (
+                      <View style={styles.dragIndicator}>
+                        <Ionicons name="move" size={20} color={COLORS.white} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+                {/* Add more button */}
                 <TouchableOpacity
-                  key={index}
-                  style={styles.uploadedImageWrapper}
-                  activeOpacity={0.8}
-                  onPress={() => setShowDeleteIndex(index)}
+                  style={styles.addMoreButton}
+                  onPress={pickImages}
                 >
-                  <Image
-                    source={{ uri }}
-                    style={styles.uploadedImage}
-                  />
-                  {showDeleteIndex === index && (
-                    <TouchableOpacity
-                      style={styles.deleteIcon}
-                      onPress={() => removeImage(index)}
-                    >
-                      <Ionicons name="trash" size={28} color={COLORS.secondary} />
-                    </TouchableOpacity>
-                  )}
+                  <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
+                  <Text style={styles.addMoreText}>Agregar más</Text>
                 </TouchableOpacity>
-              ))}
-            </ScrollView>
+              </View>
+            </View>
           )}
-        </TouchableOpacity>
+        </View>
 
         <TouchableOpacity
-          style={styles.continueButton}
+          style={[
+            styles.continueButton,
+            selectedImages.length < 5 && styles.continueButtonDisabled
+          ]}
           onPress={handleContinue}
+          disabled={selectedImages.length < 5}
         >
-          <Text style={styles.continueButtonText}>Continuar</Text>
+          <Text style={styles.continueButtonText}>
+            {selectedImages.length < 5 
+              ? `Faltan ${5 - selectedImages.length} imágenes` 
+              : 'Continuar'
+            }
+          </Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -546,6 +686,29 @@ const styles = StyleSheet.create({
     color: COLORS.primary,
     marginTop: 4,
   },
+  imageContainer: {
+    width: '100%',
+    minHeight: 100,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    marginTop: 8,
+    overflow: 'hidden',
+  },
+  imageGridContainer: {
+    flex: 1,
+    padding: 8,
+  },
+  imageGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-start',
+  },
+  imageGridMultiRow: {
+    minHeight: 180, // Expand height for multiple rows
+  },
   uploadedImageWrapper: {
     position: 'relative',
     margin: 4,
@@ -629,6 +792,47 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.black,
+  },
+  imageCountText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    marginTop: 8,
+  },
+  continueButtonDisabled: {
+    backgroundColor: COLORS.gray,
+  },
+  addMoreButton: {
+    width: 80,
+    height: 80,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    margin: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    borderStyle: 'dashed',
+  },
+  addMoreText: {
+    ...FONTS.regular,
+    fontSize: 10,
+    color: COLORS.primary,
+    marginTop: 2,
+    textAlign: 'center',
+  },
+  draggedImage: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dragOverImage: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dragIndicator: {
+    position: 'absolute',
+    top: 40,
+    left: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 16,
+    padding: 4,
   },
 });
 

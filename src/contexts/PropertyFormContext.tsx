@@ -8,6 +8,9 @@ interface PropertyFormContextType {
   resetFormData: () => void;
   isFormComplete: () => boolean;
   isLoaded: boolean;
+  currentStep: string;
+  setCurrentStep: (step: string) => void;
+  getNextStep: () => string;
 }
 
 const initialFormData: PropertyFormData = {
@@ -59,6 +62,16 @@ const initialFormData: PropertyFormData = {
   commission_percentage: null,
 };
 
+// Define the registration flow steps
+const REGISTRATION_STEPS = [
+  'intent',
+  'price', 
+  'type',
+  'documentation',
+  'details',
+  'compensation'
+];
+
 const PropertyFormContext = createContext<PropertyFormContextType | undefined>(undefined);
 
 export const usePropertyForm = () => {
@@ -76,16 +89,27 @@ interface PropertyFormProviderProps {
 export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentStep, setCurrentStepState] = useState<string>('intent');
 
-  // Load form data from AsyncStorage on mount
+  // Load form data and progress from AsyncStorage on mount
   useEffect(() => {
     const loadFormData = async () => {
       try {
-        const savedData = await AsyncStorage.getItem('propertyFormData');
+        const [savedData, savedStep] = await Promise.all([
+          AsyncStorage.getItem('propertyFormData'),
+          AsyncStorage.getItem('propertyFormProgress')
+        ]);
+        
         if (savedData) {
           const parsedData = JSON.parse(savedData);
           console.log('📱 Loaded form data from storage:', parsedData);
           setFormData(parsedData);
+        }
+        
+        if (savedStep) {
+          const parsedStep = JSON.parse(savedStep);
+          console.log('📱 Loaded progress from storage:', parsedStep);
+          setCurrentStepState(parsedStep);
         }
       } catch (error) {
         console.error('Error loading form data:', error);
@@ -114,11 +138,30 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     });
   };
 
+  const setCurrentStep = (step: string) => {
+    console.log('🔄 Setting current step:', step);
+    setCurrentStepState(step);
+    // Save progress to AsyncStorage
+    AsyncStorage.setItem('propertyFormProgress', JSON.stringify(step))
+      .catch(error => console.error('Error saving progress:', error));
+  };
+
+  const getNextStep = (): string => {
+    const currentIndex = REGISTRATION_STEPS.indexOf(currentStep);
+    if (currentIndex < REGISTRATION_STEPS.length - 1) {
+      return REGISTRATION_STEPS[currentIndex + 1];
+    }
+    return currentStep; // Already at the end
+  };
+
   const resetFormData = () => {
     console.log('🔄 Resetting form data');
     setFormData(initialFormData);
-    AsyncStorage.removeItem('propertyFormData')
-      .catch(error => console.error('Error removing form data:', error));
+    setCurrentStepState('intent');
+    Promise.all([
+      AsyncStorage.removeItem('propertyFormData'),
+      AsyncStorage.removeItem('propertyFormProgress')
+    ]).catch(error => console.error('Error removing form data:', error));
   };
 
   const isFormComplete = (): boolean => {
@@ -141,6 +184,9 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     resetFormData,
     isFormComplete,
     isLoaded,
+    currentStep,
+    setCurrentStep,
+    getNextStep,
   };
 
   return (

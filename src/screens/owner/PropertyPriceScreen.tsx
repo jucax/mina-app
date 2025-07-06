@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   TouchableWithoutFeedback,
   Keyboard,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -23,11 +24,52 @@ const PropertyPriceScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [price, setPrice] = useState(formData.price);
 
+  // Format price with commas
+  const formatPrice = (value: string) => {
+    const numericValue = value.replace(/[^0-9]/g, '');
+    if (numericValue === '') return '';
+    
+    const number = parseInt(numericValue, 10);
+    return number.toLocaleString('en-US');
+  };
+
+  // Parse formatted price back to number
+  const parsePrice = (formattedPrice: string) => {
+    return formattedPrice.replace(/,/g, '');
+  };
+
+  const handlePriceChange = (value: string) => {
+    const formatted = formatPrice(value);
+    setPrice(formatted);
+  };
+
   const handleContinue = () => {
     if (price) {
-      // Save to context
-      updateFormData({ price });
-      router.push('/(owner)/property/type');
+      const numericPrice = parsePrice(price);
+      const formattedPrice = new Intl.NumberFormat('es-MX', {
+        style: 'currency',
+        currency: 'MXN',
+        minimumFractionDigits: 0,
+      }).format(parseInt(numericPrice, 10));
+
+      Alert.alert(
+        'Confirmar Precio',
+        `El precio de tu propiedad es ${formattedPrice}. ¿Confirmas?`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          {
+            text: 'Confirmar',
+            onPress: () => {
+              // Save to context
+              updateFormData({ price: numericPrice });
+              // Add a small delay to ensure the Alert is properly dismissed
+              setTimeout(() => {
+                router.push('/(owner)/property/type');
+              }, 100);
+            }
+          }
+        ]
+      );
     }
   };
 
@@ -66,7 +108,7 @@ const PropertyPriceScreen = () => {
               <TextInput
                 style={styles.input}
                 value={price}
-                onChangeText={setPrice}
+                onChangeText={handlePriceChange}
                 keyboardType="numeric"
                 placeholder="0"
                 placeholderTextColor={COLORS.black}
