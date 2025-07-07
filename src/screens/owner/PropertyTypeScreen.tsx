@@ -9,6 +9,7 @@ import {
   Dimensions,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -43,19 +44,49 @@ const PropertyTypeScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [selectedType, setSelectedType] = useState<string | null>(formData.property_type);
   const [otherType, setOtherType] = useState(formData.other_type);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Split propertyTypes into rows of 2 for a two-column grid
   const typeRows = chunkArray(propertyTypes, GRID_COLUMNS);
 
+  const validateFields = () => {
+    const isValid = selectedType && (selectedType !== 'Otro' || (selectedType === 'Otro' && otherType.trim() !== ''));
+    return {
+      isValid,
+      missingFields: isValid ? [] : ['property_type'],
+    };
+  };
+
   const handleContinue = () => {
-    if (selectedType) {
-      // Save to context
-      updateFormData({
-        property_type: selectedType,
-        other_type: selectedType === 'Otro' ? otherType : '',
-      });
-      router.push('/(owner)/property/documentation');
+    const validation = validateFields();
+    
+    if (!validation.isValid) {
+      setShowValidation(true);
+      Alert.alert(
+        'Campo Requerido',
+        'Por favor, selecciona un tipo de propiedad.',
+        [{ text: 'OK' }]
+      );
+      return;
     }
+
+    // Save to context
+    updateFormData({
+      property_type: selectedType,
+      other_type: selectedType === 'Otro' ? otherType : '',
+    });
+    router.push('/(owner)/property/documentation');
+  };
+
+  const getButtonStyle = (type: string) => {
+    const validation = validateFields();
+    const isMissing = validation.missingFields.includes('property_type');
+    
+    return [
+      styles.typeButton,
+      selectedType === type && styles.typeButtonSelected,
+      showValidation && isMissing && styles.typeButtonError
+    ];
   };
 
   return (
@@ -77,7 +108,7 @@ const PropertyTypeScreen = () => {
           Que tipo de
         </Text>
         <Text style={styles.subtitle}>
-          propiedad es?
+          propiedad es? *
         </Text>
 
         <View style={styles.gridContainer}>
@@ -86,10 +117,7 @@ const PropertyTypeScreen = () => {
               {row.map((type) => (
                 <TouchableOpacity
                   key={type}
-                  style={[
-                    styles.typeButton,
-                    selectedType === type && styles.typeButtonSelected
-                  ]}
+                  style={getButtonStyle(type)}
                   onPress={() => setSelectedType(type)}
                 >
                   <Text style={[
@@ -116,12 +144,8 @@ const PropertyTypeScreen = () => {
         )}
 
         <TouchableOpacity
-          style={[
-            styles.continueButton,
-            !selectedType && styles.continueButtonDisabled
-          ]}
+          style={styles.continueButton}
           onPress={handleContinue}
-          disabled={!selectedType}
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
@@ -224,6 +248,10 @@ const styles = StyleSheet.create({
     left: 0,
     padding: 16,
     zIndex: 10,
+  },
+  typeButtonError: {
+    borderColor: '#FF4444',
+    borderWidth: 2,
   },
 });
 

@@ -62,16 +62,17 @@ interface DropdownProps {
   items: string[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  style?: any;
 }
 
-const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownProps) => {
+const Dropdown = ({ label, value, items, onChange, disabled = false, style }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <View style={styles.dropdownContainer}>
       <Text style={styles.dropdownLabel}>{label}</Text>
       <TouchableOpacity
-        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        style={[styles.dropdown, disabled && styles.dropdownDisabled, style]}
         onPress={() => !disabled && setIsOpen(true)}
         disabled={disabled}
       >
@@ -158,8 +159,39 @@ const PropertyDetailsScreen = () => {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [isDragging, setIsDragging] = useState(false);
 
+  // Validation state
+  const [showValidation, setShowValidation] = useState(false);
+
   // Get municipalities based on selected state
   const municipiosDisponibles = selectedEstado ? municipiosPorEstado[selectedEstado] || [] : [];
+
+  // Validation function
+  const validateFields = () => {
+    const requiredFields = {
+      cp: cp.trim(),
+      municipio: municipio.trim(),
+      calle: calle.trim(),
+      selectedEstado: selectedEstado,
+      selectedColonia: selectedColonia,
+      superficie: superficie.trim(),
+      construccion: construccion.trim(),
+      cuartos: cuartos.trim(),
+      banos: banos.trim(),
+      mediosBanos: mediosBanos.trim(),
+      amenidades: amenidades.trim(),
+      images: selectedImages.length >= 5,
+    };
+
+    const missingFields = Object.entries(requiredFields).filter(([key, value]) => {
+      if (key === 'images') return !value;
+      return !value || value === '';
+    });
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields: missingFields.map(([key]) => key),
+    };
+  };
 
   const handleEstadoChange = (estado: string) => {
     setSelectedEstado(estado);
@@ -231,6 +263,18 @@ const PropertyDetailsScreen = () => {
   };
 
   const handleContinue = () => {
+    const validation = validateFields();
+    
+    if (!validation.isValid) {
+      setShowValidation(true);
+      Alert.alert(
+        'Campos Requeridos',
+        'Por favor, completa todos los campos obligatorios marcados en rojo.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
     // Check for duplicate images before continuing
     const imageNames = selectedImages.map(uri => uri.split('/').pop()?.split('?')[0]);
     const uniqueNames = new Set(imageNames);
@@ -265,6 +309,17 @@ const PropertyDetailsScreen = () => {
     router.push('/(owner)/property/compensation');
   };
 
+  // Helper function to get input style with validation
+  const getInputStyle = (fieldName: string) => {
+    const validation = validateFields();
+    const isMissing = validation.missingFields.includes(fieldName);
+    
+    return [
+      styles.input,
+      showValidation && isMissing && styles.inputError
+    ];
+  };
+
   return (
     <View style={styles.container}>
       <TouchableOpacity
@@ -286,12 +341,14 @@ const PropertyDetailsScreen = () => {
 
         <View style={styles.rowGap}>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Código Postal:</Text>
+            <Text style={styles.inputLabel}>Código Postal: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('cp')}
               value={cp}
               onChangeText={setCp}
               keyboardType="numeric"
+              placeholder="Ingresa código postal"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
           <View style={styles.inputContainerSmall}>
@@ -308,16 +365,17 @@ const PropertyDetailsScreen = () => {
         <View style={styles.rowGap}>
           <View style={styles.inputContainerSmall}>
             <Dropdown
-              label="Estado:"
+              label="Estado: *"
               value={selectedEstado}
               items={estados}
               onChange={handleEstadoChange}
+              style={showValidation && !selectedEstado ? styles.dropdownMatchInput : null}
             />
           </View>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Alcaldía o municipio:</Text>
+            <Text style={styles.inputLabel}>Alcaldía o municipio: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('municipio')}
               value={municipio}
               onChangeText={setMunicipio}
               placeholder="Ingresa tu alcaldía o municipio"
@@ -328,9 +386,9 @@ const PropertyDetailsScreen = () => {
 
         <View style={styles.rowGap}>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Colonia:</Text>
+            <Text style={styles.inputLabel}>Colonia: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('selectedColonia')}
               value={selectedColonia || ''}
               onChangeText={setSelectedColonia}
               placeholder="Ingresa tu colonia"
@@ -338,9 +396,9 @@ const PropertyDetailsScreen = () => {
             />
           </View>
           <View style={styles.inputContainerSmall}>
-            <Text style={styles.inputLabel}>Calle:</Text>
+            <Text style={styles.inputLabel}>Calle: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('calle')}
               value={calle}
               onChangeText={setCalle}
               placeholder="Ingresa la calle"
@@ -355,51 +413,64 @@ const PropertyDetailsScreen = () => {
 
         <View style={styles.rowGap3}>
           <View style={styles.inputContainerTiny}>
-            <Text style={styles.inputLabel}>Superficie:</Text>
+            <Text style={styles.inputLabel}>Superficie: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('superficie')}
               value={superficie}
               onChangeText={setSuperficie}
               keyboardType="numeric"
+              placeholder="m²"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
           <View style={styles.inputContainerTiny}>
-            <Text style={styles.inputLabel}>Construccion:</Text>
+            <Text style={styles.inputLabel}>Construccion: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('construccion')}
               value={construccion}
               onChangeText={setConstruccion}
               keyboardType="numeric"
+              placeholder="m²"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
             />
           </View>
         </View>
 
         <View style={styles.rowGap3}>
-          <View style={styles.inputContainerTiny3}>
-            <Text style={styles.inputLabel}>Cuartos:</Text>
+          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+            <Text style={styles.inputLabel}>Cuartos: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('cuartos')}
               value={cuartos}
               onChangeText={setCuartos}
               keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              maxLength={2}
             />
           </View>
-          <View style={styles.inputContainerTiny3}>
-            <Text style={styles.inputLabel}>Baños:</Text>
+          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+            <Text style={styles.inputLabel}>Baños: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('banos')}
               value={banos}
               onChangeText={setBanos}
               keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              maxLength={2}
             />
           </View>
-          <View style={styles.inputContainerTiny3}>
-            <Text style={styles.inputLabel}>Medios Baños:</Text>
+          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+            <Text style={styles.inputLabel}>Medios Baños: *</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('mediosBanos')}
               value={mediosBanos}
               onChangeText={setMediosBanos}
               keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              maxLength={2}
             />
           </View>
         </View>
@@ -409,7 +480,7 @@ const PropertyDetailsScreen = () => {
         </Text>
 
         <TextInput
-          style={styles.textArea}
+          style={getInputStyle('amenidades')}
           value={amenidades}
           onChangeText={setAmenidades}
           placeholder="Respuesta abierta"
@@ -425,7 +496,7 @@ const PropertyDetailsScreen = () => {
           style={styles.textArea}
           value={infoAdicional}
           onChangeText={setInfoAdicional}
-          placeholder="Respuesta abierta"
+          placeholder="Respuesta abierta (opcional)"
           placeholderTextColor="rgba(0, 0, 0, 0.5)"
           multiline
         />
@@ -451,6 +522,7 @@ const PropertyDetailsScreen = () => {
 
         <View style={[
           styles.imageContainer,
+          showValidation && selectedImages.length < 5 && styles.imageContainerError,
           { 
             minHeight: selectedImages.length > gridLayout.imagesPerRow ? 180 : 100,
             paddingHorizontal: (width - (gridLayout.imagesPerRow * (gridLayout.imageSize + gridLayout.margin) + gridLayout.margin)) / 2
@@ -523,18 +595,11 @@ const PropertyDetailsScreen = () => {
         </View>
 
         <TouchableOpacity
-          style={[
-            styles.continueButton,
-            selectedImages.length < 5 && styles.continueButtonDisabled
-          ]}
+          style={styles.continueButton}
           onPress={handleContinue}
-          disabled={selectedImages.length < 5}
         >
           <Text style={styles.continueButtonText}>
-            {selectedImages.length < 5 
-              ? `Faltan ${5 - selectedImages.length} imágenes` 
-              : 'Continuar'
-            }
+            Continuar
           </Text>
         </TouchableOpacity>
       </ScrollView>
@@ -609,7 +674,7 @@ const styles = StyleSheet.create({
   },
   inputContainerTiny3: {
     flex: 1,
-    maxWidth: width * 0.29,
+    maxWidth: width * 0.25,
   },
   inputLabel: {
     ...FONTS.regular,
@@ -626,6 +691,10 @@ const styles = StyleSheet.create({
     padding: 6,
     fontSize: 14,
     color: COLORS.black,
+  },
+  inputError: {
+    borderColor: '#FF4444',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
   },
   dropdownContainer: {
     flex: 1,
@@ -798,8 +867,22 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     marginTop: 8,
   },
-  continueButtonDisabled: {
-    backgroundColor: COLORS.gray,
+  imageContainerError: {
+    borderColor: '#FF4444',
+  },
+  draggedImage: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dragOverImage: {
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+  },
+  dragIndicator: {
+    position: 'absolute',
+    top: 40,
+    left: 40,
+    backgroundColor: 'rgba(255, 255, 255, 0.5)',
+    borderRadius: 16,
+    padding: 4,
   },
   addMoreButton: {
     width: 80,
@@ -820,19 +903,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
     textAlign: 'center',
   },
-  draggedImage: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  dragOverImage: {
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-  },
-  dragIndicator: {
-    position: 'absolute',
-    top: 40,
-    left: 40,
-    backgroundColor: 'rgba(255, 255, 255, 0.5)',
-    borderRadius: 16,
-    padding: 4,
+  dropdownMatchInput: {
+    borderColor: '#FF4444',
   },
 });
 

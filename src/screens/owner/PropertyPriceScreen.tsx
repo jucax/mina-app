@@ -23,6 +23,7 @@ const { width, height } = Dimensions.get('window');
 const PropertyPriceScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [price, setPrice] = useState(formData.price);
+  const [showValidation, setShowValidation] = useState(false);
 
   // Format price with commas
   const formatPrice = (value: string) => {
@@ -43,34 +44,61 @@ const PropertyPriceScreen = () => {
     setPrice(formatted);
   };
 
-  const handleContinue = () => {
-    if (price) {
-      const numericPrice = parsePrice(price);
-      const formattedPrice = new Intl.NumberFormat('es-MX', {
-        style: 'currency',
-        currency: 'MXN',
-        minimumFractionDigits: 0,
-      }).format(parseInt(numericPrice, 10));
+  const validateFields = () => {
+    return {
+      isValid: price && price.trim() !== '',
+      missingFields: price && price.trim() !== '' ? [] : ['price'],
+    };
+  };
 
+  const handleContinue = () => {
+    const validation = validateFields();
+    
+    if (!validation.isValid) {
+      setShowValidation(true);
       Alert.alert(
-        'Confirmar Precio',
-        `El precio de tu propiedad es ${formattedPrice}. ¿Confirmas?`,
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Confirmar',
-            onPress: () => {
-              // Save to context
-              updateFormData({ price: numericPrice });
-              // Add a small delay to ensure the Alert is properly dismissed
-              setTimeout(() => {
-                router.push('/(owner)/property/type');
-              }, 100);
-            }
-          }
-        ]
+        'Campo Requerido',
+        'Por favor, ingresa el precio de tu propiedad.',
+        [{ text: 'OK' }]
       );
+      return;
     }
+
+    const numericPrice = parsePrice(price);
+    const formattedPrice = new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(parseInt(numericPrice, 10));
+
+    Alert.alert(
+      'Confirmar Precio',
+      `El precio de tu propiedad es ${formattedPrice}. ¿Confirmas?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Confirmar',
+          onPress: () => {
+            // Save to context
+            updateFormData({ price: numericPrice });
+            // Add a small delay to ensure the Alert is properly dismissed
+            setTimeout(() => {
+              router.push('/(owner)/property/type');
+            }, 100);
+          }
+        }
+      ]
+    );
+  };
+
+  const getInputStyle = () => {
+    const validation = validateFields();
+    const isMissing = validation.missingFields.includes('price');
+    
+    return [
+      styles.input,
+      showValidation && isMissing && styles.inputError
+    ];
   };
 
   return (
@@ -101,12 +129,12 @@ const PropertyPriceScreen = () => {
 
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>
-              Precio aproximado:
+              Precio aproximado: *
             </Text>
             <View style={styles.inputRow}>
               <Text style={styles.inputPrefix}>$</Text>
               <TextInput
-                style={styles.input}
+                style={getInputStyle()}
                 value={price}
                 onChangeText={handlePriceChange}
                 keyboardType="numeric"
@@ -119,12 +147,8 @@ const PropertyPriceScreen = () => {
           </View>
 
           <TouchableOpacity
-            style={[
-              styles.continueButton,
-              !price && styles.continueButtonDisabled
-            ]}
+            style={styles.continueButton}
             onPress={handleContinue}
-            disabled={!price}
           >
             <Text style={styles.continueButtonText}>Continuar</Text>
           </TouchableOpacity>
@@ -220,6 +244,10 @@ const styles = StyleSheet.create({
     left: 0,
     padding: 16,
     zIndex: 10,
+  },
+  inputError: {
+    borderColor: '#FF4444',
+    backgroundColor: 'rgba(255, 68, 68, 0.1)',
   },
 });
 
