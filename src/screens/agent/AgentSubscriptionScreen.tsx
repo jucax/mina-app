@@ -142,7 +142,7 @@ const AgentSubscriptionScreen = () => {
                 
                 {selectedPlan === plan.id && (
                   <View style={styles.selectedIndicator}>
-                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                    <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -180,7 +180,7 @@ const AgentSubscriptionScreen = () => {
                 
                 {selectedPlan === subscriptionPlans[2].id && (
                   <View style={styles.selectedIndicator}>
-                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                    <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
                   </View>
                 )}
               </TouchableOpacity>
@@ -305,7 +305,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   planSquare: {
-    flex: 1,
+    width: width * 0.4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 12,
     padding: 20,
@@ -353,10 +353,12 @@ const styles = StyleSheet.create({
     right: 8,
     backgroundColor: COLORS.white,
     borderRadius: 10,
-    width: 20,
-    height: 20,
+    width: 24,
+    height: 24,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.secondary,
   },
   continueButton: {
     backgroundColor: COLORS.secondary,

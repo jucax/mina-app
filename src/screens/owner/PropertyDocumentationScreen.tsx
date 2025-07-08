@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -49,6 +49,12 @@ const PropertyDocumentationScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [docs, setDocs] = useState(formData.documentation);
   const [comment, setComment] = useState(formData.documentation_comments);
+
+  // Update local state when formData changes (for data persistence)
+  useEffect(() => {
+    setDocs(formData.documentation);
+    setComment(formData.documentation_comments);
+  }, [formData]);
 
   const toggleDoc = (key: keyof typeof docs) => {
     const newDocs = { ...docs, [key]: !docs[key] };

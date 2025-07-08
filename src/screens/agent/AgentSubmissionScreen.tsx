@@ -129,13 +129,7 @@ const AgentSubmissionScreen = () => {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <Image
-          source={require('../../../assets/images/logo_login_screen.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-
+      <ScrollView contentContainerStyle={styles.centeredContent}>
         {!isLoaded ? (
           <>
             <Text style={styles.title}>
@@ -156,26 +150,43 @@ const AgentSubmissionScreen = () => {
           </>
         ) : (
           <>
-            <Text style={styles.title}>
-              ¡FELICIDADES!
-            </Text>
-            <Text style={styles.subtitle}>
-              Tu perfil ha sido registrado con éxito. Muy pronto tendrás acceso a todas las propiedades disponibles.
-            </Text>
+            <View style={styles.successContainer}>
+              <Text style={styles.title}>
+                ¡FELICIDADES!
+              </Text>
+              <Text style={styles.subtitle}>
+                Tu perfil ha sido registrado con éxito. Muy pronto tendrás acceso a todas las propiedades disponibles.
+              </Text>
 
-            <Text style={styles.title}>
-              ¡RECUERDA!
-            </Text>
-            <Text style={styles.subtitle}>
-              Tu perfil será revisado por nuestro equipo y recibirás una notificación cuando sea aprobado. Esto puede tomar de 24 a 48 horas.
-            </Text>
+              <Text style={styles.title}>
+                ¡RECUERDA!
+              </Text>
+              <Text style={styles.subtitle}>
+                Tu perfil será revisado por nuestro equipo y recibirás una notificación cuando sea aprobado. Esto puede tomar de 24 a 48 horas.
+              </Text>
 
-            <Text style={styles.title}>
-              ¡NO OLVIDES!
-            </Text>
-            <Text style={styles.subtitle}>
-              Una vez aprobado, podrás acceder a todas las propiedades y contactar directamente con los propietarios.
-            </Text>
+              <Text style={styles.title}>
+                ¡NO OLVIDES!
+              </Text>
+              <Text style={styles.subtitle}>
+                Una vez aprobado, podrás acceder a todas las propiedades y contactar directamente con los propietarios.
+              </Text>
+
+              <Image
+                source={require('../../../assets/images/logo_login_screen.png')}
+                style={styles.logo}
+                resizeMode="contain"
+              />
+
+              <TouchableOpacity
+                style={styles.comenzarButton}
+                onPress={() => router.push('/(agent)/home')}
+              >
+                <Text style={styles.comenzarButtonText}>
+                  Comenzar
+                </Text>
+              </TouchableOpacity>
+            </View>
           </>
         )}
       </ScrollView>
@@ -196,12 +207,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
-  content: {
+  centeredContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     padding: width * 0.06,
   },
   logo: {
-    height: height * 0.05,
-    marginTop: height * 0.02,
+    height: height * 0.08,
+    width: width * 0.4,
+    marginTop: height * 0.03,
+    marginBottom: height * 0.03,
   },
   title: {
     ...FONTS.title,
@@ -223,6 +239,27 @@ const styles = StyleSheet.create({
     top: 40,
     right: 0,
     padding: 16,
+  },
+  successContainer: {
+    alignItems: 'center',
+    marginBottom: height * 0.02,
+    width: '100%',
+  },
+  comenzarButton: {
+    backgroundColor: COLORS.secondary,
+    borderRadius: 24,
+    paddingVertical: 18,
+    width: width * 0.8,
+    marginTop: 32,
+    marginBottom: 32,
+    alignSelf: 'center',
+  },
+  comenzarButtonText: {
+    ...FONTS.regular,
+    fontSize: 20,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
 });
 

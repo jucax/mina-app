@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, AppStateStatus } from 'react-native';
 import { PropertyFormData } from '../types/property';
 
 interface PropertyFormContextType {
@@ -121,7 +122,29 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     loadFormData();
   }, []);
 
-  const updateFormData = (updates: Partial<PropertyFormData>) => {
+  // Save form data when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('📱 App going to background, saving form data...');
+        AsyncStorage.setItem('propertyFormData', JSON.stringify(formData))
+          .then(() => {
+            console.log('✅ Form data saved on app state change');
+          })
+          .catch(error => {
+            console.error('❌ Error saving form data on app state change:', error);
+          });
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [formData]);
+
+  const updateFormData = async (updates: Partial<PropertyFormData>) => {
     console.log('🔄 Updating form data:', updates);
     setFormData(prev => {
       const newData = {
@@ -130,20 +153,30 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
       };
       console.log('📊 New form data state:', newData);
       
-      // Save to AsyncStorage
+      // Save to AsyncStorage immediately
       AsyncStorage.setItem('propertyFormData', JSON.stringify(newData))
-        .catch(error => console.error('Error saving form data:', error));
+        .then(() => {
+          console.log('✅ Form data saved to AsyncStorage successfully');
+        })
+        .catch(error => {
+          console.error('❌ Error saving form data to AsyncStorage:', error);
+        });
       
       return newData;
     });
   };
 
-  const setCurrentStep = (step: string) => {
+  const setCurrentStep = async (step: string) => {
     console.log('🔄 Setting current step:', step);
     setCurrentStepState(step);
-    // Save progress to AsyncStorage
+    // Save progress to AsyncStorage immediately
     AsyncStorage.setItem('propertyFormProgress', JSON.stringify(step))
-      .catch(error => console.error('Error saving progress:', error));
+      .then(() => {
+        console.log('✅ Progress saved to AsyncStorage successfully');
+      })
+      .catch(error => {
+        console.error('❌ Error saving progress to AsyncStorage:', error);
+      });
   };
 
   const getNextStep = (): string => {

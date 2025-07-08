@@ -87,11 +87,11 @@ const AgentProposalResponseScreen = () => {
     );
   }
 
-  const getPropertyImage = (property: Proposal['property']) => {
+  const getPropertyImage = (property: any) => {
     if (property?.images && property.images.length > 0) {
       return { uri: property.images[0] };
     }
-    return require('../../../assets/images/property1.png');
+    return require('../../../assets/images/logo_login_screen.png');
   };
 
   const getOwnerInfo = () => {

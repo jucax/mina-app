@@ -68,7 +68,7 @@ const AgentNotificationsScreen = () => {
     if (proposal.property?.images && proposal.property.images.length > 0) {
       return { uri: proposal.property.images[0] };
     }
-    return require('../../../assets/images/property1.png');
+    return require('../../../assets/images/logo_login_screen.png');
   };
 
   const getNotificationTitle = (proposal: Proposal) => {

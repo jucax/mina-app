@@ -164,8 +164,7 @@ const OwnerDashboardScreen = () => {
     if (property.images && property.images.length > 0) {
       return { uri: property.images[0] };
     }
-    // Return a default image if no images are available
-    return require('../../../assets/images/property1.png');
+    return require('../../../assets/images/logo_login_screen.png');
   };
 
   const LocationDropdown = () => (

@@ -100,11 +100,11 @@ const OwnerProposalReceivedScreen = () => {
     }).format(price);
   };
 
-  const getPropertyImage = (property: Proposal['property']) => {
-    if (property?.images && property.images.length > 0) {
-      return { uri: property.images[0] };
+  const getPropertyImage = (proposal: Proposal) => {
+    if (proposal.property?.images && proposal.property.images.length > 0) {
+      return { uri: proposal.property.images[0] };
     }
-    return require('../../../assets/images/property1.png');
+    return require('../../../assets/images/logo_login_screen.png');
   };
 
   if (loading) {
@@ -148,7 +148,7 @@ const OwnerProposalReceivedScreen = () => {
         {/* Property Image */}
         {proposal.property && (
           <Image
-            source={getPropertyImage(proposal.property)}
+            source={getPropertyImage(proposal)}
             style={styles.propertyImage}
             resizeMode="cover"
           />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -45,6 +45,12 @@ const PropertyTypeScreen = () => {
   const [selectedType, setSelectedType] = useState<string | null>(formData.property_type);
   const [otherType, setOtherType] = useState(formData.other_type);
   const [showValidation, setShowValidation] = useState(false);
+
+  // Update local state when formData changes (for data persistence)
+  useEffect(() => {
+    setSelectedType(formData.property_type);
+    setOtherType(formData.other_type);
+  }, [formData]);
 
   // Split propertyTypes into rows of 2 for a two-column grid
   const typeRows = chunkArray(propertyTypes, GRID_COLUMNS);

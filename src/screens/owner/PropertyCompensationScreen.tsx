@@ -8,6 +8,7 @@ import {
   Dimensions,
   ScrollView,
   Platform,
+  Alert,
 } from 'react-native';
 import { router } from 'expo-router';
 import { COLORS, FONTS } from '../../styles/globalStyles';
@@ -38,14 +39,123 @@ const PropertyCompensationScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [selectedCommission, setSelectedCommission] = useState<string | null>(formData.commission_percentage);
 
-  const handlePublish = () => {
-    if (selectedCommission) {
-      // Save to context
-      updateFormData({
-        commission_percentage: selectedCommission,
-      });
-      router.push('/(owner)/submission');
+  // Validation function to check for missing data from previous screens
+  const validateFormData = () => {
+    const missingFields: string[] = [];
+
+    // Check intent and timeline
+    if (!formData.intent) {
+      missingFields.push('intención de venta/renta');
     }
+    if (!formData.timeline) {
+      missingFields.push('tiempo para vender/rentar');
+    }
+
+    // Check price
+    if (!formData.price || formData.price.trim() === '') {
+      missingFields.push('precio de la propiedad');
+    }
+
+    // Check property type
+    if (!formData.property_type) {
+      missingFields.push('tipo de propiedad');
+    }
+
+    // Check location details
+    if (!formData.state) {
+      missingFields.push('estado');
+    }
+    if (!formData.municipality || formData.municipality.trim() === '') {
+      missingFields.push('municipio/alcaldía');
+    }
+    if (!formData.street || formData.street.trim() === '') {
+      missingFields.push('calle');
+    }
+    if (!formData.postal_code || formData.postal_code.trim() === '') {
+      missingFields.push('código postal');
+    }
+
+    // Check property characteristics
+    if (!formData.land_area || formData.land_area.trim() === '') {
+      missingFields.push('superficie de terreno');
+    }
+    if (!formData.construction_area || formData.construction_area.trim() === '') {
+      missingFields.push('superficie de construcción');
+    }
+    if (!formData.bedrooms || formData.bedrooms.trim() === '') {
+      missingFields.push('número de cuartos');
+    }
+    if (!formData.bathrooms || formData.bathrooms.trim() === '') {
+      missingFields.push('número de baños');
+    }
+    if (!formData.half_bathrooms || formData.half_bathrooms.trim() === '') {
+      missingFields.push('número de medios baños');
+    }
+    if (!formData.amenities || formData.amenities.trim() === '') {
+      missingFields.push('amenidades');
+    }
+
+    // Check images
+    if (!formData.images || formData.images.length < 5) {
+      missingFields.push('imágenes (mínimo 5)');
+    }
+
+    return {
+      isValid: missingFields.length === 0,
+      missingFields,
+    };
+  };
+
+  const handlePublish = () => {
+    // First check if commission is selected
+    if (!selectedCommission) {
+      Alert.alert(
+        'Campo Requerido',
+        'Por favor, selecciona un porcentaje de comisión.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
+
+    // Then validate all form data
+    const validation = validateFormData();
+    
+    if (!validation.isValid) {
+      const missingFieldsText = validation.missingFields
+        .map(field => `• ${field.charAt(0).toUpperCase() + field.slice(1)}`)
+        .join('\n');
+      Alert.alert(
+        'Datos Faltantes',
+        `Faltan los siguientes datos de pantallas anteriores:\n\n${missingFieldsText}\n\nPor favor, regresa y completa toda la información requerida.`,
+        [
+          { text: 'Cancelar', style: 'cancel' },
+          { 
+            text: 'Ir a Completar', 
+            onPress: () => {
+              // Navigate to the first screen with missing data
+              if (!formData.intent || !formData.timeline) {
+                router.push('/(owner)/intent');
+              } else if (!formData.price) {
+                router.push('/(owner)/property/price');
+              } else if (!formData.property_type) {
+                router.push('/(owner)/property/type');
+              } else if (!formData.state || !formData.municipality || !formData.street || !formData.postal_code) {
+                router.push('/(owner)/property/details');
+              } else {
+                router.push('/(owner)/property/details');
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
+    // Save to context and proceed
+    updateFormData({
+      commission_percentage: selectedCommission,
+    });
+    router.push('/(owner)/submission');
   };
 
   return (

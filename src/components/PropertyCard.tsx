@@ -107,7 +107,7 @@ const PropertyCard: React.FC<PropertyCardProps> = ({
           source={
             property.images && property.images.length > 0
               ? { uri: property.images[0] }
-              : require('../../assets/images/placeholder_property.png')
+              : require('../../assets/images/logo_login_screen.png')
           }
           style={styles.image}
           resizeMode="cover"

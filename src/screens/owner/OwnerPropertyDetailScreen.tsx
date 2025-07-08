@@ -163,8 +163,12 @@ const OwnerPropertyDetailScreen = () => {
     if (property.images && property.images.length > 0) {
       return { uri: property.images[0] };
     }
-    return require('../../../assets/images/property1.png');
+    return require('../../../assets/images/logo_login_screen.png');
   };
+
+  const isDocumentationComplete = (propertyData as any)?.documentation && typeof (propertyData as any).documentation === 'object'
+    ? Object.values((propertyData as any).documentation).every(Boolean)
+    : false;
 
   return (
     <View style={styles.container}>
@@ -187,14 +191,17 @@ const OwnerPropertyDetailScreen = () => {
             <Text style={styles.priceText}>{formatPrice(propertyData.price)}</Text>
             <View style={styles.locationContainer}>
               <Ionicons name="location" size={22} color={COLORS.secondary} />
-              <Text style={styles.locationText}>
-                {propertyData.municipality}, {propertyData.state}
-              </Text>
+              <View>
+                <Text style={styles.locationText}>{propertyData.municipality}</Text>
+                <Text style={styles.locationText}>{propertyData.state}</Text>
+              </View>
             </View>
           </View>
           <View style={styles.commissionContainer}>
-            <Text style={styles.commissionValue}>{propertyData.commission_percentage}%</Text>
-            <Text style={styles.commissionLabel}>comisión</Text>
+            <View style={styles.commissionBg}>
+              <Text style={styles.commissionValue}>{propertyData.commission_percentage}%</Text>
+              <Text style={styles.commissionLabel}>comisión</Text>
+            </View>
           </View>
         </View>
 
@@ -218,33 +225,53 @@ const OwnerPropertyDetailScreen = () => {
           />
         </View>
 
-        <Text style={styles.sectionTitle}>
-          INFORMACION DE LA PROPIEDAD
+        <Text style={styles.sectionTitleSmall}>
+          Información de la propiedad
         </Text>
 
         <View style={styles.infoIconsContainer}>
           <InfoIconText icon="bed" label={`${propertyData.bedrooms || 0} cuartos`} />
           <InfoIconText icon="water" label={`${propertyData.bathrooms || 0} baños`} />
-          <InfoIconText icon="car" label="2 estacionamientos" />
+          <InfoIconText icon="water-outline" label={`${propertyData.half_bathrooms || 0} medios baños`} />
+        </View>
+        <View style={styles.centeredRow}>
+          <InfoIconText icon="car" label={`0 estacionamientos`} />
+          <InfoIconText icon="calendar" label={`Año: N/A`} />
         </View>
 
         <View style={styles.areaInfoContainer}>
-          <AreaInfo label="Construcción" value={`${propertyData.construction_area || 0}m²`} />
-          <AreaInfo label="Terreno" value={`${propertyData.land_area || 0}m²`} />
-          <AreaInfo label="Total" value={`${(propertyData.construction_area || 0) + (propertyData.land_area || 0)}m²`} />
+          <View style={styles.areaInfoRow}>
+            <View style={styles.areaInfoItem}>
+              <Ionicons name="business" size={20} color={COLORS.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.areaInfoLabel}>Construcción</Text>
+              <Text style={styles.areaInfoValue}>{propertyData.construction_area || 0}<Text style={styles.areaInfoUnit}> m²</Text></Text>
+            </View>
+            <View style={styles.areaInfoItem}>
+              <Ionicons name="leaf" size={20} color={COLORS.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.areaInfoLabel}>Terreno</Text>
+              <Text style={styles.areaInfoValue}>{propertyData.land_area || 0}<Text style={styles.areaInfoUnit}> m²</Text></Text>
+            </View>
+          </View>
+          <View style={styles.areaInfoRow}>
+            <View style={styles.areaInfoItem}>
+              <Ionicons name="grid" size={20} color={COLORS.secondary} style={{ marginRight: 4 }} />
+              <Text style={styles.areaInfoLabel}>Total</Text>
+              <Text style={styles.areaInfoValue}>{(propertyData.construction_area || 0) + (propertyData.land_area || 0)}<Text style={styles.areaInfoUnit}> m²</Text></Text>
+            </View>
+          </View>
         </View>
 
         <View style={styles.documentationContainer}>
           <Text style={styles.documentationLabel}>Documentación:</Text>
           <View style={[
             styles.documentationStatus,
-            { borderColor: COLORS.gray }
+            { borderColor: isDocumentationComplete ? COLORS.secondary : COLORS.gray }
           ]}>
             <Text style={[
               styles.documentationStatusText,
-              { color: COLORS.gray }
+              { color: isDocumentationComplete ? COLORS.secondary : COLORS.gray }
             ]}>
-              Pendiente
+              {isDocumentationComplete ? 'Completa' : 'Pendiente'}
             </Text>
           </View>
         </View>
@@ -357,6 +384,13 @@ const styles = StyleSheet.create({
     bottom: 32,
     alignItems: 'flex-end',
   },
+  commissionBg: {
+    backgroundColor: 'rgba(255,255,255,0.7)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    alignItems: 'center',
+  },
   commissionValue: {
     ...FONTS.title,
     fontSize: 32,
@@ -444,14 +478,33 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     marginTop: 18,
   },
+  areaInfoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    width: '100%',
+    marginBottom: 4,
+  },
+  areaInfoItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 8,
+  },
   areaInfoLabel: {
     ...FONTS.regular,
     fontWeight: 'bold',
+    marginRight: 4,
   },
   areaInfoValue: {
     ...FONTS.regular,
     fontWeight: '600',
-    marginTop: 2,
+    marginRight: 2,
+  },
+  areaInfoUnit: {
+    ...FONTS.regular,
+    fontWeight: '400',
+    fontSize: 13,
+    color: COLORS.gray,
+    marginLeft: 1,
   },
   documentationContainer: {
     flexDirection: 'row',
@@ -530,6 +583,22 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.gray,
+  },
+  centeredRow: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 8,
+    gap: 32,
+  },
+  sectionTitleSmall: {
+    ...FONTS.title,
+    fontSize: 22,
+    color: COLORS.black,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
+    marginLeft: 26,
   },
 });
 

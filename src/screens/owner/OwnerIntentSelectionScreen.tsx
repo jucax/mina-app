@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -28,6 +28,12 @@ const OwnerIntentSelectionScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [selectedIntent, setSelectedIntent] = useState<string | null>(formData.intent);
   const [selectedTime, setSelectedTime] = useState<string | null>(formData.timeline);
+
+  // Update local state when formData changes (for data persistence)
+  useEffect(() => {
+    setSelectedIntent(formData.intent);
+    setSelectedTime(formData.timeline);
+  }, [formData]);
 
   const intents = [
     {

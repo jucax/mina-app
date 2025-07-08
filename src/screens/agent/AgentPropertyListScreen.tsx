@@ -282,7 +282,7 @@ const AgentPropertyListScreen = () => {
     
     const propertyImage = item.images && item.images.length > 0 
       ? { uri: item.images[0] } 
-      : require('../../../assets/images/property1.png');
+      : require('../../../assets/images/logo_login_screen.png');
 
     return (
       <Pressable
@@ -294,7 +294,11 @@ const AgentPropertyListScreen = () => {
           }
         })}
       >
-        <Image source={propertyImage} style={styles.propertyImage} />
+        <Image
+          source={propertyImage}
+          style={styles.propertyImage}
+          resizeMode="cover"
+        />
         <TouchableOpacity
           style={styles.favoriteButton}
           onPress={() => toggleFavorite(index)}

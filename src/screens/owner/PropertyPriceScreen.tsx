@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,11 @@ const PropertyPriceScreen = () => {
   const { formData, updateFormData } = usePropertyForm();
   const [price, setPrice] = useState(formData.price);
   const [showValidation, setShowValidation] = useState(false);
+
+  // Update local state when formData changes (for data persistence)
+  useEffect(() => {
+    setPrice(formData.price);
+  }, [formData]);
 
   // Format price with commas
   const formatPrice = (value: string) => {

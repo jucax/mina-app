@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppState, AppStateStatus } from 'react-native';
 import { AgentFormData } from '../types/agent';
 
 interface AgentFormContextType {
@@ -84,7 +85,29 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
     loadFormData();
   }, []);
 
-  const updateFormData = (updates: Partial<AgentFormData>) => {
+  // Save form data when app goes to background
+  useEffect(() => {
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'background' || nextAppState === 'inactive') {
+        console.log('📱 App going to background, saving agent form data...');
+        AsyncStorage.setItem('agentFormData', JSON.stringify(formData))
+          .then(() => {
+            console.log('✅ Agent form data saved on app state change');
+          })
+          .catch(error => {
+            console.error('❌ Error saving agent form data on app state change:', error);
+          });
+      }
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      subscription?.remove();
+    };
+  }, [formData]);
+
+  const updateFormData = async (updates: Partial<AgentFormData>) => {
     console.log('🔄 Updating agent form data:', updates);
     setFormData(prev => {
       const newData = {
@@ -93,9 +116,14 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
       };
       console.log('📊 New agent form data state:', newData);
       
-      // Save to AsyncStorage
+      // Save to AsyncStorage immediately
       AsyncStorage.setItem('agentFormData', JSON.stringify(newData))
-        .catch(error => console.error('Error saving agent form data:', error));
+        .then(() => {
+          console.log('✅ Agent form data saved to AsyncStorage successfully');
+        })
+        .catch(error => {
+          console.error('❌ Error saving agent form data to AsyncStorage:', error);
+        });
       
       return newData;
     });
@@ -114,7 +142,12 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
     console.log('🔄 Resetting agent form data');
     setFormData(initialFormData);
     AsyncStorage.removeItem('agentFormData')
-      .catch(error => console.error('Error removing agent form data:', error));
+      .then(() => {
+        console.log('✅ Agent form data removed from AsyncStorage successfully');
+      })
+      .catch(error => {
+        console.error('❌ Error removing agent form data from AsyncStorage:', error);
+      });
   };
 
   const isFormComplete = (): boolean => {

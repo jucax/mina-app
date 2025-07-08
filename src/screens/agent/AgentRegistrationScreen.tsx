@@ -36,16 +36,17 @@ interface DropdownProps {
   items: string[];
   onChange: (value: string) => void;
   disabled?: boolean;
+  style?: any;
 }
 
-const Dropdown = ({ label, value, items, onChange, disabled = false }: DropdownProps) => {
+const Dropdown = ({ label, value, items, onChange, disabled = false, style }: DropdownProps) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
     <View style={styles.dropdownContainer}>
       <Text style={styles.dropdownLabel}>{label}</Text>
       <TouchableOpacity
-        style={[styles.dropdown, disabled && styles.dropdownDisabled]}
+        style={[styles.dropdown, disabled && styles.dropdownDisabled, style]}
         onPress={() => !disabled && setIsOpen(true)}
         disabled={disabled}
       >
@@ -107,13 +108,51 @@ const AgentRegistrationScreen = () => {
   const [worksAtAgency, setWorksAtAgency] = useState(false);
   const [notWorksAtAgency, setNotWorksAtAgency] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showValidation, setShowValidation] = useState(false);
 
   const handleAgencySelection = (isYes: boolean) => {
     setWorksAtAgency(isYes);
     setNotWorksAtAgency(!isYes);
   };
 
+  const validateFields = () => {
+    const requiredFields = {
+      cp: cp.trim(),
+      municipio: municipio.trim(),
+      selectedEstado: selectedEstado,
+      experience: experience.trim(),
+      propertiesSold: propertiesSold.trim(),
+      selectedCommission: selectedCommission,
+      description: description.trim(),
+      // colonia and calle are optional
+    };
+    const missingFields = Object.entries(requiredFields).filter(([key, value]) => !value || value === '');
+    return {
+      isValid: missingFields.length === 0,
+      missingFields: missingFields.map(([key]) => key),
+    };
+  };
+
+  const getInputStyle = (fieldName: string) => {
+    const validation = validateFields();
+    const isMissing = validation.missingFields.includes(fieldName);
+    return [
+      styles.input,
+      showValidation && isMissing && styles.inputError
+    ];
+  };
+
   const handleContinue = async () => {
+    const validation = validateFields();
+    if (!validation.isValid) {
+      setShowValidation(true);
+      Alert.alert(
+        'Campos Requeridos',
+        'Por favor, completa todos los campos obligatorios marcados en rojo.',
+        [{ text: 'OK' }]
+      );
+      return;
+    }
     setLoading(true);
 
     try {
@@ -188,18 +227,20 @@ const AgentRegistrationScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Código Postal:</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('cp')}
               value={cp}
               onChangeText={setCp}
               keyboardType="numeric"
             />
           </View>
-          <View style={styles.inputContainer}>
+          <View style={styles.inputContainerSmall}>
             <Dropdown
               label="País:"
               value={selectedPais}
               items={['México']}
               onChange={setSelectedPais}
+              disabled={true}
+              style={styles.dropdown}
             />
           </View>
         </View>
@@ -207,16 +248,17 @@ const AgentRegistrationScreen = () => {
         <View style={styles.row}>
           <View style={styles.inputContainer}>
             <Dropdown
-              label="Estado:"
+              label="Estado: *"
               value={selectedEstado}
               items={estados}
               onChange={setSelectedEstado}
+              style={showValidation && !selectedEstado ? styles.dropdownMatchInput : null}
             />
           </View>
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Alcaldía o municipio:</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('municipio')}
               value={municipio}
               onChangeText={setMunicipio}
               placeholder="Ingresa tu alcaldía o municipio"
@@ -229,7 +271,7 @@ const AgentRegistrationScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Colonia:</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('colonia')}
               value={colonia}
               onChangeText={setColonia}
               placeholder="Ingresa tu colonia"
@@ -239,7 +281,7 @@ const AgentRegistrationScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Calle:</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('calle')}
               value={calle}
               onChangeText={setCalle}
               placeholder="Ingresa tu calle"
@@ -252,7 +294,7 @@ const AgentRegistrationScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>¿Cuántos años tienes de experiencia?</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('experience')}
               value={experience}
               onChangeText={setExperience}
               keyboardType="numeric"
@@ -263,7 +305,7 @@ const AgentRegistrationScreen = () => {
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>¿Propiedades vendidas?</Text>
             <TextInput
-              style={styles.input}
+              style={getInputStyle('propertiesSold')}
               value={propertiesSold}
               onChangeText={setPropertiesSold}
               keyboardType="numeric"
@@ -273,34 +315,31 @@ const AgentRegistrationScreen = () => {
           </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Con qué porcentaje de comisión trabajas?
-        </Text>
-
-        <View style={styles.commissionContainer}>
+        <Text style={styles.sectionTitleSmall}>¿Con qué porcentaje de comisión trabajas?</Text>
+        <View style={styles.percentButtonRow}>
           {[4, 5, 6].map((percent) => (
             <TouchableOpacity
               key={percent}
               style={[
-                styles.commissionButton,
-                selectedCommission === percent && styles.commissionButtonSelected
+                styles.typeButton,
+                selectedCommission === percent && styles.typeButtonSelected
               ]}
               onPress={() => setSelectedCommission(percent)}
+              activeOpacity={0.8}
             >
-              <Text style={[
-                styles.commissionButtonText,
-                selectedCommission === percent && styles.commissionButtonTextSelected
-              ]}>
+              <Text
+                style={[
+                  styles.typeButtonText,
+                  selectedCommission === percent && styles.typeButtonTextSelected
+                ]}
+              >
                 {percent}%
               </Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        <Text style={styles.sectionTitle}>
-          ¿Trabajas en alguna inmobiliaria?
-        </Text>
-
+        <Text style={styles.sectionTitleSmall}>¿Trabajas en alguna inmobiliaria?</Text>
         <View style={styles.agencyContainer}>
           <TouchableOpacity
             style={styles.checkboxContainer}
@@ -332,22 +371,19 @@ const AgentRegistrationScreen = () => {
             <Text style={styles.checkboxLabel}>No</Text>
           </TouchableOpacity>
 
-          {worksAtAgency && (
-            <View style={styles.agencyInputContainer}>
-              <Text style={styles.checkboxLabel}>¿Cual?</Text>
-              <TextInput
-                style={styles.agencyInput}
-                value={agencyName}
-                onChangeText={setAgencyName}
-              />
-            </View>
-          )}
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
+            <Text style={styles.checkboxLabel}>¿Cual?</Text>
+            <TextInput
+              style={styles.agencyInput}
+              value={agencyName}
+              onChangeText={setAgencyName}
+              editable={worksAtAgency}
+              placeholderTextColor="rgba(0,0,0,0.5)"
+            />
+          </View>
         </View>
 
-        <Text style={styles.sectionTitle}>
-          Deja una breve descripción de ti y tu trabajo.
-        </Text>
-
+        <Text style={styles.sectionTitleSmall}>Deja una breve descripción de ti y tu trabajo.</Text>
         <TextInput
           style={styles.descriptionInput}
           value={description}
@@ -395,10 +431,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    ...FONTS.title,
-    fontSize: 32,
+    ...FONTS.regular,
+    fontSize: 12,
     color: COLORS.secondary,
-    fontWeight: 'bold',
+    marginBottom: 8,
     textAlign: 'center',
   },
   subtitle2: {
@@ -406,6 +442,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     color: COLORS.white,
     textAlign: 'center',
+  },
+  sectionTitleSmall: {
+    ...FONTS.title,
+    fontSize: 18,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+    marginTop: 24,
+    marginBottom: 8,
   },
   sectionTitle: {
     ...FONTS.title,
@@ -423,6 +467,10 @@ const styles = StyleSheet.create({
   inputContainer: {
     flex: 1,
     marginRight: 12,
+  },
+  inputContainerSmall: {
+    flex: 1,
+    maxWidth: width * 0.45,
   },
   inputLabel: {
     ...FONTS.regular,
@@ -468,37 +516,51 @@ const styles = StyleSheet.create({
   dropdownButton: {
     padding: 6,
   },
-  commissionContainer: {
+  percentButtonRow: {
     flexDirection: 'row',
     justifyContent: 'center',
-    marginBottom: 24,
+    marginBottom: 16,
+    width: '100%',
   },
-  commissionButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: COLORS.white,
+  typeButton: {
     backgroundColor: COLORS.white,
-    marginHorizontal: 8,
+    borderRadius: 20,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    marginHorizontal: 10,
+    borderWidth: 2,
+    borderColor: COLORS.secondary,
+    shadowColor: COLORS.secondary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+    elevation: 2,
+    transform: [{ scale: 1 }],
   },
-  commissionButtonSelected: {
+  typeButtonSelected: {
     backgroundColor: COLORS.secondary,
     borderColor: COLORS.secondary,
+    shadowColor: COLORS.secondary,
+    shadowOpacity: 0.4,
+    elevation: 6,
+    transform: [{ scale: 1.08 }],
   },
-  commissionButtonText: {
+  typeButtonText: {
     ...FONTS.title,
-    fontSize: 24,
     color: COLORS.secondary,
     fontWeight: 'bold',
+    fontSize: 18,
+    textAlign: 'center',
   },
-  commissionButtonTextSelected: {
+  typeButtonTextSelected: {
     color: COLORS.white,
+    textShadowColor: 'transparent',
   },
   agencyContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 12,
+    width: '100%',
   },
   checkboxContainer: {
     flexDirection: 'row',
@@ -522,10 +584,6 @@ const styles = StyleSheet.create({
   checkboxLabel: {
     ...FONTS.regular,
     color: COLORS.white,
-  },
-  agencyInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
   },
   agencyInput: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -610,6 +668,12 @@ const styles = StyleSheet.create({
   },
   dropdownInputDisabled: {
     color: COLORS.gray,
+  },
+  dropdownMatchInput: {
+    borderColor: '#FF4444',
+  },
+  inputError: {
+    borderColor: '#FF4444',
   },
 });
 

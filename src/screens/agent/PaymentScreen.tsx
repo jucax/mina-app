@@ -416,4 +416,9 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PaymentScreen; 
+export default PaymentScreen;
+
+// Hide the default navigation header
+export const options = {
+  headerShown: false,
+}; 

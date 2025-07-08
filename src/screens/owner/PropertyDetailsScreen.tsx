@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -161,6 +161,24 @@ const PropertyDetailsScreen = () => {
 
   // Validation state
   const [showValidation, setShowValidation] = useState(false);
+
+  // Update local state when formData changes (for data persistence)
+  useEffect(() => {
+    setCp(formData.postal_code);
+    setMunicipio(formData.municipality);
+    setCalle(formData.street);
+    setSelectedPais(formData.country);
+    setSelectedEstado(formData.state);
+    setSelectedColonia(formData.neighborhood);
+    setSuperficie(formData.land_area);
+    setConstruccion(formData.construction_area);
+    setCuartos(formData.bedrooms);
+    setBanos(formData.bathrooms);
+    setMediosBanos(formData.half_bathrooms);
+    setAmenidades(formData.amenities);
+    setInfoAdicional(formData.additional_info);
+    setSelectedImages(formData.images);
+  }, [formData]);
 
   // Get municipalities based on selected state
   const municipiosDisponibles = selectedEstado ? municipiosPorEstado[selectedEstado] || [] : [];
@@ -437,7 +455,7 @@ const PropertyDetailsScreen = () => {
         </View>
 
         <View style={styles.rowGap3}>
-          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+          <View style={styles.inputContainerCuartos}>
             <Text style={styles.inputLabel}>Cuartos: *</Text>
             <TextInput
               style={getInputStyle('cuartos')}
@@ -449,7 +467,7 @@ const PropertyDetailsScreen = () => {
               maxLength={2}
             />
           </View>
-          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+          <View style={styles.inputContainerBanos}>
             <Text style={styles.inputLabel}>Baños: *</Text>
             <TextInput
               style={getInputStyle('banos')}
@@ -461,7 +479,7 @@ const PropertyDetailsScreen = () => {
               maxLength={2}
             />
           </View>
-          <View style={[styles.inputContainerTiny3, { maxWidth: width * 0.21 }]}>
+          <View style={styles.inputContainerMediosBanos}>
             <Text style={styles.inputLabel}>Medios Baños: *</Text>
             <TextInput
               style={getInputStyle('mediosBanos')}
@@ -658,7 +676,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 12,
-    gap: 8,
+    gap: 4,
   },
   inputContainer: {
     flex: 1,
@@ -674,7 +692,19 @@ const styles = StyleSheet.create({
   },
   inputContainerTiny3: {
     flex: 1,
-    maxWidth: width * 0.25,
+    maxWidth: width * 0.28,
+  },
+  inputContainerCuartos: {
+    flex: 1,
+    maxWidth: width * 0.20,
+  },
+  inputContainerBanos: {
+    flex: 1,
+    maxWidth: width * 0.20,
+  },
+  inputContainerMediosBanos: {
+    flex: 1,
+    maxWidth: width * 0.30,
   },
   inputLabel: {
     ...FONTS.regular,
@@ -694,7 +724,6 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: '#FF4444',
-    backgroundColor: 'rgba(255, 68, 68, 0.1)',
   },
   dropdownContainer: {
     flex: 1,
