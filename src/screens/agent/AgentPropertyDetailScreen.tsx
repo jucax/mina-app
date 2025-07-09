@@ -524,7 +524,7 @@ const styles = StyleSheet.create({
   sendOfferButton: {
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.secondary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',

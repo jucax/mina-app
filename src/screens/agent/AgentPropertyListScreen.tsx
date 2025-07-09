@@ -57,7 +57,7 @@ const AgentPropertyListScreen = () => {
   console.log('🚀 AgentPropertyListScreen component rendered');
   
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [selectedLocation, setSelectedLocation] = useState('Cualquier lugar');
   const [selectedPropertyType, setSelectedPropertyType] = useState('All');
   const [selectedCommission, setSelectedCommission] = useState('All');
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -238,13 +238,43 @@ const AgentPropertyListScreen = () => {
     fetchResponseProposalsCount();
   }, []);
 
-  const locations = ['All', ...new Set(properties.map(p => `${p.neighborhood}, ${p.municipality}`))].sort();
+  // Build locations array with cleaned labels
+  const locationLabels = properties.map(p => {
+    const neighborhood = p.neighborhood || '';
+    const municipality = p.municipality || '';
+    if (neighborhood && municipality) {
+      return `${neighborhood}, ${municipality}`;
+    } else if (municipality) {
+      return municipality;
+    } else if (neighborhood) {
+      return neighborhood;
+    } else {
+      return '';
+    }
+  }).filter(label => label && label.trim() !== '');
+  const uniqueLocations = Array.from(new Set(locationLabels));
+  const locations = ['Cualquier lugar', ...uniqueLocations].sort((a, b) => {
+    if (a === 'Cualquier lugar') return -1;
+    if (b === 'Cualquier lugar') return 1;
+    return a.localeCompare(b);
+  });
   const propertyTypes = ['All', ...new Set(properties.map(p => p.property_type))].sort();
   const commissionPercentages = ['All', ...new Set(properties.map(p => `${p.commission_percentage}%`))].sort();
 
   const filteredProperties = properties.filter(property => {
-    const propertyLocation = `${property.neighborhood}, ${property.municipality}`;
-    const matchesLocation = selectedLocation === 'All' || propertyLocation === selectedLocation;
+    const neighborhood = property.neighborhood || '';
+    const municipality = property.municipality || '';
+    let propertyLocation = '';
+    if (neighborhood && municipality) {
+      propertyLocation = `${neighborhood}, ${municipality}`;
+    } else if (municipality) {
+      propertyLocation = municipality;
+    } else if (neighborhood) {
+      propertyLocation = neighborhood;
+    } else {
+      propertyLocation = '';
+    }
+    const matchesLocation = selectedLocation === 'Cualquier lugar' || propertyLocation === selectedLocation;
     const matchesQuery = searchQuery === '' || 
       propertyLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.property_type.toLowerCase().includes(searchQuery.toLowerCase());
@@ -491,7 +521,7 @@ const AgentPropertyListScreen = () => {
       ) : filteredProperties.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyText}>
-            {searchQuery || selectedLocation !== 'All' || selectedPropertyType !== 'All' || selectedCommission !== 'All'
+            {searchQuery || selectedLocation !== 'Cualquier lugar' || selectedPropertyType !== 'All' || selectedCommission !== 'All'
               ? 'No se encontraron propiedades con los filtros aplicados.'
               : 'No hay propiedades disponibles en este momento.'}
           </Text>

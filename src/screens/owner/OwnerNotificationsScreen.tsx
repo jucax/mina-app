@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { ProposalService, Proposal } from '../../services/proposalService';
-import { FONTS } from '../../styles/globalStyles';
+import { FONTS, COLORS } from '../../styles/globalStyles';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width, height } = Dimensions.get('window');
@@ -210,24 +210,22 @@ const styles = StyleSheet.create({
   customHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#175B87',
+    backgroundColor: '#144E7A', // Use COLORS.primary
+    paddingTop: 60,
+    paddingBottom: 20,
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 18,
-    borderBottomWidth: 4,
-    borderBottomColor: '#FFE9CC',
   },
   customHeaderTitle: {
-    fontSize: 32,
-    color: '#fff',
+    ...FONTS.title,
+    fontSize: 20,
+    color: COLORS.white,
     fontWeight: 'bold',
-    letterSpacing: 1,
+    flex: 1,
   },
   customHeaderLogo: {
-    height: 48,
-    width: 120,
-    marginLeft: 12,
+    height: 32,
+    width: 80,
+    marginLeft: 'auto',
   },
   notificationsList: {
     flex: 1,

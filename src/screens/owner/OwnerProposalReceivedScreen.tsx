@@ -161,7 +161,15 @@ const OwnerProposalReceivedScreen = () => {
             style={styles.agentImage}
           />
           <View style={styles.agentInfo}>
-            <Text style={styles.agentName}>{proposal.agent?.full_name || 'Asesor'}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                if (proposal.agent_id) {
+                  router.push({ pathname: '/(agent)/profile', params: { id: proposal.agent_id } });
+                }
+              }}
+            >
+              <Text style={styles.agentNameButton}>{proposal.agent?.full_name || 'Asesor'}</Text>
+            </TouchableOpacity>
             <Text style={styles.agentTitle}>Asesor Inmobiliario</Text>
             {proposal.agent?.agency_name && (
               <Text style={styles.agentAgency}>{proposal.agent.agency_name}</Text>
@@ -391,6 +399,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.white,
   },
+  agentNameButton: {
+    ...FONTS.title,
+    fontSize: 18,
+    color: COLORS.white,
+    fontWeight: 'bold',
+    textDecorationLine: 'underline',
+  },
 });
+
+export const options = {
+  headerShown: false,
+};
 
 export default OwnerProposalReceivedScreen; 

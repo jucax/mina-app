@@ -161,8 +161,8 @@ const AgentRegistrationScreen = () => {
         throw new Error('Usuario no autenticado');
       }
 
-      // Update agent profile with additional information
-      const { error: updateError } = await agentService.updateAgent(user.id, {
+      // Log the data being sent to the database
+      const updatePayload = {
         postal_code: cp,
         municipality: municipio,
         street: calle,
@@ -175,9 +175,14 @@ const AgentRegistrationScreen = () => {
         works_at_agency: worksAtAgency,
         agency_name: agencyName || undefined,
         description: description || undefined,
-      });
+      };
+      console.log('📝 Agent update payload:', updatePayload);
 
+      // Update agent profile with additional information
+      const { data: updatedAgent, error: updateError } = await agentService.updateAgent(user.id, updatePayload);
+      console.log('📝 Agent update result:', updatedAgent);
       if (updateError) {
+        console.error('❌ Error updating agent:', updateError);
         throw updateError;
       }
 
