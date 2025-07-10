@@ -62,26 +62,26 @@ const AgentSubmissionScreen = () => {
         // Update the agent record with additional form data
         const updateData = {
           // Location Information
-          state: formData.state,
-          municipality: formData.municipality,
-          neighborhood: formData.neighborhood,
-          street: formData.street,
-          postal_code: formData.postal_code,
-          
+          state: formData.state || existingAgent.state,
+          municipality: formData.municipality || existingAgent.municipality,
+          neighborhood: formData.neighborhood || existingAgent.neighborhood,
+          street: formData.street || existingAgent.street,
+          postal_code: formData.postal_code || existingAgent.postal_code,
+
           // Professional Information
-          experience_years: formData.experience_years ? parseInt(formData.experience_years) : undefined,
-          properties_sold: formData.properties_sold ? parseInt(formData.properties_sold) : undefined,
-          commission_percentage: formData.commission_percentage,
-          
+          experience_years: formData.experience_years ? parseInt(formData.experience_years) : existingAgent.experience_years,
+          properties_sold: formData.properties_sold ? parseInt(formData.properties_sold) : existingAgent.properties_sold,
+          commission_percentage: formData.commission_percentage ?? existingAgent.commission_percentage,
+
           // Agency Information
-          works_at_agency: formData.works_at_agency,
-          agency_name: formData.agency_name || undefined,
-          
+          works_at_agency: typeof formData.works_at_agency === 'boolean' ? formData.works_at_agency : existingAgent.works_at_agency,
+          agency_name: formData.agency_name || existingAgent.agency_name,
+
           // Description
-          description: formData.description || undefined,
-          
+          description: formData.description || existingAgent.description,
+
           // Subscription Information
-          subscription_plan: formData.subscription_plan,
+          subscription_plan: formData.subscription_plan || existingAgent.subscription_plan,
           subscription_status: 'active',
           subscription_start_date: new Date().toISOString(),
         };

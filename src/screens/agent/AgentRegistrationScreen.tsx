@@ -110,6 +110,31 @@ const AgentRegistrationScreen = () => {
   const [loading, setLoading] = useState(false);
   const [showValidation, setShowValidation] = useState(false);
 
+  // On mount, fetch agent data and prefill form if exists
+  useEffect(() => {
+    const fetchAgent = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      const { data: agent } = await agentService.getAgentById(user.id);
+      if (agent) {
+        setCp(agent.postal_code || '');
+        setMunicipio(agent.municipality || '');
+        setCalle(agent.street || '');
+        setColonia(agent.neighborhood || '');
+        setExperience(agent.experience_years !== undefined ? String(agent.experience_years) : '');
+        setPropertiesSold(agent.properties_sold !== undefined ? String(agent.properties_sold) : '');
+        setAgencyName(agent.agency_name || '');
+        setDescription(agent.description || '');
+        setSelectedPais(agent.country || 'México');
+        setSelectedEstado(agent.state || null);
+        setSelectedCommission(agent.commission_percentage || null);
+        setWorksAtAgency(!!agent.works_at_agency);
+        setNotWorksAtAgency(!agent.works_at_agency);
+      }
+    };
+    fetchAgent();
+  }, []);
+
   const handleAgencySelection = (isYes: boolean) => {
     setWorksAtAgency(isYes);
     setNotWorksAtAgency(!isYes);
@@ -161,26 +186,23 @@ const AgentRegistrationScreen = () => {
         throw new Error('Usuario no autenticado');
       }
 
-      // Log the data being sent to the database
+      // Build the payload, converting empty strings to undefined for optional fields (like PropertyDetailsScreen)
       const updatePayload = {
-        postal_code: cp,
-        municipality: municipio,
-        street: calle,
-        neighborhood: colonia,
-        experience_years: experience ? parseInt(experience) : undefined,
-        properties_sold: propertiesSold ? parseInt(propertiesSold) : undefined,
+        postal_code: cp.trim() || undefined,
+        municipality: municipio.trim() || undefined,
+        street: calle.trim() || undefined,
+        neighborhood: colonia.trim() || undefined,
+        experience_years: experience.trim() ? parseInt(experience) : undefined,
+        properties_sold: propertiesSold.trim() ? parseInt(propertiesSold) : undefined,
         country: selectedPais,
         state: selectedEstado || undefined,
         commission_percentage: selectedCommission || undefined,
         works_at_agency: worksAtAgency,
-        agency_name: agencyName || undefined,
-        description: description || undefined,
+        agency_name: agencyName.trim() || undefined,
+        description: description.trim() || undefined,
       };
-      console.log('📝 Agent update payload:', updatePayload);
-
-      // Update agent profile with additional information
+      console.log('📝 Updating agent with data:', updatePayload);
       const { data: updatedAgent, error: updateError } = await agentService.updateAgent(user.id, updatePayload);
-      console.log('📝 Agent update result:', updatedAgent);
       if (updateError) {
         console.error('❌ Error updating agent:', updateError);
         throw updateError;
