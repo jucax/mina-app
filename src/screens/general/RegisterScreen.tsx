@@ -14,7 +14,7 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { supabase } from '../../services/supabase';
+import { supabase, supabaseAnonKey } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { router } from 'expo-router';
 import { ownerService, agentService, userAuthService } from '../../services/databaseService';
@@ -22,6 +22,7 @@ import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
 import { useAuthRequest, discovery as googleDiscovery } from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 
@@ -154,36 +155,47 @@ const RegisterScreen = () => {
 
       // Upload profile image if selected
       if (profileImage) {
+        console.log('📤 Starting profile image upload process...');
+        console.log('📁 Profile image URI:', profileImage);
         try {
           const fileExt = profileImage.split('.').pop();
           const fileName = `${userId}.${fileExt}`;
-          const filePath = `${fileName}`;
+          const supabaseUrl = 'https://tliwzfdnpeozlanhpxmn.supabase.co';
+          const bucket = 'profile-images';
+          const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`;
 
-          const response = await fetch(profileImage);
-          const blob = await response.blob();
+          // Use the exported anon key
+          // Determine content type
+          let contentType = 'image/jpeg';
+          if (fileExt === 'png') contentType = 'image/png';
+          if (fileExt === 'webp') contentType = 'image/webp';
 
-          // Upload the image
-          const { error: uploadError } = await supabase.storage
-            .from('profile-images')
-            .upload(filePath, blob, {
-              contentType: `image/${fileExt}`,
-              upsert: true, // allow overwriting
-            });
+          // Upload the file using FileSystem.uploadAsync
+          console.log('🚀 Uploading to Supabase Storage REST endpoint...');
+          const uploadRes = await FileSystem.uploadAsync(uploadUrl, profileImage, {
+            httpMethod: 'POST',
+            headers: {
+              'Authorization': `Bearer ${supabaseAnonKey}`,
+              'Content-Type': contentType,
+            },
+            uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+          });
 
-          if (uploadError) {
-            console.error('❌ Error al subir la imagen:', uploadError.message);
-          } else {
-            // Wait a moment for the file to be available
-            await new Promise(res => setTimeout(res, 500));
-            // Get the public URL
-            const { data: { publicUrl } } = await supabase.storage
-              .from('profile-images')
-              .getPublicUrl(filePath);
-            avatarUrl = publicUrl;
+          console.log('📤 uploadAsync response:', uploadRes);
+
+          if (uploadRes.status !== 200 && uploadRes.status !== 201) {
+            throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.body}`);
           }
+
+          // Construct the public URL
+          const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fileName}`;
+          avatarUrl = publicUrl;
+          console.log('✅ Profile image uploaded and public URL:', publicUrl);
         } catch (err) {
-          console.error('❌ Error uploading or fetching image:', err);
+          console.error('❌ Profile image upload process failed:', err);
         }
+      } else {
+        console.log('ℹ️ No profile image selected, skipping upload');
       }
 
       if (isOwner) {

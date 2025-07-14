@@ -280,10 +280,18 @@ const OwnerDashboardScreen = () => {
             style={styles.headerButton}
             onPress={() => router.push('/(owner)/profile')}
           >
-            <Image 
-              source={require('../../../assets/images/icon.png')}
-              style={styles.profileImage}
-            />
+            {userProfile?.avatar_url ? (
+              <Image 
+                source={{ uri: userProfile.avatar_url }}
+                style={styles.profileImage}
+                onError={() => setImageLoadError(true)}
+              />
+            ) : (
+              <Image 
+                source={require('../../../assets/images/icon.png')}
+                style={styles.profileImage}
+              />
+            )}
           </TouchableOpacity>
         </View>
       </View>
