@@ -287,10 +287,10 @@ const OwnerDashboardScreen = () => {
                 onError={() => setImageLoadError(true)}
               />
             ) : (
-              <Image 
-                source={require('../../../assets/images/icon.png')}
-                style={styles.profileImage}
-              />
+            <Image 
+              source={require('../../../assets/images/icon.png')}
+              style={styles.profileImage}
+            />
             )}
           </TouchableOpacity>
         </View>

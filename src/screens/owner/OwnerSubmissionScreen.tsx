@@ -117,12 +117,12 @@ const OwnerSubmissionScreen = () => {
         ) : (
           <>
             <View style={styles.successContainer}>
-              <Text style={styles.title}>
-                ¡FELICIDADES!
-              </Text>
-              <Text style={styles.subtitle}>
-                Tu propiedad ha sido publicada con éxito y muy pronto asesores inmobiliarios estarán interesados en vender tu propiedad.
-              </Text>
+            <Text style={styles.title}>
+              ¡FELICIDADES!
+            </Text>
+            <Text style={styles.subtitle}>
+              Tu propiedad ha sido publicada con éxito y muy pronto asesores inmobiliarios estarán interesados en vender tu propiedad.
+            </Text>
             
 
             <Text style={styles.title}>

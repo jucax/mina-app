@@ -12,8 +12,11 @@ import {
   Platform,
   Alert,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import { supabase } from '../../services/supabase';
+import { Auth } from '../../services/Auth';
+import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
+import { safeGoBack } from '../../utils/navigation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -27,23 +30,49 @@ const PasswordScreen = () => {
       return;
     }
 
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      Alert.alert('Error', 'Por favor, introduce un correo electrónico válido');
+      return;
+    }
+
     try {
       setLoading(true);
       console.log('🔄 Attempting to send password reset email to:', email);
 
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: 'mina-app://reset-password',
-      });
+      const { error, userExists } = await Auth.resetPassword(email);
 
       if (error) {
         console.error('❌ Password reset error:', error.message);
-        throw error;
+        
+        if (!userExists) {
+          Alert.alert(
+            'Correo No Encontrado',
+            'No se encontró una cuenta registrada con este correo electrónico. Por favor, verifica el correo o regístrate si aún no tienes una cuenta.',
+            [{ text: 'OK' }]
+          );
+        } else {
+          // Handle other errors
+          if (error.message.includes('Too many requests')) {
+            Alert.alert(
+              'Demasiados Intentos',
+              'Has realizado demasiados intentos. Por favor, espera unos minutos antes de intentar de nuevo.'
+            );
+          } else {
+            Alert.alert(
+              'Error',
+              'Ocurrió un error al enviar el correo de restablecimiento. Por favor, verifica tu conexión a internet e intenta de nuevo.'
+            );
+          }
+        }
+        return;
       }
 
       console.log('✅ Password reset email sent successfully');
       Alert.alert(
-        'Success',
-        'Password reset instructions have been sent to your email',
+        'Correo Enviado',
+        'Se han enviado las instrucciones para restablecer tu contraseña a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
         [
           {
             text: 'OK',
@@ -53,16 +82,21 @@ const PasswordScreen = () => {
       );
     } catch (error: any) {
       console.error('❌ Password reset failed:', error?.message);
-      Alert.alert('Error', error?.message || 'Ocurrió un error al enviar el correo de restablecimiento');
+      Alert.alert(
+        'Error',
+        'Ocurrió un error inesperado. Por favor, intenta de nuevo.'
+      );
     } finally {
       setLoading(false);
     }
   };
 
   return (
+    <>
+      <StatusBar style="light" />
     <KeyboardAvoidingView
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.container}
+        style={[commonStyles.container, styles.container]}
     >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
@@ -71,7 +105,7 @@ const PasswordScreen = () => {
         {/* Back Button */}
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+            onPress={() => safeGoBack()}
         >
           <Text style={styles.backButtonText}>←</Text>
         </TouchableOpacity>
@@ -80,12 +114,12 @@ const PasswordScreen = () => {
           {/* Logo */}
           <Image
             source={require('../../../assets/images/logo_login_screen.png')}
-            style={styles.logo}
+              style={commonStyles.headerLogo}
             resizeMode="contain"
           />
 
           {/* Title */}
-          <Text style={styles.title}>Recuperar Contraseña</Text>
+            <Text style={[FONTS.title, styles.title]}>Recuperar Contraseña</Text>
 
           {/* Description */}
           <Text style={styles.description}>
@@ -94,38 +128,46 @@ const PasswordScreen = () => {
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Correo electrónico:</Text>
             <TextInput
-              style={styles.input}
+                style={commonStyles.input}
               value={email}
               onChangeText={setEmail}
-              placeholder="Correo electrónico:"
+                placeholder=""
               placeholderTextColor="rgba(255, 255, 255, 0.5)"
               keyboardType="email-address"
               autoCapitalize="none"
-              selectionColor="#FFFFFF"
+                selectionColor={COLORS.white}
+                autoCorrect={false}
+                spellCheck={false}
             />
           </View>
 
           {/* Continue Button */}
           <TouchableOpacity
-            style={[styles.continueButton, loading && styles.continueButtonDisabled]}
+              style={[commonStyles.button, commonStyles.primaryButton, loading && styles.continueButtonDisabled]}
             onPress={handlePasswordReset}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? 'Enviando...' : 'Continuar'}
+              <Text style={commonStyles.buttonText}>
+                {loading ? 'Enviando...' : 'Enviar Instrucciones'}
+              </Text>
+            </TouchableOpacity>
+
+            {/* Additional Info */}
+            <Text style={styles.additionalInfo}>
+              Si no recibes el correo en unos minutos, revisa tu carpeta de spam o solicita un nuevo envío.
             </Text>
-          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#144E7A',
   },
   scrollContent: {
     flexGrow: 1,
@@ -137,66 +179,42 @@ const styles = StyleSheet.create({
     zIndex: 1,
   },
   backButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 28,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
+    paddingHorizontal: SIZES.padding.large,
+    paddingVertical: SIZES.margin.large,
     alignItems: 'center',
   },
-  logo: {
-    height: 40,
-    marginTop: 24,
-  },
   title: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: 48,
+    color: COLORS.white,
+    marginTop: SIZES.margin.large,
     textAlign: 'center',
   },
   description: {
     color: 'rgba(255, 255, 255, 0.7)',
-    fontSize: 16,
+    fontSize: SIZES.font,
     textAlign: 'center',
-    marginTop: 16,
+    marginTop: SIZES.margin.medium,
     paddingHorizontal: 20,
   },
   inputContainer: {
-    width: width * 0.7,
-    marginTop: 32,
-    marginBottom: height * 0.2,
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
-    shadowColor: '#FFFFFF',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 4,
-  },
-  input: {
-    color: '#FFFFFF',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    fontSize: 16,
-  },
-  continueButton: {
-    backgroundColor: '#FFA733',
     width: width * 0.8,
-    paddingVertical: 18,
-    borderRadius: 24,
-    alignItems: 'center',
-    marginBottom: 32,
+    marginTop: SIZES.margin.large,
+    marginBottom: SIZES.margin.large,
   },
   continueButtonDisabled: {
     opacity: 0.7,
   },
-  buttonText: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: 'bold',
+  additionalInfo: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: SIZES.font,
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    lineHeight: 20,
+    marginTop: SIZES.margin.medium,
   },
 });
 

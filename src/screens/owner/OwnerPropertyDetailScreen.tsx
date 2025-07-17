@@ -8,6 +8,8 @@ import {
   Dimensions,
   ScrollView,
   Alert,
+  Modal,
+  FlatList,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
@@ -65,6 +67,9 @@ const OwnerPropertyDetailScreen = () => {
   const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [carouselIndex, setCarouselIndex] = useState(0);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalImageIndex, setModalImageIndex] = useState(0);
 
   useEffect(() => {
     const fetchPropertyData = async () => {
@@ -166,6 +171,10 @@ const OwnerPropertyDetailScreen = () => {
     return require('../../../assets/images/logo_login_screen.png');
   };
 
+  const propertyImages = propertyData.images && propertyData.images.length > 0
+    ? propertyData.images
+    : [require('../../../assets/images/logo_login_screen.png')];
+
   const isDocumentationComplete = (propertyData as any)?.documentation && typeof (propertyData as any).documentation === 'object'
     ? Object.values((propertyData as any).documentation).every(Boolean)
     : false;
@@ -174,11 +183,89 @@ const OwnerPropertyDetailScreen = () => {
     <View style={styles.container}>
       <ScrollView>
         <View style={styles.imageContainer}>
+          {/* Carousel */}
+          <ScrollView
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={e => {
+              const index = Math.round(e.nativeEvent.contentOffset.x / width);
+              setCarouselIndex(index);
+            }}
+            scrollEventThrottle={16}
+            style={{ width: '100%', height: '100%' }}
+          >
+            {propertyImages.map((img, idx) => (
+              <TouchableOpacity
+                key={idx}
+                activeOpacity={0.9}
+                onPress={() => {
+                  setModalImageIndex(idx);
+                  setModalVisible(true);
+                }}
+                style={{ width, height: 320 }}
+              >
           <Image
-            source={getPropertyImage(propertyData)}
+                  source={typeof img === 'string' ? { uri: img } : img}
             style={styles.propertyImage}
             resizeMode="cover"
           />
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+          {/* Dots indicator */}
+          {propertyImages.length > 1 && (
+            <View style={styles.carouselDotsContainer}>
+              {propertyImages.map((_, idx) => (
+                <View
+                  key={idx}
+                  style={[
+                    styles.carouselDot,
+                    carouselIndex === idx && styles.carouselDotActive
+                  ]}
+                />
+              ))}
+            </View>
+          )}
+          {/* Modal for full image view */}
+          <Modal
+            visible={modalVisible}
+            transparent={true}
+            onRequestClose={() => setModalVisible(false)}
+          >
+            <View style={styles.modalBackground}>
+              <Image
+                source={typeof propertyImages[modalImageIndex] === 'string' ? { uri: propertyImages[modalImageIndex] } : propertyImages[modalImageIndex]}
+                style={styles.fullImage}
+                resizeMode="contain"
+              />
+              {/* Left arrow */}
+              {propertyImages.length > 1 && modalImageIndex > 0 && (
+                <TouchableOpacity
+                  style={[styles.arrowButton, { left: 10 }]}
+                  onPress={() => setModalImageIndex(modalImageIndex - 1)}
+                >
+                  <Ionicons name="chevron-back" size={40} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {/* Right arrow */}
+              {propertyImages.length > 1 && modalImageIndex < propertyImages.length - 1 && (
+                <TouchableOpacity
+                  style={[styles.arrowButton, { right: 10 }]}
+                  onPress={() => setModalImageIndex(modalImageIndex + 1)}
+                >
+                  <Ionicons name="chevron-forward" size={40} color="#fff" />
+                </TouchableOpacity>
+              )}
+              {/* Close button */}
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Ionicons name="close" size={36} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </Modal>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => router.back()}
@@ -199,8 +286,8 @@ const OwnerPropertyDetailScreen = () => {
           </View>
           <View style={styles.commissionContainer}>
             <View style={styles.commissionBg}>
-              <Text style={styles.commissionValue}>{propertyData.commission_percentage}%</Text>
-              <Text style={styles.commissionLabel}>comisión</Text>
+            <Text style={styles.commissionValue}>{propertyData.commission_percentage}%</Text>
+            <Text style={styles.commissionLabel}>comisión</Text>
             </View>
           </View>
         </View>
@@ -599,6 +686,45 @@ const styles = StyleSheet.create({
     marginTop: 24,
     marginBottom: 8,
     marginLeft: 26,
+  },
+  carouselDotsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginTop: 10,
+  },
+  carouselDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.gray,
+    marginHorizontal: 4,
+  },
+  carouselDotActive: {
+    backgroundColor: COLORS.secondary,
+  },
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  fullImage: {
+    width: '90%',
+    height: '90%',
+    resizeMode: 'contain',
+  },
+  arrowButton: {
+    position: 'absolute',
+    top: '50%',
+    zIndex: 10,
+    backgroundColor: 'transparent',
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 40,
+    right: 20,
+    zIndex: 10,
+    backgroundColor: 'transparent',
   },
 });
 

@@ -45,7 +45,7 @@ const RegisterScreen = () => {
   console.log('Expo Google OAuth redirectUri:', redirectUri);
   const [request, response, promptAsync] = useAuthRequest({
     androidClientId: 'YOUR_ANDROID_CLIENT_ID', // TODO: Replace with your Android client ID
-    iosClientId: 'YOUR_IOS_CLIENT_ID',         // TODO: Replace with your iOS client ID
+    iosClientId: '985617163979-2c62q4hke63pdcpqb5mpmm8svgc8kg2f.apps.googleusercontent.com',         // TODO: Replace with your iOS client ID
     webClientId: '985617163979-o5sh4q0qao5q2s12sg6bh2vu3md4o5hf.apps.googleusercontent.com',         // TODO: Replace with your Web client ID
     redirectUri,
     // Optionally add scopes if needed

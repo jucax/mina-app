@@ -152,10 +152,10 @@ const PropertyCompensationScreen = () => {
     }
 
     // Save to context and proceed
-    updateFormData({
-      commission_percentage: selectedCommission,
-    });
-    router.push('/(owner)/submission');
+      updateFormData({
+        commission_percentage: selectedCommission,
+      });
+      router.push('/(owner)/submission');
   };
 
   return (

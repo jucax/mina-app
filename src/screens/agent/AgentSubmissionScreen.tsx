@@ -67,19 +67,19 @@ const AgentSubmissionScreen = () => {
           neighborhood: formData.neighborhood || existingAgent.neighborhood,
           street: formData.street || existingAgent.street,
           postal_code: formData.postal_code || existingAgent.postal_code,
-
+          
           // Professional Information
           experience_years: formData.experience_years ? parseInt(formData.experience_years) : existingAgent.experience_years,
           properties_sold: formData.properties_sold ? parseInt(formData.properties_sold) : existingAgent.properties_sold,
           commission_percentage: formData.commission_percentage ?? existingAgent.commission_percentage,
-
+          
           // Agency Information
           works_at_agency: typeof formData.works_at_agency === 'boolean' ? formData.works_at_agency : existingAgent.works_at_agency,
           agency_name: formData.agency_name || existingAgent.agency_name,
-
+          
           // Description
           description: formData.description || existingAgent.description,
-
+          
           // Subscription Information
           subscription_plan: formData.subscription_plan || existingAgent.subscription_plan,
           subscription_status: 'active',
@@ -151,26 +151,26 @@ const AgentSubmissionScreen = () => {
         ) : (
           <>
             <View style={styles.successContainer}>
-              <Text style={styles.title}>
-                ¡FELICIDADES!
-              </Text>
-              <Text style={styles.subtitle}>
-                Tu perfil ha sido registrado con éxito. Muy pronto tendrás acceso a todas las propiedades disponibles.
-              </Text>
+            <Text style={styles.title}>
+              ¡FELICIDADES!
+            </Text>
+            <Text style={styles.subtitle}>
+              Tu perfil ha sido registrado con éxito. Muy pronto tendrás acceso a todas las propiedades disponibles.
+            </Text>
 
-              <Text style={styles.title}>
-                ¡RECUERDA!
-              </Text>
-              <Text style={styles.subtitle}>
-                Tu perfil será revisado por nuestro equipo y recibirás una notificación cuando sea aprobado. Esto puede tomar de 24 a 48 horas.
-              </Text>
+            <Text style={styles.title}>
+              ¡RECUERDA!
+            </Text>
+            <Text style={styles.subtitle}>
+              Tu perfil será revisado por nuestro equipo y recibirás una notificación cuando sea aprobado. Esto puede tomar de 24 a 48 horas.
+            </Text>
 
-              <Text style={styles.title}>
-                ¡NO OLVIDES!
-              </Text>
-              <Text style={styles.subtitle}>
-                Una vez aprobado, podrás acceder a todas las propiedades y contactar directamente con los propietarios.
-              </Text>
+            <Text style={styles.title}>
+              ¡NO OLVIDES!
+            </Text>
+            <Text style={styles.subtitle}>
+              Una vez aprobado, podrás acceder a todas las propiedades y contactar directamente con los propietarios.
+            </Text>
 
               <Image
                 source={require('../../../assets/images/logo_login_screen.png')}

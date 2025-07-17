@@ -1,13 +1,21 @@
 import { Alert } from 'react-native';
 import { supabase } from './supabase';
 import { ApiService } from './apiService';
+import { useStripe, 
+  useConfirmPayment,
+  CardField,
+  CardFieldInput,
+  StripeProvider 
+} from '@stripe/stripe-react-native';
 
-// Stripe configuration - you'll need to replace these with your actual Stripe keys
-const STRIPE_PUBLISHABLE_KEY = ''; // Replace with your actual publishable key
-const STRIPE_SECRET_KEY = ''; // This should be on your backend
+// Stripe configuration - only the publishable key should be here
+// For development, use test keys (pk_test_...)
+// For production, use live keys (pk_live_...)
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51f5BGJZRArFn9nsQGSLMzBpVS0mPSvH9aD8BYWpRN5rVKjUupxT6uMPVTtwm5lhf6ELcNJPh1TC9YudSVdMef00i3gnLRRj'; // Test key for development
+// SECRET KEY SHOULD ONLY BE IN BACKEND .env FILE - NEVER IN FRONTEND CODE
 
 // Test mode configuration
-const IS_TEST_MODE = true; // Set to false for production
+const IS_TEST_MODE = true; // Set to true for development, false for production
 
 export interface SubscriptionPlan {
   id: string;
@@ -23,9 +31,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'mensual',
     name: 'Mensual',
-    price: 1000,
+    price: 10, // $10.0 MXN
     period: 'mes',
-    stripePriceId: 'price_1RfAkQP88QQAZhC3iEHYOfQF',
+    stripePriceId: 'price_1RlhSMBGJZRArFn91e5AMNli',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -37,9 +45,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'semestral',
     name: 'Semestral',
-    price: 5400,
+    price: 15, // $15.0 MXN
     period: '6 meses',
-    stripePriceId: 'price_1RfAksP88QQAZhC34D6VW4Gs',
+    stripePriceId: 'price_1RlhSnBGJZRArFn9w9u5WpaF',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -51,9 +59,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'anual',
     name: 'Anual',
-    price: 9600,
+    price: 19, // $19.0 MXN
     period: '12 meses',
-    stripePriceId: 'price_1RfAlIP88QQAZhC3rjQ9ZhxF',
+    stripePriceId: 'price_1RlhT9BGJZRArFn9rexmmxNN',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -105,15 +113,11 @@ export class StripeService {
     }
   }
 
-  // Process payment with card details
-  static async processPayment(
+  // Process payment using Stripe React Native SDK
+  static async processPaymentWithStripeSDK(
     planId: string,
-    cardDetails: {
-      number: string;
-      expMonth: number;
-      expYear: number;
-      cvc: string;
-    }
+    clientSecret: string,
+    cardDetails: CardFieldInput.Details
   ) {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -121,83 +125,66 @@ export class StripeService {
         throw new Error('User not authenticated');
       }
 
-      // Validate card details
-      this.validateCardDetails(cardDetails);
+      console.log('🔍 Starting Stripe SDK payment processing...');
+      console.log('📋 Plan ID:', planId);
+      console.log('👤 User ID:', user.id);
 
-      // In a real implementation, you would:
-      // 1. Create a payment intent
-      // 2. Confirm the payment with Stripe
-      // 3. Create a subscription
-      // 4. Update the user's subscription status
+      // Get the plan details
+      const plan = subscriptionPlans.find(p => p.id === planId);
+      if (!plan) {
+        throw new Error('Invalid plan selected');
+      }
 
-      console.log('💳 Processing payment for plan:', planId);
-      console.log('📝 Card details:', cardDetails);
+      console.log('💰 Plan details:', {
+        name: plan.name,
+        price: plan.price,
+        stripePriceId: plan.stripePriceId
+      });
 
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
-
-      // Simulate different payment scenarios based on test card numbers
-      const cardNumber = cardDetails.number.replace(/\s/g, '');
+      // For now, just return success since we're using the payment intent flow
+      // The actual payment processing happens in the useStripePayment hook
+      console.log('✅ Payment intent created, ready for confirmation');
       
-      if (IS_TEST_MODE) {
-        if (cardNumber === '4000000000000002') {
-          throw new Error('Tarjeta rechazada. Por favor intenta con otra tarjeta.');
-        } else if (cardNumber === '4000000000009995') {
-          throw new Error('Fondos insuficientes. Por favor verifica tu saldo.');
-        } else if (cardNumber === '4000002500003155') {
-          throw new Error('Autenticación requerida. Por favor completa la verificación.');
-        }
-      }
-
-      // Update user subscription in database
-      const { error } = await supabase
-        .from('agents')
-        .update({
-          subscription_plan: planId,
-          subscription_status: 'active',
-          subscription_start_date: new Date().toISOString(),
-        })
-        .eq('id', user.id);
-
-      if (error) {
-        throw error;
-      }
-
       return {
         success: true,
-        message: 'Payment processed successfully'
+        message: 'Payment intent created successfully',
+        planId: planId,
+        amount: plan.price
       };
     } catch (error) {
-      console.error('Error processing payment:', error);
+      console.error('❌ Error processing payment:', error);
       throw error;
     }
   }
 
-  // Validate card details
-  private static validateCardDetails(cardDetails: {
-    number: string;
-    expMonth: number;
-    expYear: number;
-    cvc: string;
-  }) {
-    const cardNumber = cardDetails.number.replace(/\s/g, '');
-    
-    // Basic validation
-    if (cardNumber.length < 13 || cardNumber.length > 19) {
-      throw new Error('Número de tarjeta inválido');
-    }
-    
-    if (cardDetails.expMonth < 1 || cardDetails.expMonth > 12) {
-      throw new Error('Mes de expiración inválido');
-    }
-    
-    const currentYear = new Date().getFullYear() % 100;
-    if (cardDetails.expYear < currentYear) {
-      throw new Error('Tarjeta expirada');
-    }
-    
-    if (cardDetails.cvc.length < 3 || cardDetails.cvc.length > 4) {
-      throw new Error('CVC inválido');
+  // Create subscription via backend
+  private static async createSubscriptionViaBackend(priceId: string, customerId: string) {
+    try {
+      console.log('📅 Creating subscription via backend...');
+      
+      const response = await fetch('http://localhost:3000/api/create-subscription', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          planId: priceId,
+          customerId: customerId,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error('❌ Backend subscription creation failed:', errorData);
+        throw new Error(errorData.error?.message || 'Failed to create subscription');
+      }
+
+      const subscription = await response.json();
+      console.log('✅ Subscription created via backend:', subscription.subscription.id);
+      return subscription.subscription;
+    } catch (error) {
+      console.error('❌ Error creating subscription via backend:', error);
+      throw error;
     }
   }
 
@@ -220,8 +207,55 @@ export class StripeService {
     }).format(price);
   }
 
+  // Get amount in cents for Stripe
+  static getAmountInCents(price: number): number {
+    return Math.round(price * 100); // Convert pesos to cents
+  }
+
   // Check if we're in test mode
   static isTestMode(): boolean {
     return IS_TEST_MODE;
   }
-} 
+}
+
+// Hook for using Stripe in components
+export const useStripePayment = () => {
+  const { confirmPayment } = useConfirmPayment();
+
+  const processPayment = async (
+    planId: string,
+    clientSecret: string,
+    cardDetails: CardFieldInput.Details
+  ) => {
+    try {
+      console.log('💳 Confirming payment with Stripe SDK...');
+      
+      const { error, paymentIntent } = await confirmPayment(
+        clientSecret,
+        {
+          paymentMethodType: 'Card',
+          paymentMethodData: {
+            billingDetails: {
+              email: 'test@example.com', // You can get this from user data
+            },
+          },
+        }
+      );
+
+      if (error) {
+        console.error('❌ Payment confirmation failed:', error);
+        throw new Error(error.message);
+      }
+
+      if (paymentIntent) {
+        console.log('✅ Payment confirmed:', paymentIntent.status);
+        return paymentIntent;
+      }
+    } catch (error) {
+      console.error('❌ Error confirming payment:', error);
+      throw error;
+    }
+  };
+
+  return { processPayment };
+}; 

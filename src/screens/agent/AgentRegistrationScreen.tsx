@@ -18,6 +18,7 @@ import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { agentService } from '../../services/databaseService';
 import { supabase } from '../../services/supabase';
+import { safeGoBackWithUserType } from '../../utils/navigation';
 
 const { width, height } = Dimensions.get('window');
 
@@ -121,8 +122,16 @@ const AgentRegistrationScreen = () => {
         setMunicipio(agent.municipality || '');
         setCalle(agent.street || '');
         setColonia(agent.neighborhood || '');
-        setExperience(agent.experience_years !== undefined ? String(agent.experience_years) : '');
-        setPropertiesSold(agent.properties_sold !== undefined ? String(agent.properties_sold) : '');
+        setExperience(
+          agent.experience_years !== undefined && agent.experience_years !== null
+            ? String(agent.experience_years)
+            : ''
+        );
+        setPropertiesSold(
+          agent.properties_sold !== undefined && agent.properties_sold !== null
+            ? String(agent.properties_sold)
+            : ''
+        );
         setAgencyName(agent.agency_name || '');
         setDescription(agent.description || '');
         setSelectedPais(agent.country || 'México');
@@ -225,7 +234,7 @@ const AgentRegistrationScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => router.back()}
+        onPress={() => safeGoBackWithUserType('agent')}
       >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
@@ -399,15 +408,15 @@ const AgentRegistrationScreen = () => {
           </TouchableOpacity>
 
           <View style={{ flexDirection: 'row', alignItems: 'center', marginLeft: 8 }}>
-            <Text style={styles.checkboxLabel}>¿Cual?</Text>
-            <TextInput
-              style={styles.agencyInput}
-              value={agencyName}
-              onChangeText={setAgencyName}
+              <Text style={styles.checkboxLabel}>¿Cual?</Text>
+              <TextInput
+                style={styles.agencyInput}
+                value={agencyName}
+                onChangeText={setAgencyName}
               editable={worksAtAgency}
               placeholderTextColor="rgba(0,0,0,0.5)"
-            />
-          </View>
+              />
+            </View>
         </View>
 
         <Text style={styles.sectionTitleSmall}>Deja una breve descripción de ti y tu trabajo.</Text>

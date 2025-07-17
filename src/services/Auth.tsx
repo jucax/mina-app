@@ -88,15 +88,53 @@ export const Auth = {
     }
   },
 
-  async resetPassword(email: string): Promise<{ error: AuthError | null }> {
+  async resetPassword(email: string): Promise<{ error: AuthError | null; userExists?: boolean }> {
     try {
+      // First check if user exists
+      const { userExists } = await Auth.checkUserExists(email);
+      
+      if (!userExists) {
+        return { error: { message: 'No se encontró una cuenta registrada con este correo electrónico' }, userExists: false };
+      }
+
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: 'mina-app://reset-password',
       });
+      
       if (error) throw error;
-      return { error: null };
+      return { error: null, userExists: true };
     } catch (error: any) {
-      return { error: { message: error.message } };
+      return { error: { message: error.message }, userExists: false };
+    }
+  },
+
+  async checkUserExists(email: string): Promise<{ userExists: boolean; error?: AuthError }> {
+    try {
+      // Try to sign in with a dummy password to check if user exists
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password: 'dummy_password_for_existence_check',
+      });
+
+      // If we get "Invalid login credentials", the user exists
+      // If we get "Email not confirmed" or other errors, the user might exist but not be confirmed
+      // If we get "User not found" or similar, the user doesn't exist
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          return { userExists: true };
+        } else if (error.message.includes('Email not confirmed')) {
+          return { userExists: true };
+        } else if (error.message.includes('User not found') || error.message.includes('Unable to validate email address')) {
+          return { userExists: false };
+        } else {
+          // For other errors, assume user doesn't exist to be safe
+          return { userExists: false };
+        }
+      }
+
+      return { userExists: true };
+    } catch (error: any) {
+      return { userExists: false, error: { message: error.message } };
     }
   },
 

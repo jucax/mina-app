@@ -23,14 +23,16 @@ export class ApiService {
         },
         body: JSON.stringify({
           planId,
-          amount,
+          amount: Math.round(amount), // Ensure amount is in cents
           currency,
           customerId: session.user.id,
+          email: session.user.email, // Send email to backend
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json();
+        console.error('❌ Backend error:', errorData);
         throw new Error(errorData.error || 'Failed to create payment intent');
       }
 
@@ -39,12 +41,7 @@ export class ApiService {
       return data;
     } catch (error) {
       console.error('❌ Error creating payment intent:', error);
-      // For demo purposes, return a mock response if backend is not available
-      console.log('🔄 Falling back to mock response');
-      return {
-        clientSecret: 'pi_mock_secret_' + Date.now(),
-        success: true,
-      };
+      throw error; // Re-throw the error instead of falling back to mock
     }
   }
 

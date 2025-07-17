@@ -84,11 +84,11 @@ const PropertyPriceScreen = () => {
         {
           text: 'Confirmar',
           onPress: () => {
-            // Save to context
+      // Save to context
             updateFormData({ price: numericPrice });
             // Add a small delay to ensure the Alert is properly dismissed
             setTimeout(() => {
-              router.push('/(owner)/property/type');
+      router.push('/(owner)/property/type');
             }, 100);
           }
         }
@@ -112,52 +112,52 @@ const PropertyPriceScreen = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.container}
       >
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-        </TouchableOpacity>
-        <View style={styles.content}>
-          <Image
-            source={require('../../../assets/images/logo_login_screen.png')}
-            style={styles.logo}
-            resizeMode="contain"
-          />
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => router.back()}
+      >
+        <Ionicons name="arrow-back" size={28} color={COLORS.white} />
+      </TouchableOpacity>
+      <View style={styles.content}>
+        <Image
+          source={require('../../../assets/images/logo_login_screen.png')}
+          style={styles.logo}
+          resizeMode="contain"
+        />
 
-          <Text style={styles.title}>
-            Valor aproximado
-          </Text>
-          <Text style={styles.subtitle}>
-            de tu Propiedad
-          </Text>
+        <Text style={styles.title}>
+          Valor aproximado
+        </Text>
+        <Text style={styles.subtitle}>
+          de tu Propiedad
+        </Text>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>
               Precio aproximado: *
-            </Text>
-            <View style={styles.inputRow}>
-              <Text style={styles.inputPrefix}>$</Text>
-              <TextInput
+          </Text>
+          <View style={styles.inputRow}>
+            <Text style={styles.inputPrefix}>$</Text>
+            <TextInput
                 style={getInputStyle()}
-                value={price}
+              value={price}
                 onChangeText={handlePriceChange}
-                keyboardType="numeric"
-                placeholder="0"
-                placeholderTextColor={COLORS.black}
+              keyboardType="numeric"
+              placeholder="0"
+              placeholderTextColor={COLORS.black}
                 returnKeyType="done"
                 onSubmitEditing={handleContinue}
-              />
-            </View>
+            />
           </View>
-
-          <TouchableOpacity
-            style={styles.continueButton}
-            onPress={handleContinue}
-          >
-            <Text style={styles.continueButtonText}>Continuar</Text>
-          </TouchableOpacity>
         </View>
+
+        <TouchableOpacity
+            style={styles.continueButton}
+          onPress={handleContinue}
+        >
+          <Text style={styles.continueButtonText}>Continuar</Text>
+        </TouchableOpacity>
+      </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
   );

@@ -128,87 +128,87 @@ const ProposalScreen = () => {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-          <Text style={styles.title}>
-            Enviar Propuesta
-          </Text>
+        <Text style={styles.title}>
+          Enviar Propuesta
+        </Text>
 
-          {property && (
-            <View style={styles.propertyInfo}>
-              <Text style={styles.propertyTitle}>
-                {property.property_type} en {property.intent === 'sell' ? 'VENTA' : 'RENTA'}
-              </Text>
-              <Text style={styles.propertyLocation}>
-                {property.municipality}, {property.state}
-              </Text>
-              <Text style={styles.propertyPrice}>
-                {formatPrice(property.price)}
-              </Text>
-              <Text style={styles.propertyCommission}>
-                Comisión: {property.commission_percentage}%
-              </Text>
+        {property && (
+          <View style={styles.propertyInfo}>
+            <Text style={styles.propertyTitle}>
+              {property.property_type} en {property.intent === 'sell' ? 'VENTA' : 'RENTA'}
+            </Text>
+            <Text style={styles.propertyLocation}>
+              {property.municipality}, {property.state}
+            </Text>
+            <Text style={styles.propertyPrice}>
+              {formatPrice(property.price)}
+            </Text>
+            <Text style={styles.propertyCommission}>
+              Comisión: {property.commission_percentage}%
+            </Text>
+          </View>
+        )}
+
+        <Text style={styles.sectionTitle}>
+          Tu Propuesta
+        </Text>
+
+        {loading ? (
+          <Text style={styles.loadingText}>Cargando información...</Text>
+        ) : (
+          <>
+            <Text style={styles.description}>
+              Escribe tu propuesta para el propietario. Incluye información sobre:
+            </Text>
+
+            <View style={styles.bulletPoints}>
+              <Text style={styles.bulletPoint}>• Tu experiencia en el mercado inmobiliario</Text>
+              <Text style={styles.bulletPoint}>• Tu estrategia de venta/renta</Text>
+              <Text style={styles.bulletPoint}>• Tiempo estimado para cerrar la operación</Text>
+              <Text style={styles.bulletPoint}>• Servicios adicionales que ofreces</Text>
+              <Text style={styles.bulletPoint}>• Por qué eres la mejor opción</Text>
             </View>
-          )}
 
-          <Text style={styles.sectionTitle}>
-            Tu Propuesta
-          </Text>
-
-          {loading ? (
-            <Text style={styles.loadingText}>Cargando información...</Text>
-          ) : (
-            <>
-              <Text style={styles.description}>
-                Escribe tu propuesta para el propietario. Incluye información sobre:
-              </Text>
-
-              <View style={styles.bulletPoints}>
-                <Text style={styles.bulletPoint}>• Tu experiencia en el mercado inmobiliario</Text>
-                <Text style={styles.bulletPoint}>• Tu estrategia de venta/renta</Text>
-                <Text style={styles.bulletPoint}>• Tiempo estimado para cerrar la operación</Text>
-                <Text style={styles.bulletPoint}>• Servicios adicionales que ofreces</Text>
-                <Text style={styles.bulletPoint}>• Por qué eres la mejor opción</Text>
-              </View>
-
-              <TextInput
-                style={styles.proposalInput}
-                value={proposalText}
-                onChangeText={setProposalText}
+            <TextInput
+              style={styles.proposalInput}
+              value={proposalText}
+              onChangeText={setProposalText}
                 placeholder={
                   `Hola, soy [nombre], asesor inmobiliario en [agencia] especializado en la compra, venta y renta de propiedades.\n\n` +
                   `Te ofrezco vender o rentar tu propiedad con asesoría profesional, promoción efectiva y clientes calificados. Me encargo de todo el proceso para que tú no tengas que preocuparte por nada.\n\n` +
                   `Si te interesa conocer cómo puedo ayudarte, estaré encantado de platicarlo contigo.\n\n` +
                   `[Nombre]\nAsesor Inmobiliario en [agencia]\n📱 [Tu teléfono]\n📧 [Tu correo]`
                 }
-                placeholderTextColor="rgba(0, 0, 0, 0.5)"
-                multiline
-                textAlignVertical="top"
+              placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              multiline
+              textAlignVertical="top"
                 scrollEnabled
-              />
+            />
 
-              <View style={styles.proposalCountContainer}>
-                <Text style={styles.proposalCountText}>
-                  Propuestas enviadas: {proposalCount}/3
-                </Text>
-              </View>
+            <View style={styles.proposalCountContainer}>
+              <Text style={styles.proposalCountText}>
+                Propuestas enviadas: {proposalCount}/3
+              </Text>
+            </View>
 
-              <TouchableOpacity
-                style={[
-                  styles.sendButton,
+            <TouchableOpacity
+              style={[
+                styles.sendButton, 
                   { backgroundColor: COLORS.secondary },
-                  (sending || proposalCount >= 3) && styles.sendButtonDisabled
-                ]}
-                onPress={handleSendProposal}
-                disabled={sending || proposalCount >= 3}
-              >
-                <Ionicons name="send" size={24} color={COLORS.white} />
-                <Text style={styles.sendButtonText}>
-                  {sending ? 'Enviando...' : 
-                   proposalCount >= 3 ? 'Límite de Propuestas Alcanzado' : 'Enviar Propuesta'}
-                </Text>
-              </TouchableOpacity>
-            </>
-          )}
-        </ScrollView>
+                (sending || proposalCount >= 3) && styles.sendButtonDisabled
+              ]}
+              onPress={handleSendProposal}
+              disabled={sending || proposalCount >= 3}
+            >
+              <Ionicons name="send" size={24} color={COLORS.white} />
+              <Text style={styles.sendButtonText}>
+                {sending ? 'Enviando...' : 
+                 proposalCount >= 3 ? 'Límite de Propuestas Alcanzado' : 'Enviar Propuesta'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
+      </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );

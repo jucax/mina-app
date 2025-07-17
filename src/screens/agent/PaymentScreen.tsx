@@ -13,19 +13,19 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { StripeService, SubscriptionPlan } from '../../services/stripeService';
+import { CardForm } from '@stripe/stripe-react-native';
+import { useStripePayment } from '../../services/stripeService';
 import TestCardInfo from '../../components/TestCardInfo';
+import { supabase } from '../../services/supabase';
 
 const PaymentScreen = () => {
   const { planId } = useLocalSearchParams<{ planId: string }>();
   const [loading, setLoading] = useState(false);
-  const [cardNumber, setCardNumber] = useState('');
-  const [expMonth, setExpMonth] = useState('');
-  const [expYear, setExpYear] = useState('');
-  const [cvc, setCvc] = useState('');
+  const [cardDetails, setCardDetails] = useState<any>(null);
   const [cardholderName, setCardholderName] = useState('');
-
   const plan = StripeService.getPlanById(planId || '');
   const isTestMode = StripeService.isTestMode();
+  const { processPayment } = useStripePayment();
 
   if (!plan) {
     return (
@@ -44,22 +44,35 @@ const PaymentScreen = () => {
   }
 
   const handlePayment = async () => {
-    if (!cardNumber || !expMonth || !expYear || !cvc || !cardholderName) {
-      Alert.alert('Error', 'Por favor completa todos los campos');
+    if (!cardDetails?.complete || !cardholderName) {
+      Alert.alert('Error', 'Por favor completa todos los campos y los datos de la tarjeta');
       return;
     }
-
     setLoading(true);
-
     try {
-      const result = await StripeService.processPayment(planId, {
-        number: cardNumber,
-        expMonth: parseInt(expMonth),
-        expYear: parseInt(expYear),
-        cvc: cvc,
-      });
-
-      if (result.success) {
+      // 1. Create payment intent
+      const result = await StripeService.createPaymentIntent(planId);
+      console.log('✅ Payment intent created:', result);
+      // 2. Process payment with Stripe SDK
+      const paymentIntent = await processPayment(planId, result.clientSecret, cardDetails);
+      if (paymentIntent && String(paymentIntent.status) === 'succeeded') {
+        // 3. Update user subscription in database
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          const { error } = await supabase
+            .from('agents')
+            .update({
+              subscription_plan: planId,
+              subscription_status: 'active',
+              subscription_start_date: new Date().toISOString(),
+              stripe_customer_id: result.customerId,
+            })
+            .eq('id', user.id);
+          if (error) {
+            console.error('❌ Error actualizando la base de datos:', error);
+            // No lanzar error aquí, el pago fue exitoso
+          }
+        }
         Alert.alert(
           '¡Pago Exitoso!',
           'Tu suscripción ha sido activada correctamente.',
@@ -70,18 +83,15 @@ const PaymentScreen = () => {
             },
           ]
         );
+      } else {
+        Alert.alert('Error', 'No se pudo procesar el pago.');
       }
     } catch (error: any) {
+      console.error('❌ Payment error:', error);
       Alert.alert('Error', error.message || 'Error al procesar el pago');
     } finally {
       setLoading(false);
     }
-  };
-
-  const formatCardNumber = (text: string) => {
-    const cleaned = text.replace(/\s/g, '');
-    const groups = cleaned.match(/.{1,4}/g);
-    return groups ? groups.join(' ') : cleaned;
   };
 
   return (
@@ -102,7 +112,7 @@ const PaymentScreen = () => {
         <View style={styles.planSummary}>
           <Text style={styles.planName}>{plan.name}</Text>
           <Text style={styles.planPrice}>
-            {StripeService.formatPrice(plan.price)} / {plan.period}
+            {StripeService.formatPrice(plan.price)} MXN / {plan.period}
           </Text>
           <Text style={styles.planDescription}>{plan.description}</Text>
         </View>
@@ -131,58 +141,21 @@ const PaymentScreen = () => {
             />
           </View>
 
-          {/* Card Number */}
+          {/* Stripe CardForm */}
           <View style={styles.inputContainer}>
-            <Text style={styles.inputLabel}>Número de Tarjeta</Text>
-            <TextInput
-              style={styles.input}
-              value={cardNumber}
-              onChangeText={(text) => setCardNumber(formatCardNumber(text))}
-              placeholder="1234 5678 9012 3456"
-              placeholderTextColor={COLORS.gray}
-              keyboardType="numeric"
-              maxLength={19}
+            <Text style={styles.inputLabel}>Datos de la Tarjeta</Text>
+            <CardForm
+              onFormComplete={setCardDetails}
+              style={{ width: '100%', height: 180, marginVertical: 0 }}
+              cardStyle={{
+                backgroundColor: '#FFFFFF',
+                textColor: '#000000',
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: COLORS.gray,
+                fontSize: 16,
+              }}
             />
-          </View>
-
-          {/* Expiry and CVC */}
-          <View style={styles.row}>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Text style={styles.inputLabel}>Mes</Text>
-              <TextInput
-                style={styles.input}
-                value={expMonth}
-                onChangeText={setExpMonth}
-                placeholder="MM"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-            </View>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Text style={styles.inputLabel}>Año</Text>
-              <TextInput
-                style={styles.input}
-                value={expYear}
-                onChangeText={setExpYear}
-                placeholder="YY"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={2}
-              />
-            </View>
-            <View style={[styles.inputContainer, styles.halfWidth]}>
-              <Text style={styles.inputLabel}>CVC</Text>
-              <TextInput
-                style={styles.input}
-                value={cvc}
-                onChangeText={setCvc}
-                placeholder="123"
-                placeholderTextColor={COLORS.gray}
-                keyboardType="numeric"
-                maxLength={4}
-              />
-            </View>
           </View>
 
           {/* Security Notice */}
@@ -219,10 +192,30 @@ const PaymentScreen = () => {
             <>
               <Ionicons name="card" size={24} color={COLORS.white} />
               <Text style={styles.payButtonText}>
-                Pagar {StripeService.formatPrice(plan.price)}
+                Pagar {StripeService.formatPrice(plan.price)} MXN
               </Text>
             </>
           )}
+        </TouchableOpacity>
+
+        {/* Skip Payment Button for testing */}
+        <TouchableOpacity
+          style={[styles.payButton, { backgroundColor: COLORS.gray, marginTop: 16 }]}
+          onPress={() => {
+            Alert.alert(
+              '¡Pago simulado!',
+              'Has saltado el pago para pruebas.',
+              [
+                {
+                  text: 'OK',
+                  onPress: () => router.replace('/(agent)/agent-registration'),
+                },
+              ]
+            );
+          }}
+        >
+          <Ionicons name="play-forward" size={24} color={COLORS.white} />
+          <Text style={styles.payButtonText}>Saltar Pago (Pruebas)</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -416,7 +409,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default PaymentScreen;
+export default PaymentScreen; 
 
 // Hide the default navigation header
 export const options = {

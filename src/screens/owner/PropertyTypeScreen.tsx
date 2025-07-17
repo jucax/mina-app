@@ -76,12 +76,12 @@ const PropertyTypeScreen = () => {
       return;
     }
 
-    // Save to context
-    updateFormData({
-      property_type: selectedType,
-      other_type: selectedType === 'Otro' ? otherType : '',
-    });
-    router.push('/(owner)/property/documentation');
+      // Save to context
+      updateFormData({
+        property_type: selectedType,
+        other_type: selectedType === 'Otro' ? otherType : '',
+      });
+      router.push('/(owner)/property/documentation');
   };
 
   const getButtonStyle = (type: string) => {

@@ -547,14 +547,14 @@ const PropertyDetailsScreen = () => {
           }
         ]}>
           {selectedImages.length === 0 ? (
-            <TouchableOpacity
-              style={styles.imageUploadButton}
-              onPress={pickImages}
-            >
-              <View style={styles.uploadPlaceholder}>
-                <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
-                <Text style={styles.uploadText}>Subir archivos</Text>
-              </View>
+        <TouchableOpacity
+          style={styles.imageUploadButton}
+          onPress={pickImages}
+        >
+            <View style={styles.uploadPlaceholder}>
+              <Ionicons name="add-circle-outline" size={40} color={COLORS.primary} />
+              <Text style={styles.uploadText}>Subir archivos</Text>
+            </View>
             </TouchableOpacity>
           ) : (
             <View style={styles.imageGridContainer}>
@@ -566,32 +566,32 @@ const PropertyDetailsScreen = () => {
                   minHeight: selectedImages.length > gridLayout.imagesPerRow ? 180 : 100,
                 }
               ]}>
-                {selectedImages.map((uri, index) => (
-                  <TouchableOpacity
-                    key={index}
+              {selectedImages.map((uri, index) => (
+                <TouchableOpacity
+                  key={index}
                     style={[
                       styles.uploadedImageWrapper,
                       draggedIndex === index && styles.draggedImage,
                       dragOverIndex === index && styles.dragOverImage,
                     ]}
-                    activeOpacity={0.8}
-                    onPress={() => setShowDeleteIndex(index)}
+                  activeOpacity={0.8}
+                  onPress={() => setShowDeleteIndex(index)}
                     onLongPress={() => startDrag(index)}
                     onPressIn={() => handleDragOver(index)}
                     onPressOut={endDrag}
-                  >
-                    <Image
-                      source={{ uri }}
-                      style={styles.uploadedImage}
-                    />
-                    {showDeleteIndex === index && (
-                      <TouchableOpacity
-                        style={styles.deleteIcon}
-                        onPress={() => removeImage(index)}
-                      >
-                        <Ionicons name="trash" size={28} color={COLORS.secondary} />
-                      </TouchableOpacity>
-                    )}
+                >
+                  <Image
+                    source={{ uri }}
+                    style={styles.uploadedImage}
+                  />
+                  {showDeleteIndex === index && (
+                    <TouchableOpacity
+                      style={styles.deleteIcon}
+                      onPress={() => removeImage(index)}
+                    >
+                      <Ionicons name="trash" size={28} color={COLORS.secondary} />
+                    </TouchableOpacity>
+                  )}
                     {draggedIndex === index && (
                       <View style={styles.dragIndicator}>
                         <Ionicons name="move" size={20} color={COLORS.white} />
