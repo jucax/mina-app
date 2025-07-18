@@ -100,13 +100,18 @@ export class StripeService {
         throw new Error('Invalid plan selected');
       }
 
+      const amountInCents = plan.price * 100; // Convert to cents
+      console.log('💳 Creating payment intent for plan:', plan.name);
+      console.log('💰 Plan price:', plan.price, 'MXN');
+      console.log('💸 Amount in cents:', amountInCents, 'cents =', amountInCents / 100, 'MXN');
+
       const result = await ApiService.createPaymentIntent(
         planId,
-        plan.price * 100, // Convert to cents
+        amountInCents,
         'mxn'
       );
 
-      return result.clientSecret;
+      return result;
     } catch (error) {
       console.error('Error creating payment intent:', error);
       throw error;
@@ -230,13 +235,20 @@ export const useStripePayment = () => {
     try {
       console.log('💳 Confirming payment with Stripe SDK...');
       
+      // Get user email for billing details
+      const { data: { user } } = await supabase.auth.getUser();
+      const userEmail = user?.email || 'test@example.com';
+      
+      console.log('📧 Using email for billing:', userEmail);
+      
       const { error, paymentIntent } = await confirmPayment(
         clientSecret,
         {
           paymentMethodType: 'Card',
           paymentMethodData: {
             billingDetails: {
-              email: 'test@example.com', // You can get this from user data
+              email: userEmail,
+              name: 'Test User', // You can get this from user data if available
             },
           },
         }
@@ -244,16 +256,19 @@ export const useStripePayment = () => {
 
       if (error) {
         console.error('❌ Payment confirmation failed:', error);
-        throw new Error(error.message);
+        // Don't throw error, return it for better handling
+        return { error, success: false };
       }
 
       if (paymentIntent) {
         console.log('✅ Payment confirmed:', paymentIntent.status);
-        return paymentIntent;
+        return { paymentIntent, success: true };
       }
+      
+      return { error: 'No payment intent returned', success: false };
     } catch (error) {
       console.error('❌ Error confirming payment:', error);
-      throw error;
+      return { error, success: false };
     }
   };
 

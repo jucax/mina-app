@@ -14,6 +14,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
   try {
     const { planId, amount, currency, customerId, email } = req.body;
     console.log('Creating payment intent:', { planId, amount, currency, customerId, email });
+    console.log('💰 Amount received:', amount, 'cents =', amount / 100, 'MXN');
 
     let customer;
     if (email) {
@@ -45,8 +46,9 @@ app.post('/api/create-payment-intent', async (req, res) => {
       metadata: { planId },
       customer: customer.id,
     };
+    console.log('📦 Payment intent data being sent to Stripe:', paymentIntentData);
     const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
-    console.log('Payment intent created:', paymentIntent.id);
+    console.log('✅ Payment intent created:', paymentIntent.id, 'Amount:', paymentIntent.amount, 'cents =', paymentIntent.amount / 100, 'MXN');
     res.json({ clientSecret: paymentIntent.client_secret, customerId: customer.id });
   } catch (error) {
     console.error('Error creating payment intent:', error);

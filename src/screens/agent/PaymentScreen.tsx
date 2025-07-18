@@ -43,6 +43,31 @@ const PaymentScreen = () => {
     );
   }
 
+  const sendConfirmationEmail = async (email: string, planName: string, amount: number, customerId: string) => {
+    try {
+      const response = await fetch('http://localhost:3000/api/send-confirmation-email', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email,
+          planName,
+          amount,
+          customerId,
+        }),
+      });
+
+      if (response.ok) {
+        console.log('✅ Confirmation email sent successfully');
+      } else {
+        console.error('❌ Failed to send confirmation email');
+      }
+    } catch (error) {
+      console.error('❌ Error sending confirmation email:', error);
+    }
+  };
+
   const handlePayment = async () => {
     if (!cardDetails?.complete || !cardholderName) {
       Alert.alert('Error', 'Por favor completa todos los campos y los datos de la tarjeta');
@@ -53,9 +78,18 @@ const PaymentScreen = () => {
       // 1. Create payment intent
       const result = await StripeService.createPaymentIntent(planId);
       console.log('✅ Payment intent created:', result);
+      
       // 2. Process payment with Stripe SDK
-      const paymentIntent = await processPayment(planId, result.clientSecret, cardDetails);
-      if (paymentIntent && String(paymentIntent.status) === 'succeeded') {
+      const paymentResult = await processPayment(planId, result.clientSecret, cardDetails);
+      
+      if (paymentResult.error) {
+        console.error('❌ Payment failed:', paymentResult.error);
+        const errorMessage = (paymentResult.error as any)?.message || String(paymentResult.error) || 'No se pudo procesar el pago';
+        Alert.alert('Error de Pago', errorMessage);
+        return;
+      }
+      
+      if (paymentResult.success && paymentResult.paymentIntent && String(paymentResult.paymentIntent.status) === 'succeeded') {
         // 3. Update user subscription in database
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -71,6 +105,14 @@ const PaymentScreen = () => {
           if (error) {
             console.error('❌ Error actualizando la base de datos:', error);
             // No lanzar error aquí, el pago fue exitoso
+          } else {
+            // 4. Send confirmation email
+            await sendConfirmationEmail(
+              user.email || 'test@example.com',
+              plan.name,
+              plan.price,
+              result.customerId
+            );
           }
         }
         Alert.alert(
@@ -216,6 +258,63 @@ const PaymentScreen = () => {
         >
           <Ionicons name="play-forward" size={24} color={COLORS.white} />
           <Text style={styles.payButtonText}>Saltar Pago (Pruebas)</Text>
+        </TouchableOpacity>
+
+        {/* Simple Test Payment Button */}
+        <TouchableOpacity
+          style={[styles.payButton, { backgroundColor: COLORS.secondary, marginTop: 16 }]}
+          onPress={async () => {
+            try {
+              setLoading(true);
+              // Simulate a successful payment without Stripe SDK
+              const result = await StripeService.createPaymentIntent(planId);
+              console.log('✅ Test payment intent created:', result);
+              
+              // Simulate successful payment
+              const { data: { user } } = await supabase.auth.getUser();
+              if (user) {
+                const { error } = await supabase
+                  .from('agents')
+                  .update({
+                    subscription_plan: planId,
+                    subscription_status: 'active',
+                    subscription_start_date: new Date().toISOString(),
+                    stripe_customer_id: result.customerId,
+                  })
+                  .eq('id', user.id);
+                if (error) {
+                  console.error('❌ Database update error:', error);
+                } else {
+                  // Send confirmation email for test payment
+                  await sendConfirmationEmail(
+                    user.email || 'test@example.com',
+                    plan.name,
+                    plan.price,
+                    result.customerId
+                  );
+                }
+              }
+              
+              Alert.alert(
+                '¡Pago de Prueba Exitoso!',
+                'Suscripción activada sin procesar tarjeta.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => router.replace('/(agent)/agent-registration'),
+                  },
+                ]
+              );
+            } catch (error) {
+              console.error('❌ Test payment error:', error);
+              Alert.alert('Error', 'Error en pago de prueba');
+            } finally {
+              setLoading(false);
+            }
+          }}
+        >
+          <Ionicons name="card-outline" size={24} color={COLORS.white} />
+          <Text style={styles.payButtonText}>Pago de Prueba (Sin SDK)</Text>
         </TouchableOpacity>
       </View>
     </View>
