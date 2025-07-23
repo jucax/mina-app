@@ -11,7 +11,7 @@ import { useStripe,
 // Stripe configuration - only the publishable key should be here
 // For development, use test keys (pk_test_...)
 // For production, use live keys (pk_live_...)
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51f5BGJZRArFn9nsQGSLMzBpVS0mPSvH9aD8BYWpRN5rVKjUupxT6uMPVTtwm5lhf6ELcNJPh1TC9YudSVdMef00i3gnLRRj'; // Test key for development
+const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RfA9XP9pd8KcDEZ9XRY9LsNJQ3FzHme04UT4gRuDxlBwQ9CS92EWC4LRRd31JFP0eNhPeG3fgCNyxpvCr1ec3we007K2I69lE'; // Test key for development
 // SECRET KEY SHOULD ONLY BE IN BACKEND .env FILE - NEVER IN FRONTEND CODE
 
 // Test mode configuration
@@ -33,7 +33,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Mensual',
     price: 10, // $10.0 MXN
     period: 'mes',
-    stripePriceId: 'price_1RlhSMBGJZRArFn91e5AMNli',
+    stripePriceId: 'price_1RnuBaP9pd8KcDEZvBgxVyeD',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -47,7 +47,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Semestral',
     price: 15, // $15.0 MXN
     period: '6 meses',
-    stripePriceId: 'price_1RlhSnBGJZRArFn9w9u5WpaF',
+    stripePriceId: 'price_1RnuBwP9pd8KcDEZ5bPfWcDI',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -61,7 +61,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Anual',
     price: 19, // $19.0 MXN
     period: '12 meses',
-    stripePriceId: 'price_1RlhT9BGJZRArFn9rexmmxNN',
+    stripePriceId: 'price_1RnuCAP9pd8KcDEZpEuwZQv3',
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -234,7 +234,8 @@ export const useStripePayment = () => {
   ) => {
     try {
       console.log('💳 Confirming payment with Stripe SDK...');
-      
+      // Debug: Log the clientSecret being used
+      console.log('Frontend clientSecret:', clientSecret);
       // Get user email for billing details
       const { data: { user } } = await supabase.auth.getUser();
       const userEmail = user?.email || 'test@example.com';

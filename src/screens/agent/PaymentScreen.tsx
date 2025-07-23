@@ -88,7 +88,7 @@ const PaymentScreen = () => {
         Alert.alert('Error de Pago', errorMessage);
         return;
       }
-      
+
       if (paymentResult.success && paymentResult.paymentIntent && String(paymentResult.paymentIntent.status) === 'succeeded') {
         // 3. Update user subscription in database
         const { data: { user } } = await supabase.auth.getUser();
@@ -125,9 +125,11 @@ const PaymentScreen = () => {
             },
           ]
         );
-      } else {
-        Alert.alert('Error', 'No se pudo procesar el pago.');
+        return;
       }
+
+      // Only show error if payment was not successful and not already handled
+      Alert.alert('Error', 'No se pudo procesar el pago.');
     } catch (error: any) {
       console.error('❌ Payment error:', error);
       Alert.alert('Error', error.message || 'Error al procesar el pago');

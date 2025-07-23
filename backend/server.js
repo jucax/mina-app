@@ -1,7 +1,7 @@
 const express = require('express');
 require('dotenv').config(); // Add dotenv for local env support
 // Use environment variable for Stripe secret key
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY || 'sk_test_51RfA9iP88QQAZhC3iXEK1uRLFNX1O4c4D9G6AhW6UzKHwF34Qf8VjiVI1W83TfLue8xlJwY8BzvQPuCSDhxHVjOa00eucPbJxd');
+const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Make sure to set STRIPE_SECRET_KEY in your .env file for production
 const cors = require('cors');
 
@@ -49,6 +49,12 @@ app.post('/api/create-payment-intent', async (req, res) => {
     console.log('📦 Payment intent data being sent to Stripe:', paymentIntentData);
     const paymentIntent = await stripe.paymentIntents.create(paymentIntentData);
     console.log('✅ Payment intent created:', paymentIntent.id, 'Amount:', paymentIntent.amount, 'cents =', paymentIntent.amount / 100, 'MXN');
+    // Debug: Log the client secret and customer ID
+    console.log('🔑 Returning to frontend:', {
+      clientSecret: paymentIntent.client_secret,
+      customerId: customer.id,
+      paymentIntentId: paymentIntent.id
+    });
     res.json({ clientSecret: paymentIntent.client_secret, customerId: customer.id });
   } catch (error) {
     console.error('Error creating payment intent:', error);
