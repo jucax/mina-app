@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mina App Backend Debug Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      background: #181818;
+      color: #fff;
+      font-family: 'Roboto', sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .container {
+      margin-top: 48px;
+      background: #232323;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.3);
+      padding: 32px 24px 24px 24px;
+      max-width: 420px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .mina-logo {
+      width: 120px;
+      margin-bottom: 16px;
+    }
+    h1 {
+      font-size: 2rem;
+      color: #FF9A33;
+      margin-bottom: 8px;
+      font-weight: 700;
+      letter-spacing: 1px;
+    }
+    .subtitle {
+      color: #bdbdbd;
+      font-size: 1rem;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      border-radius: 8px;
+      border: 1px solid #444;
+      background: #181818;
+      color: #fff;
+      font-size: 1rem;
+      padding: 12px;
+      margin-bottom: 16px;
+      resize: vertical;
+      font-family: 'Roboto', monospace;
+    }
+    .button-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 16px;
+      width: 100%;
+      justify-content: center;
+    }
+    button {
+      background: #FF9A33;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background: #ffb366;
+    }
+    .status {
+      margin-top: 12px;
+      min-height: 24px;
+      font-size: 1rem;
+      font-weight: 500;
+      text-align: center;
+    }
+    .status.success {
+      color: #4caf50;
+    }
+    .status.error {
+      color: #ff5252;
+    }
+    .response {
+      background: #111;
+      color: #bdbdbd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-top: 16px;
+      width: 100%;
+      font-size: 0.95rem;
+      max-height: 200px;
+      overflow: auto;
+      white-space: pre-wrap;
+    }
+    @media (max-width: 500px) {
+      .container {
+        padding: 16px 4px;
+        max-width: 98vw;
+      }
+      .mina-logo {
+        width: 80px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <img src="https://mina-app-ten.vercel.app/assets/images/logo_login_screen.png" alt="Mina Logo" class="mina-logo" onerror="this.style.display='none'">
+    <h1>Mina Backend Debug</h1>
+    <div class="subtitle">Test your backend endpoints directly.<br>Enter a message or payload and try the actions below.</div>
+    <textarea id="payload" placeholder="Enter JSON payload or message..."></textarea>
+    <div class="button-row">
+      <button onclick="testPaymentIntent()">Test Payment Intent</button>
+      <button onclick="testSendEmail()">Send Test Email</button>
+    </div>
+    <div id="status" class="status"></div>
+    <div id="response" class="response"></div>
+  </div>
+  <script>
+    async function testPaymentIntent() {
+      setStatus('Loading...', '');
+      setResponse('');
+      let payload;
+      try {
+        payload = JSON.parse(document.getElementById('payload').value || '{}');
+      } catch (e) {
+        setStatus('Invalid JSON payload', 'error');
+        return;
+      }
+      const body = {
+        planId: payload.planId || 'mensual',
+        amount: payload.amount || 1000,
+        currency: payload.currency || 'mxn',
+        customerId: payload.customerId || 'debug-user',
+        email: payload.email || 'debug@mina.com'
+      };
+      try {
+        const res = await fetch('/api/create-payment-intent', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setStatus('Payment intent created!', 'success');
+          setResponse(JSON.stringify(data, null, 2));
+        } else {
+          setStatus('Error: ' + (data.error || res.status), 'error');
+          setResponse(JSON.stringify(data, null, 2));
+        }
+      } catch (err) {
+        setStatus('Network error', 'error');
+        setResponse(err.toString());
+      }
+    }
+    async function testSendEmail() {
+      setStatus('Loading...', '');
+      setResponse('');
+      let payload;
+      try {
+        payload = JSON.parse(document.getElementById('payload').value || '{}');
+      } catch (e) {
+        setStatus('Invalid JSON payload', 'error');
+        return;
+      }
+      const body = {
+        email: payload.email || 'debug@mina.com',
+        planName: payload.planName || 'Test Plan',
+        amount: payload.amount || 1000,
+        customerId: payload.customerId || 'debug-user'
+      };
+      try {
+        const res = await fetch('/api/send-confirmation-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setStatus('Email sent!', 'success');
+          setResponse(JSON.stringify(data, null, 2));
+        } else {
+          setStatus('Error: ' + (data.error || res.status), 'error');
+          setResponse(JSON.stringify(data, null, 2));
+        }
+      } catch (err) {
+        setStatus('Network error', 'error');
+        setResponse(err.toString());
+      }
+    }
+    function setStatus(msg, type) {
+      const el = document.getElementById('status');
+      el.textContent = msg;
+      el.className = 'status' + (type ? ' ' + type : '');
+    }
+    function setResponse(msg) {
+      document.getElementById('response').textContent = msg;
+    }
+  </script>
+</body>
+</html> 

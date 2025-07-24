@@ -11,7 +11,7 @@ import { useStripe,
 // Stripe configuration - only the publishable key should be here
 // For development, use test keys (pk_test_...)
 // For production, use live keys (pk_live_...)
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RfA9XP9pd8KcDEZ9XRY9LsNJQ3FzHme04UT4gRuDxlBwQ9CS92EWC4LRRd31JFP0eNhPeG3fgCNyxpvCr1ec3we007K2I69lE'; // Test key for development
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RfA9XP9pd8KcDEZoLjOGrHjnSZYi02MGCkY0y8epvmBWGFJyZp0cgHCifnsHh1NKlyj0SvV7wAFOoDaWA9B2K3C00cIgEOcGN'; // Test key for development
 // SECRET KEY SHOULD ONLY BE IN BACKEND .env FILE - NEVER IN FRONTEND CODE
 
 // Test mode configuration
@@ -167,7 +167,7 @@ export class StripeService {
     try {
       console.log('📅 Creating subscription via backend...');
       
-      const response = await fetch('http://localhost:3000/api/create-subscription', {
+      const response = await fetch('https://mina-app-ten.vercel.app/api/create-subscription', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

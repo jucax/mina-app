@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 
 // For local development - change this to your actual backend URL in production
-const API_BASE_URL = 'http://localhost:3000/api'; // Local development server
+const API_BASE_URL = 'https://mina-app-ten.vercel.app/api'; // Production backend server
 
 export class ApiService {
   // Create payment intent

@@ -45,7 +45,7 @@ const PaymentScreen = () => {
 
   const sendConfirmationEmail = async (email: string, planName: string, amount: number, customerId: string) => {
     try {
-      const response = await fetch('http://localhost:3000/api/send-confirmation-email', {
+      const response = await fetch('https://mina-app-ten.vercel.app/api/send-confirmation-email', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -8,7 +8,7 @@ import { StripeProvider } from '@stripe/stripe-react-native';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
 // Import your Stripe publishable key
-const STRIPE_PUBLISHABLE_KEY = 'pk_live_51RfA9XP9pd8KcDEZ9XRY9LsNJQ3FzHme04UT4gRuDxlBwQ9CS92EWC4LRRd31JFP0eNhPeG3fgCNyxpvCr1ec3we007K2I69lE';
+const STRIPE_PUBLISHABLE_KEY = 'pk_test_51RfA9XP9pd8KcDEZoLjOGrHjnSZYi02MGCkY0y8epvmBWGFJyZp0cgHCifnsHh1NKlyj0SvV7wAFOoDaWA9B2K3C00cIgEOcGN';
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();

@@ -4,10 +4,19 @@ require('dotenv').config(); // Add dotenv for local env support
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Make sure to set STRIPE_SECRET_KEY in your .env file for production
 const cors = require('cors');
+const path = require('path');
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Serve static files from the 'public' directory
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Serve debug page at root
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'debug.html'));
+});
 
 // Create payment intent
 app.post('/api/create-payment-intent', async (req, res) => {
