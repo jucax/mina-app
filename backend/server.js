@@ -5,6 +5,13 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 // Make sure to set STRIPE_SECRET_KEY in your .env file for production
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+const LOG_FILE = path.join(__dirname, 'public', 'mina-backend.log');
+
+function logToFile(obj) {
+  const line = JSON.stringify({ ...obj, timestamp: new Date().toISOString() }) + '\n';
+  fs.appendFile(LOG_FILE, line, err => { if (err) console.error('Log file error:', err); });
+}
 
 const app = express();
 app.use(cors());
@@ -18,8 +25,20 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'debug.html'));
 });
 
-// Create payment intent
+// Serve logs as JSON
+app.get('/logs', (req, res) => {
+  fs.readFile(LOG_FILE, 'utf8', (err, data) => {
+    if (err) return res.status(500).json({ error: 'Could not read log file' });
+    const lines = data.trim().split('\n').filter(Boolean).map(line => {
+      try { return JSON.parse(line); } catch { return { raw: line }; }
+    });
+    res.json(lines.slice(-100)); // last 100 entries
+  });
+});
+
+// Log all payment intent requests
 app.post('/api/create-payment-intent', async (req, res) => {
+  logToFile({ event: 'create-payment-intent', body: req.body });
   try {
     const { planId, amount, currency, customerId, email } = req.body;
     console.log('Creating payment intent:', { planId, amount, currency, customerId, email });
