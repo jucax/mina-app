@@ -20,7 +20,7 @@ import { router } from 'expo-router';
 import { ownerService, agentService, userAuthService } from '../../services/databaseService';
 import * as WebBrowser from 'expo-web-browser';
 import { makeRedirectUri } from 'expo-auth-session';
-import { useAuthRequest, discovery as googleDiscovery } from 'expo-auth-session/providers/google';
+// import { useAuthRequest, discovery as googleDiscovery } from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
 
@@ -40,16 +40,16 @@ const RegisterScreen = () => {
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Google OAuth configuration (must be inside the component)
-  const redirectUri = makeRedirectUri({ useProxy: true });
-  console.log('Expo Google OAuth redirectUri:', redirectUri);
-  const [request, response, promptAsync] = useAuthRequest({
-    androidClientId: 'YOUR_ANDROID_CLIENT_ID', // TODO: Replace with your Android client ID
-    iosClientId: '985617163979-2c62q4hke63pdcpqb5mpmm8svgc8kg2f.apps.googleusercontent.com',         // TODO: Replace with your iOS client ID
-    webClientId: '985617163979-o5sh4q0qao5q2s12sg6bh2vu3md4o5hf.apps.googleusercontent.com',         // TODO: Replace with your Web client ID
-    redirectUri,
-    // Optionally add scopes if needed
-  }, googleDiscovery);
+  // Google OAuth configuration (commented out for MVP)
+  // const redirectUri = makeRedirectUri({ useProxy: true });
+  // console.log('Expo Google OAuth redirectUri:', redirectUri);
+  // const [request, response, promptAsync] = useAuthRequest({
+  //   androidClientId: 'YOUR_ANDROID_CLIENT_ID', // TODO: Replace with your Android client ID
+  //   iosClientId: '985617163979-2c62q4hke63pdcpqb5mpmm8svgc8kg2f.apps.googleusercontent.com',         // TODO: Replace with your iOS client ID
+  //   webClientId: '985617163979-o5sh4q0qao5q2s12sg6bh2vu3md4o5hf.apps.googleusercontent.com',         // TODO: Replace with your Web client ID
+  //   redirectUri,
+  //   // Optionally add scopes if needed
+  // }, googleDiscovery);
 
   const pickImage = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -74,32 +74,34 @@ const RegisterScreen = () => {
   const handleGoogleSignIn = async () => {
     try {
       setLoading(true);
-      const result = await promptAsync();
-      if (result.type === 'success' && result.authentication?.idToken) {
-        // Sign in with Supabase using the Google id token
-        const { data, error } = await supabase.auth.signInWithIdToken({
-          provider: 'google',
-          token: result.authentication.idToken,
-        });
-        if (error) {
-          Alert.alert('Error', error.message);
-          return;
-        }
-        // Redirect user after successful sign in
-        const isOwner = data.user?.user_metadata?.is_owner;
-        const hasCompletedRegistration = data.user?.user_metadata?.has_completed_registration;
-        if (!hasCompletedRegistration) {
-          if (isOwner) {
-            router.replace('/(owner)/intent' as any);
-          } else {
-            router.replace('/(agent)/registration' as any);
-          }
-        } else {
-          router.replace(`/(${isOwner ? 'owner' : 'agent'})/home` as any);
-        }
-      } else if (result.type === 'error') {
-        Alert.alert('Error', 'Google sign-in failed');
-      }
+      // const result = await promptAsync(); // This line is commented out
+      // if (result.type === 'success' && result.authentication?.idToken) { // This line is commented out
+      //   // Sign in with Supabase using the Google id token // This line is commented out
+      //   const { data, error } = await supabase.auth.signInWithIdToken({ // This line is commented out
+      //     provider: 'google', // This line is commented out
+      //     token: result.authentication.idToken, // This line is commented out
+      //   }); // This line is commented out
+      //   if (error) { // This line is commented out
+      //     Alert.alert('Error', error.message); // This line is commented out
+      //     return; // This line is commented out
+      //   } // This line is commented out
+      //   // Redirect user after successful sign in // This line is commented out
+      //   const isOwner = data.user?.user_metadata?.is_owner; // This line is commented out
+      //   const hasCompletedRegistration = data.user?.user_metadata?.has_completed_registration; // This line is commented out
+      //   if (!hasCompletedRegistration) { // This line is commented out
+      //     if (isOwner) { // This line is commented out
+      //       router.replace('/(owner)/intent' as any); // This line is commented out
+      //     } else { // This line is commented out
+      //       router.replace('/(agent)/registration' as any); // This line is commented out
+      //     } // This line is commented out
+      //   } else { // This line is commented out
+      //     router.replace(`/(${isOwner ? 'owner' : 'agent'})/home` as any); // This line is commented out
+      //   } // This line is commented out
+      // } else if (result.type === 'error') { // This line is commented out
+      //   Alert.alert('Error', 'Google sign-in failed'); // This line is commented out
+      // } // This line is commented out
+      // The following lines are commented out as per the edit hint
+      Alert.alert('Google Sign-in', 'Google authentication is currently disabled.');
     } catch (err: any) {
       Alert.alert('Error', err?.message || 'Ocurrió un error durante el inicio de sesión con Google');
     } finally {
@@ -379,7 +381,8 @@ const RegisterScreen = () => {
               </TouchableOpacity>
             </View>
 
-            {/* Google Sign In Button */}
+            {/* Google Sign In Button (removed for MVP) */}
+            {/*
             <TouchableOpacity
               style={[styles.googleButton, loading && styles.buttonDisabled]}
               onPress={handleGoogleSignIn}
@@ -393,6 +396,7 @@ const RegisterScreen = () => {
                 Continuar con Google
               </Text>
             </TouchableOpacity>
+            */}
 
             {/* Privacy Policy */}
             <View style={styles.privacyContainer}>

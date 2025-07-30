@@ -92,6 +92,7 @@ const PaymentScreen = () => {
       if (paymentResult.success && paymentResult.paymentIntent && String(paymentResult.paymentIntent.status) === 'succeeded') {
         // 3. Update user subscription in database
         const { data: { user } } = await supabase.auth.getUser();
+        let dbError = null;
         if (user) {
           const { error } = await supabase
             .from('agents')
@@ -103,8 +104,8 @@ const PaymentScreen = () => {
             })
             .eq('id', user.id);
           if (error) {
+            dbError = error;
             console.error('❌ Error actualizando la base de datos:', error);
-            // No lanzar error aquí, el pago fue exitoso
           } else {
             // 4. Send confirmation email
             await sendConfirmationEmail(
@@ -117,10 +118,12 @@ const PaymentScreen = () => {
         }
         Alert.alert(
           '¡Pago Exitoso!',
-          'Tu suscripción ha sido activada correctamente.',
+          dbError
+            ? 'El pago fue exitoso, pero hubo un problema actualizando tu suscripción. Por favor contacta soporte.'
+            : 'Tu suscripción ha sido activada correctamente.',
           [
             {
-              text: 'OK',
+              text: 'Continuar',
               onPress: () => router.replace('/(agent)/agent-registration'),
             },
           ]
