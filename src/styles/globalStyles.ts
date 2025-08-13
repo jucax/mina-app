@@ -13,47 +13,47 @@ export const COLORS = {
 
 export const FONTS = {
   regular: {
-    fontSize: 16,
+    fontSize: Math.max(16, 14), // Responsive font size
     fontWeight: '400' as const,
   },
   medium: {
-    fontSize: 16,
+    fontSize: Math.max(16, 14), // Responsive font size
     fontWeight: '500' as const,
   },
   bold: {
-    fontSize: 16,
+    fontSize: Math.max(16, 14), // Responsive font size
     fontWeight: '700' as const,
   },
   title: {
-    fontSize: 24,
+    fontSize: Math.max(24, 20), // Responsive font size
     fontWeight: '700' as const,
     letterSpacing: 1.5,
   },
 };
 
 export const SIZES = {
-  // Global sizes
-  base: 8,
-  small: 12,
-  font: 14,
-  medium: 16,
-  large: 18,
-  extraLarge: 24,
+  // Global sizes - responsive with minimums
+  base: Math.max(8, 6),
+  small: Math.max(12, 10),
+  font: Math.max(14, 12),
+  medium: Math.max(16, 14),
+  large: Math.max(18, 16),
+  extraLarge: Math.max(24, 20),
 
   // Screen dimensions
   width,
   height,
 
-  // Spacing
+  // Spacing - responsive with minimums
   padding: {
-    small: width * 0.02,
-    medium: width * 0.04,
-    large: width * 0.06,
+    small: Math.max(width * 0.02, 8),
+    medium: Math.max(width * 0.04, 12),
+    large: Math.max(width * 0.06, 16),
   },
   margin: {
-    small: height * 0.01,
-    medium: height * 0.02,
-    large: height * 0.03,
+    small: Math.max(height * 0.01, 8),
+    medium: Math.max(height * 0.02, 12),
+    large: Math.max(height * 0.03, 16),
   },
 };
 
@@ -91,39 +91,43 @@ export const commonStyles = StyleSheet.create({
     alignItems: 'center',
   },
   loginLogo: {
-    height: height * 0.1,
+    height: Math.max(height * 0.1, 60), // Responsive with minimum
     marginBottom: SIZES.margin.large,
   },
   headerLogo: {
-    height: height * 0.04,
+    height: Math.max(height * 0.04, 30), // Responsive with minimum
     marginTop: SIZES.margin.large,
     marginBottom: SIZES.margin.small,
-    width: width * 0.4,
+    width: Math.min(width * 0.4, 150), // Responsive with maximum
   },
   input: {
     color: COLORS.white,
     borderBottomWidth: 1.5,
     borderBottomColor: COLORS.white,
-    paddingVertical: 8,
-    fontSize: SIZES.font,
+    paddingVertical: Math.max(8, 6), // Responsive padding
+    fontSize: Math.max(SIZES.font, 12), // Responsive font size
+    minHeight: 44, // Ensure minimum touch target size
   },
   button: {
-    width: width * 0.55,
-    paddingVertical: height * 0.02,
+    width: Math.min(width * 0.55, 200), // Responsive width with maximum
+    paddingVertical: Math.max(height * 0.02, 16), // Responsive padding with minimum
     borderRadius: 24,
     alignItems: 'center',
+    minHeight: 48, // Ensure minimum touch target size
   },
   primaryButton: {
     backgroundColor: COLORS.secondary,
   },
   buttonText: {
     color: COLORS.white,
-    fontSize: SIZES.medium,
+    fontSize: Math.max(SIZES.medium, 14), // Responsive font size
     fontWeight: 'bold',
+    textAlign: 'center', // Ensure text is centered
   },
   label: {
     color: COLORS.white,
-    fontSize: SIZES.medium,
-    marginBottom: 8,
+    fontSize: Math.max(SIZES.medium, 14), // Responsive font size
+    marginBottom: Math.max(8, 6), // Responsive margin
+    fontWeight: '600',
   },
 }); 

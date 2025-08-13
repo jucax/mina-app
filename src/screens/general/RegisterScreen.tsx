@@ -39,6 +39,24 @@ const RegisterScreen = () => {
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+  
+  // Password requirements state
+  const [passwordFocused, setPasswordFocused] = useState(false);
+
+  // Password requirements validation
+  const passwordRequirements = {
+    minLength: password.length >= 8,
+    hasUppercase: /[A-Z]/.test(password),
+    hasLowercase: /[a-z]/.test(password),
+    hasNumber: /\d/.test(password),
+    hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  };
+
+  const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
 
   // Google OAuth configuration (commented out for MVP)
   // const redirectUri = makeRedirectUri({ useProxy: true });
@@ -297,7 +315,7 @@ const RegisterScreen = () => {
           {/* Form */}
           <View style={styles.formContainer}>
             <View style={styles.inputContainer}>
-              <Text style={commonStyles.label}>Nombre completo:</Text>
+              <Text style={styles.labelWithAsterisk}>Nombre completo: *</Text>
               <TextInput
                 style={commonStyles.input}
                 value={name}
@@ -309,7 +327,7 @@ const RegisterScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={commonStyles.label}>Número de teléfono:</Text>
+              <Text style={styles.labelWithAsterisk}>Número de teléfono: *</Text>
               <TextInput
                 style={commonStyles.input}
                 value={phone}
@@ -322,7 +340,7 @@ const RegisterScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={commonStyles.label}>Correo electrónico:</Text>
+              <Text style={styles.labelWithAsterisk}>Correo electrónico: *</Text>
               <TextInput
                 style={commonStyles.input}
                 value={email}
@@ -336,29 +354,127 @@ const RegisterScreen = () => {
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={commonStyles.label}>Contraseña:</Text>
-              <TextInput
-                style={commonStyles.input}
-                value={password}
-                onChangeText={setPassword}
-                placeholder=""
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                secureTextEntry
-                selectionColor={COLORS.white}
-              />
+              <Text style={styles.labelWithAsterisk}>Contraseña: *</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[commonStyles.input, styles.passwordInput]}
+                  value={password}
+                  onChangeText={setPassword}
+                  placeholder=""
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  secureTextEntry={!showPassword}
+                  selectionColor={COLORS.white}
+                  onFocus={() => setPasswordFocused(true)}
+                  onBlur={() => setPasswordFocused(false)}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                >
+                  <Ionicons
+                    name={showPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color={COLORS.white}
+                  />
+                </TouchableOpacity>
+              </View>
+              
+              {/* Password Requirements */}
+              {passwordFocused && (
+                <View style={styles.passwordRequirements}>
+                  <Text style={styles.requirementsTitle}>Requisitos de contraseña:</Text>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={passwordRequirements.minLength ? "checkmark-circle" : "close-circle"}
+                      size={16}
+                      color={passwordRequirements.minLength ? COLORS.secondary : COLORS.lightGray}
+                    />
+                    <Text style={[
+                      styles.requirementText,
+                      { color: passwordRequirements.minLength ? COLORS.secondary : COLORS.lightGray }
+                    ]}>
+                      Mínimo 8 caracteres
+                    </Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={passwordRequirements.hasUppercase ? "checkmark-circle" : "close-circle"}
+                      size={16}
+                      color={passwordRequirements.hasUppercase ? COLORS.secondary : COLORS.lightGray}
+                    />
+                    <Text style={[
+                      styles.requirementText,
+                      { color: passwordRequirements.hasUppercase ? COLORS.secondary : COLORS.lightGray }
+                    ]}>
+                      Al menos una mayúscula
+                    </Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={passwordRequirements.hasLowercase ? "checkmark-circle" : "close-circle"}
+                      size={16}
+                      color={passwordRequirements.hasLowercase ? COLORS.secondary : COLORS.lightGray}
+                    />
+                    <Text style={[
+                      styles.requirementText,
+                      { color: passwordRequirements.hasLowercase ? COLORS.secondary : COLORS.lightGray }
+                    ]}>
+                      Al menos una minúscula
+                    </Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={passwordRequirements.hasNumber ? "checkmark-circle" : "close-circle"}
+                      size={16}
+                      color={passwordRequirements.hasNumber ? COLORS.secondary : COLORS.lightGray}
+                    />
+                    <Text style={[
+                      styles.requirementText,
+                      { color: passwordRequirements.hasNumber ? COLORS.secondary : COLORS.lightGray }
+                    ]}>
+                      Al menos un número
+                    </Text>
+                  </View>
+                  <View style={styles.requirementItem}>
+                    <Ionicons
+                      name={passwordRequirements.hasSpecialChar ? "checkmark-circle" : "close-circle"}
+                      size={16}
+                      color={passwordRequirements.hasSpecialChar ? COLORS.secondary : COLORS.lightGray}
+                    />
+                    <Text style={[
+                      styles.requirementText,
+                      { color: passwordRequirements.hasSpecialChar ? COLORS.secondary : COLORS.lightGray }
+                    ]}>
+                      Al menos un carácter especial
+                    </Text>
+                  </View>
+                </View>
+              )}
             </View>
 
             <View style={styles.inputContainer}>
-              <Text style={commonStyles.label}>Repetir contraseña:</Text>
-              <TextInput
-                style={commonStyles.input}
-                value={repeatPassword}
-                onChangeText={setRepeatPassword}
-                placeholder=""
-                placeholderTextColor="rgba(255, 255, 255, 0.5)"
-                secureTextEntry
-                selectionColor={COLORS.white}
-              />
+              <Text style={styles.labelWithAsterisk}>Repetir contraseña: *</Text>
+              <View style={styles.passwordInputContainer}>
+                <TextInput
+                  style={[commonStyles.input, styles.passwordInput]}
+                  value={repeatPassword}
+                  onChangeText={setRepeatPassword}
+                  placeholder=""
+                  placeholderTextColor="rgba(255, 255, 255, 0.5)"
+                  secureTextEntry={!showRepeatPassword}
+                  selectionColor={COLORS.white}
+                />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowRepeatPassword(!showRepeatPassword)}
+                >
+                  <Ionicons
+                    name={showRepeatPassword ? "eye-off" : "eye"}
+                    size={20}
+                    color={COLORS.white}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
 
             {/* User Type Selection */}
@@ -410,7 +526,7 @@ const RegisterScreen = () => {
                   )}
                 </View>
                 <Text style={styles.privacyText}>
-                  Acepto Aviso de Privacidad
+                  Acepto Aviso de Privacidad *
                 </Text>
               </TouchableOpacity>
             </View>
@@ -454,9 +570,9 @@ const styles = StyleSheet.create({
   },
   profileImageContainer: {
     marginTop: SIZES.margin.large,
-    width: width * 0.26,
-    height: width * 0.26,
-    borderRadius: width * 0.13,
+    width: Math.max(width * 0.26, 80), // Responsive with minimum size
+    height: Math.max(width * 0.26, 80),
+    borderRadius: Math.max(width * 0.13, 40),
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     overflow: 'hidden',
   },
@@ -468,10 +584,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 8, // Add padding for larger text
   },
   profileImageText: {
     color: COLORS.white,
-    fontSize: SIZES.font,
+    fontSize: Math.max(SIZES.font, 12), // Responsive font size
     fontWeight: '600',
     textAlign: 'center',
     textShadowColor: 'rgba(0, 0, 0, 0.26)',
@@ -484,48 +601,97 @@ const styles = StyleSheet.create({
     marginTop: SIZES.margin.large,
   },
   inputContainer: {
-    width: width * 0.8,
+    width: Math.min(width * 0.85, 320), // Responsive width with maximum
     marginBottom: SIZES.margin.medium,
+  },
+  labelWithAsterisk: {
+    color: COLORS.white,
+    fontSize: Math.max(SIZES.medium, 14), // Responsive font size
+    marginBottom: 8,
+    fontWeight: '600',
+  },
+  passwordInputContainer: {
+    position: 'relative',
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  passwordInput: {
+    flex: 1,
+    paddingRight: 50, // Space for eye button
+  },
+  eyeButton: {
+    position: 'absolute',
+    right: 8,
+    padding: 8,
+  },
+  passwordRequirements: {
+    marginTop: 12,
+    padding: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  requirementsTitle: {
+    color: COLORS.white,
+    fontSize: Math.max(SIZES.font, 12),
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  requirementItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 6,
+  },
+  requirementText: {
+    fontSize: Math.max(SIZES.font - 2, 10),
+    marginLeft: 8,
+    flex: 1,
   },
   userTypeContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: SIZES.margin.medium,
     marginBottom: SIZES.margin.medium,
+    flexWrap: 'wrap', // Allow wrapping for smaller screens
   },
   userTypeButton: {
-    paddingHorizontal: SIZES.padding.medium,
-    paddingVertical: SIZES.padding.small,
+    paddingHorizontal: Math.max(SIZES.padding.medium, 16),
+    paddingVertical: Math.max(SIZES.padding.small, 12),
     borderRadius: 20,
     marginHorizontal: SIZES.margin.small,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    minWidth: 100, // Ensure minimum button size
   },
   userTypeButtonActive: {
     backgroundColor: COLORS.secondary,
   },
   userTypeText: {
     color: COLORS.white,
-    fontSize: SIZES.font,
+    fontSize: Math.max(SIZES.font, 12),
+    textAlign: 'center',
   },
   userTypeTextActive: {
     fontWeight: 'bold',
   },
   privacyContainer: {
-    width: width * 0.8,
+    width: Math.min(width * 0.85, 320),
     marginTop: SIZES.margin.medium,
     marginBottom: SIZES.margin.large,
   },
   privacyContent: {
     flexDirection: 'row',
     alignItems: 'center',
+    flexWrap: 'wrap', // Allow wrapping for larger text
   },
   checkbox: {
-    width: 20,
-    height: 20,
+    width: Math.max(20, 18), // Responsive checkbox size
+    height: Math.max(20, 18),
     borderWidth: 2,
     borderColor: COLORS.white,
     borderRadius: 4,
     marginRight: 10,
+    marginTop: 2, // Align with text
   },
   checkboxChecked: {
     backgroundColor: COLORS.secondary,
@@ -533,7 +699,8 @@ const styles = StyleSheet.create({
   },
   privacyText: {
     color: COLORS.white,
-    fontSize: SIZES.font,
+    fontSize: Math.max(SIZES.font, 12),
+    flex: 1, // Allow text to take remaining space
   },
   registerButtonDisabled: {
     opacity: 0.7,
@@ -543,8 +710,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.white,
-    width: width * 0.8,
-    paddingVertical: SIZES.padding.medium,
+    width: Math.min(width * 0.8, 300),
+    paddingVertical: Math.max(SIZES.padding.medium, 16),
     borderRadius: 24,
     marginTop: SIZES.margin.medium,
     marginBottom: SIZES.margin.medium,
@@ -556,7 +723,7 @@ const styles = StyleSheet.create({
   },
   googleButtonText: {
     color: COLORS.black,
-    fontSize: SIZES.font,
+    fontSize: Math.max(SIZES.font, 12),
     fontWeight: '600',
   },
   buttonDisabled: {
