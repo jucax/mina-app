@@ -432,25 +432,35 @@ const PropertyDetailsScreen = () => {
         <View style={styles.rowGap3}>
           <View style={styles.inputContainerTiny}>
             <Text style={styles.inputLabel}>Superficie: *</Text>
-            <TextInput
-              style={getInputStyle('superficie')}
-              value={superficie}
-              onChangeText={setSuperficie}
-              keyboardType="numeric"
-              placeholder="m²"
-              placeholderTextColor="rgba(0, 0, 0, 0.5)"
-            />
+            <View style={styles.inputWithUnit}>
+              <TextInput
+                style={[getInputStyle('superficie'), styles.inputWithUnitText]}
+                value={superficie}
+                onChangeText={setSuperficie}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              />
+              {superficie.trim() !== '' && (
+                <Text style={styles.unitText}>m²</Text>
+              )}
+            </View>
           </View>
           <View style={styles.inputContainerTiny}>
             <Text style={styles.inputLabel}>Construccion: *</Text>
-            <TextInput
-              style={getInputStyle('construccion')}
-              value={construccion}
-              onChangeText={setConstruccion}
-              keyboardType="numeric"
-              placeholder="m²"
-              placeholderTextColor="rgba(0, 0, 0, 0.5)"
-            />
+            <View style={styles.inputWithUnit}>
+              <TextInput
+                style={[getInputStyle('construccion'), styles.inputWithUnitText]}
+                value={construccion}
+                onChangeText={setConstruccion}
+                keyboardType="numeric"
+                placeholder="0"
+                placeholderTextColor="rgba(0, 0, 0, 0.5)"
+              />
+              {construccion.trim() !== '' && (
+                <Text style={styles.unitText}>m²</Text>
+              )}
+            </View>
           </View>
         </View>
 
@@ -934,6 +944,30 @@ const styles = StyleSheet.create({
   },
   dropdownMatchInput: {
     borderColor: '#FF4444',
+  },
+  inputWithUnit: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    padding: 6,
+    paddingRight: 10, // Add some padding to the right for the unit
+  },
+  inputWithUnitText: {
+    flex: 1,
+    padding: 0, // Remove default padding
+    fontSize: 14,
+    color: COLORS.black,
+    backgroundColor: 'transparent', // Remove background to show parent background
+  },
+  unitText: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.black,
+    marginLeft: 4,
+    fontWeight: '500',
   },
 });
 
