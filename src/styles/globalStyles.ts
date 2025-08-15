@@ -9,6 +9,7 @@ export const COLORS = {
   black: '#000000',
   gray: '#666666',
   lightGray: '#CCCCCC',
+  success: '#4CAF50',    // Green color for success states
 };
 
 export const FONTS = {

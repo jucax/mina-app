@@ -31,6 +31,9 @@ const estados = [
   'Sinaloa', 'Sonora', 'Tabasco', 'Tamaulipas', 'Tlaxcala', 'Veracruz', 'Yucatán', 'Zacatecas'
 ];
 
+// Simple fallback mapping for common ZIP codes (in case APIs fail)
+// REMOVED - No hardcoding of ZIP codes
+
 // Municipalities by state (simplified - you can expand this)
 const municipiosPorEstado: { [key: string]: string[] } = {
   'Ciudad de México': [
@@ -161,6 +164,7 @@ const PropertyDetailsScreen = () => {
 
   // Validation state
   const [showValidation, setShowValidation] = useState(false);
+  // REMOVED: loading, addressFetched states - no longer needed
 
   // Update local state when formData changes (for data persistence)
   useEffect(() => {
@@ -182,6 +186,33 @@ const PropertyDetailsScreen = () => {
 
   // Get municipalities based on selected state
   const municipiosDisponibles = selectedEstado ? municipiosPorEstado[selectedEstado] || [] : [];
+
+  // Function to fetch address data from COPOMEX API
+  // REMOVED - No ZIP code auto-fill functionality
+
+  // Function to get dynamic image suggestions based on property type
+  const getImageSuggestions = () => {
+    // Get property type from context or use a default
+    const propertyType = formData.property_type || 'Casa';
+    
+    switch (propertyType) {
+      case 'Terreno':
+        return 'vista general, acceso, topografía, servicios cercanos, etc.';
+      case 'Local':
+        return 'fachada, interior, área de ventas, almacén, baños, etc.';
+      case 'Oficina':
+        return 'fachada, recepción, áreas de trabajo, salas de juntas, etc.';
+      case 'Bodega':
+        return 'fachada, interior, altura del techo, acceso vehicular, etc.';
+      case 'Edificio':
+        return 'fachada, lobby, áreas comunes, elevadores, escaleras, etc.';
+      case 'Departamento':
+        return 'fachada, sala, cocina, cuartos, baños, balcón, etc.';
+      case 'Casa':
+      default:
+        return 'fachada, sala, cocina, cuartos, baños, jardín, etc.';
+    }
+  };
 
   // Validation function
   const validateFields = () => {
@@ -360,14 +391,17 @@ const PropertyDetailsScreen = () => {
         <View style={styles.rowGap}>
           <View style={styles.inputContainerSmall}>
             <Text style={styles.inputLabel}>Código Postal: *</Text>
-            <TextInput
-              style={getInputStyle('cp')}
-              value={cp}
-              onChangeText={setCp}
-              keyboardType="numeric"
-              placeholder="Ingresa código postal"
-              placeholderTextColor="rgba(0, 0, 0, 0.5)"
-            />
+            <View style={styles.zipCodeContainer}>
+              <TextInput
+                style={getInputStyle('cp')}
+                value={cp}
+                onChangeText={setCp}
+                keyboardType="numeric"
+                placeholder="Ingresa código postal"
+                placeholderTextColor="rgba(0, 0, 0, 0.5)"
+                maxLength={5}
+              />
+            </View>
           </View>
           <View style={styles.inputContainerSmall}>
             <Dropdown
@@ -387,7 +421,9 @@ const PropertyDetailsScreen = () => {
               value={selectedEstado}
               items={estados}
               onChange={handleEstadoChange}
-              style={showValidation && !selectedEstado ? styles.dropdownMatchInput : null}
+              style={[
+                showValidation && !selectedEstado ? styles.dropdownMatchInput : null
+              ]}
             />
           </View>
           <View style={styles.inputContainerSmall}>
@@ -504,14 +540,14 @@ const PropertyDetailsScreen = () => {
         </View>
 
         <Text style={styles.sectionTitleSmall}>
-          Cuenta con amenidades?
+          ¿Cuenta con otros servicios?
         </Text>
 
         <TextInput
           style={getInputStyle('amenidades')}
           value={amenidades}
           onChangeText={setAmenidades}
-          placeholder="Respuesta abierta"
+          placeholder="Ej: Estacionamiento, seguridad 24/7, alberca, gimnasio, etc."
           placeholderTextColor="rgba(0, 0, 0, 0.5)"
           multiline
         />
@@ -530,20 +566,28 @@ const PropertyDetailsScreen = () => {
         />
 
         <Text style={styles.sectionTitleSmall}>
-          Sube imágenes de tu propiedad
+          📸 Sube imágenes de tu propiedad
         </Text>
-        <Text style={styles.subtitle}>
-          Necesitamos un mínimo de 5 imágenes.
-        </Text>
-        <Text style={styles.subtitle}>
-          Intenta mostrar: fachada, sala, cocina, cuartos, baños, etc.
-        </Text>
-        <Text style={styles.subtitle}>
-          Más y mejores imágenes atraerán más agentes y tendrás más posibilidades de encontrar un buen trato más rápido.
-        </Text>
-        <Text style={styles.subtitle}>
-          Mantén presionada una imagen para reordenarla.
-        </Text>
+        
+        <View style={styles.instructionsContainer}>
+          <Text style={styles.instructionTitle}>📋 Instrucciones importantes:</Text>
+          
+          <View style={styles.bulletPoint}>
+            <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>Necesitamos un mínimo de 5 imágenes</Text>
+          </View>
+          
+          <View style={styles.bulletPoint}>
+            <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>Más y mejores imágenes atraerán más agentes</Text>
+          </View>
+          
+          <View style={styles.bulletPoint}>
+            <Text style={styles.bulletIcon}>•</Text>
+            <Text style={styles.bulletText}>Intenta mostrar: {getImageSuggestions()}</Text>
+          </View>
+        </View>
+        
         <Text style={styles.imageCountText}>
           {selectedImages.length}/5 imágenes (mínimo requerido)
         </Text>
@@ -659,11 +703,12 @@ const styles = StyleSheet.create({
   },
   sectionTitleSmall: {
     ...FONTS.title,
-    fontSize: 18,
+    fontSize: Math.max(18, 16), // Responsive font size with minimum
     color: COLORS.secondary,
     fontWeight: 'bold',
-    marginTop: 24,
-    marginBottom: 8,
+    marginTop: Math.max(32, 24), // Responsive margin with minimum
+    marginBottom: Math.max(16, 12), // Responsive margin with minimum
+    lineHeight: Math.max(24, 20), // Ensure proper line height for larger fonts
   },
   subtitle: {
     ...FONTS.regular,
@@ -679,58 +724,67 @@ const styles = StyleSheet.create({
   rowGap: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: Math.max(16, 12), // Responsive margin with minimum
     gap: 16,
   },
   rowGap3: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 12,
+    marginBottom: Math.max(16, 12), // Responsive margin with minimum
     gap: 4,
   },
   inputContainer: {
     flex: 1,
     marginRight: 12,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerSmall: {
     flex: 1,
     maxWidth: width * 0.45,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerTiny: {
     flex: 1,
     maxWidth: width * 0.45,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerTiny3: {
     flex: 1,
     maxWidth: width * 0.28,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerCuartos: {
     flex: 1,
     maxWidth: width * 0.20,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerBanos: {
     flex: 1,
     maxWidth: width * 0.20,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputContainerMediosBanos: {
     flex: 1,
     maxWidth: width * 0.30,
+    marginBottom: Math.max(8, 4), // Add bottom margin for better spacing
   },
   inputLabel: {
     ...FONTS.regular,
-    fontSize: 15,
+    fontSize: Math.max(15, 12), // Responsive font size with minimum
     color: COLORS.white,
     fontWeight: 'bold',
-    marginBottom: 1,
+    marginBottom: Math.max(8, 4), // Responsive margin with minimum
+    lineHeight: Math.max(20, 16), // Ensure proper line height for larger fonts
   },
   input: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
     borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.white,
-    padding: 6,
-    fontSize: 14,
+    padding: Math.max(6, 4), // Responsive padding
+    fontSize: Math.max(14, 12), // Responsive font size
     color: COLORS.black,
+    height: 38, // Original height - consistent with dropdowns
   },
   inputError: {
     borderColor: '#FF4444',
@@ -740,10 +794,11 @@ const styles = StyleSheet.create({
   },
   dropdownLabel: {
     ...FONTS.regular,
-    fontSize: 15,
+    fontSize: Math.max(15, 12), // Responsive font size with minimum
     color: COLORS.white,
     fontWeight: 'bold',
-    marginBottom: 1,
+    marginBottom: Math.max(8, 4), // Responsive margin with minimum
+    lineHeight: Math.max(20, 16), // Ensure proper line height for larger fonts
   },
   dropdown: {
     backgroundColor: 'rgba(255, 255, 255, 0.9)',
@@ -752,12 +807,12 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 38,
+    height: 38, // Match standard input height
   },
   dropdownInput: {
     flex: 1,
-    padding: 6,
-    fontSize: 14,
+    padding: Math.max(6, 4), // Responsive padding
+    fontSize: Math.max(14, 12), // Responsive font size
     color: COLORS.black,
   },
   dropdownButton: {
@@ -768,11 +823,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     borderWidth: 2,
     borderColor: COLORS.white,
-    padding: 8,
-    fontSize: 14,
+    padding: Math.max(8, 6), // Responsive padding
+    fontSize: Math.max(14, 12), // Responsive font size
     color: COLORS.black,
     height: 100,
     textAlignVertical: 'top',
+    minHeight: 100, // Ensure minimum height
   },
   imageUploadButton: {
     width: '100%',
@@ -952,13 +1008,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 2,
     borderColor: COLORS.white,
-    padding: 6,
+    padding: Math.max(6, 4), // Match standard input padding
     paddingRight: 10, // Add some padding to the right for the unit
+    height: 38, // Match standard input height
   },
   inputWithUnitText: {
     flex: 1,
     padding: 0, // Remove default padding
-    fontSize: 14,
+    fontSize: Math.max(14, 12), // Responsive font size
     color: COLORS.black,
     backgroundColor: 'transparent', // Remove background to show parent background
   },
@@ -968,6 +1025,49 @@ const styles = StyleSheet.create({
     color: COLORS.black,
     marginLeft: 4,
     fontWeight: '500',
+  },
+  instructionsContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    padding: 16,
+    marginTop: 8,
+    marginBottom: 12,
+  },
+  instructionTitle: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.black,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  bulletPoint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  bulletIcon: {
+    fontSize: 18,
+    color: COLORS.primary,
+    marginRight: 8,
+    marginTop: 2,
+  },
+  bulletText: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.black,
+    flex: 1,
+  },
+  zipCodeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 8,
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    padding: Math.max(6, 4), // Match standard input padding
+    height: 38, // Match standard input height
   },
 });
 

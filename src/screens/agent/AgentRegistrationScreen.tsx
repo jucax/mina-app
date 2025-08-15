@@ -467,11 +467,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   subtitle: {
-    ...FONTS.regular,
-    fontSize: 12,
+    ...FONTS.title,
+    fontSize: 20,
     color: COLORS.secondary,
     marginBottom: 8,
     textAlign: 'center',
+    fontWeight: 'bold',
   },
   subtitle2: {
     ...FONTS.title,

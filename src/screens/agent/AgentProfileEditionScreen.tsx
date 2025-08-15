@@ -634,6 +634,7 @@ const styles = StyleSheet.create({
     padding: 16,
     flexDirection: 'row',
     alignItems: 'center',
+    height: 38, // Match standard input height
   },
   dropdownDisabled: {
     opacity: 0.5,

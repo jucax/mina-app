@@ -48,15 +48,15 @@ const RegisterScreen = () => {
   const [passwordFocused, setPasswordFocused] = useState(false);
 
   // Password requirements validation
-  const passwordRequirements = {
-    minLength: password.length >= 8,
-    hasUppercase: /[A-Z]/.test(password),
-    hasLowercase: /[a-z]/.test(password),
-    hasNumber: /\d/.test(password),
-    hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
-  };
+  // const passwordRequirements = {
+  //   minLength: password.length >= 8,
+  //   hasUppercase: /[A-Z]/.test(password),
+  //   hasLowercase: /[a-z]/.test(password),
+  //   hasNumber: /\d/.test(password),
+  //   hasSpecialChar: /[!@#$%^&*(),.?":{}|<>]/.test(password),
+  // };
 
-  const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
+  // const allRequirementsMet = Object.values(passwordRequirements).every(Boolean);
 
   // Google OAuth configuration (commented out for MVP)
   // const redirectUri = makeRedirectUri({ useProxy: true });
@@ -380,6 +380,7 @@ const RegisterScreen = () => {
               </View>
               
               {/* Password Requirements */}
+              {/*
               {passwordFocused && (
                 <View style={styles.passwordRequirements}>
                   <Text style={styles.requirementsTitle}>Requisitos de contraseña:</Text>
@@ -450,6 +451,7 @@ const RegisterScreen = () => {
                   </View>
                 </View>
               )}
+              */}
             </View>
 
             <View style={styles.inputContainer}>

@@ -628,7 +628,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.white,
     flexDirection: 'row',
     alignItems: 'center',
-    height: 40,
+    height: 38, // Match standard input height
   },
   dropdownInput: {
     flex: 1,
