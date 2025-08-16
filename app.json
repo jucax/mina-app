@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mina Real Estate",
     "slug": "mina_app",
-    "version": "1.0.0",
+    "version": "1.0.2",
     "orientation": "portrait",
     "icon": "./assets/images/mina-app-icon.png",
     "scheme": "mina-app",
@@ -16,6 +16,7 @@
       }
     },
     "android": {
+      "versionCode": 4,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"

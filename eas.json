@@ -24,6 +24,11 @@
         "simulator": true
       },
       "environment": "development"
+    },
+    "internal": {
+      "android": {
+        "buildType": "app-bundle"
+      }
     }
   },
   "submit": {
