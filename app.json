@@ -2,7 +2,7 @@
   "expo": {
     "name": "Mina Real Estate",
     "slug": "mina_app",
-    "version": "1.0.2",
+    "version": "1.0.3",
     "orientation": "portrait",
     "icon": "./assets/images/mina-app-icon.png",
     "scheme": "mina-app",
@@ -16,11 +16,12 @@
       }
     },
     "android": {
-      "versionCode": 4,
+      "versionCode": 3,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
+      "icon": "./assets/images/mina-app-icon.png",
       "edgeToEdgeEnabled": true,
       "package": "com.minarealestate"
     },
@@ -49,7 +50,7 @@
     "experiments": {
       "typedRoutes": true
     },
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.0.3",
     "privacy": "public",
     "extra": {
       "router": {},
