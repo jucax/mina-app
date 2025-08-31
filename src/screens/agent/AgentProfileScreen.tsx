@@ -7,11 +7,14 @@ import {
   Image,
   ScrollView,
   Dimensions,
+  Alert,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
-import { supabase } from '../../services/supabase';
+import { supabase, supabaseAnonKey } from '../../services/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS } from '../../styles/globalStyles';
+import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
 
 const { width, height } = Dimensions.get('window');
 
@@ -42,6 +45,7 @@ const AgentProfileScreen = () => {
   const params = useLocalSearchParams();
   const [agentProfile, setAgentProfile] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [imageUploading, setImageUploading] = useState(false);
 
   // Check if we're viewing another agent's profile (from params) or current user's profile
   const isViewingOtherProfile = params.agentImage && params.agentName;
@@ -118,6 +122,130 @@ const AgentProfileScreen = () => {
     });
   };
 
+  const pickImage = async () => {
+    try {
+      // Request permissions
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (status !== 'granted') {
+        Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
+        return;
+      }
+
+      // Launch image picker
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        await uploadProfileImage(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    }
+  };
+
+  const uploadProfileImage = async (imageUri: string) => {
+    if (!agentProfile?.id || isViewingOtherProfile) return;
+
+    try {
+      setImageUploading(true);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Usuario no autenticado');
+
+      console.log('📤 Starting profile image upload process...');
+      console.log('📁 Profile image URI:', imageUri);
+
+      // Use the same logic as RegisterScreen - use user.id instead of agent.id
+      const fileExt = imageUri.split('.').pop();
+      const fileName = `${user.id}.${fileExt}`;
+      const supabaseUrl = 'https://tliwzfdnpeozlanhpxmn.supabase.co';
+      const bucket = 'profile-images';
+      const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`;
+
+      // Determine content type (same as RegisterScreen)
+      let contentType = 'image/jpeg';
+      if (fileExt === 'png') contentType = 'image/png';
+      if (fileExt === 'webp') contentType = 'image/webp';
+
+      // Use Supabase client for upload with upsert option
+      console.log('🚀 Uploading using Supabase client with upsert...');
+      
+      // Convert URI to blob first
+      const response = await fetch(imageUri);
+      const blob = await response.blob();
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(fileName, blob, {
+          contentType: contentType,
+          upsert: true // This will overwrite existing files
+        });
+
+      if (uploadError) {
+        throw new Error(`Upload failed: ${uploadError.message}`);
+      }
+
+      // Construct the public URL (same as RegisterScreen)
+      const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fileName}`;
+      console.log('✅ Profile image uploaded and public URL:', publicUrl);
+
+      // Update database
+      const { error: updateError } = await supabase
+        .from('agents')
+        .update({ avatar_url: publicUrl })
+        .eq('id', agentProfile.id);
+
+      if (updateError) throw updateError;
+
+      // Update local state
+      setAgentProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+
+      // Also fetch the updated profile to ensure UI reflects the change
+      setTimeout(async () => {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const { data: userAuth } = await supabase
+              .from('user_auth')
+              .select('agent_id')
+              .eq('id', user.id)
+              .single();
+
+            if (userAuth?.agent_id) {
+              const { data: updatedProfile } = await supabase
+                .from('agents')
+                .select('id, full_name, email, phone, agency_name, subscription_plan, avatar_url, created_at, postal_code, state, municipality, neighborhood, street, country, experience_years, properties_sold, commission_percentage, works_at_agency, description')
+                .eq('id', userAuth.agent_id)
+                .single();
+
+              if (updatedProfile) {
+                setAgentProfile(updatedProfile);
+                console.log('🔄 Agent profile refreshed after image update');
+              }
+            }
+          }
+        } catch (refreshError) {
+          console.log('⚠️ Could not refresh agent profile, but upload was successful');
+        }
+      }, 1000);
+
+      Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente');
+      console.log('✅ Agent profile image updated successfully');
+
+    } catch (error) {
+      console.error('❌ Error uploading agent profile image:', error);
+      Alert.alert('Error', 'No se pudo actualizar la imagen de perfil');
+    } finally {
+      setImageUploading(false);
+    }
+  };
+
   const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
     <View style={styles.infoRow}>
       <View style={styles.infoIconContainer}>
@@ -172,6 +300,30 @@ const AgentProfileScreen = () => {
                 <Ionicons name="person" size={60} color={COLORS.white} />
               </View>
             )}
+            
+            {/* Only show change button for own profile */}
+            {!isViewingOtherProfile && (
+              <TouchableOpacity
+                style={styles.changeImageButton}
+                onPress={pickImage}
+                disabled={imageUploading}
+              >
+                <Ionicons 
+                  name={agentProfile.avatar_url ? "camera" : "add-circle"} 
+                  size={16} 
+                  color={COLORS.white} 
+                />
+                <Text style={styles.changeImageButtonText}>
+                  {imageUploading 
+                    ? 'Subiendo...' 
+                    : agentProfile.avatar_url 
+                      ? 'Cambiar imagen' 
+                      : 'Agregar imagen'
+                  }
+                </Text>
+              </TouchableOpacity>
+            )}
+            
             <Text style={styles.profileName}>{agentProfile.full_name}</Text>
             <Text style={styles.profileTitle}>Asesor Inmobiliario</Text>
           </View>
@@ -432,6 +584,25 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 16,
     marginLeft: 8,
+  },
+  changeImageButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    marginTop: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.3)',
+  },
+  changeImageButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 14,
+    marginLeft: 6,
+    fontWeight: '600',
   },
   loadingContainer: {
     flex: 1,

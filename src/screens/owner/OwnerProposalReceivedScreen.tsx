@@ -157,14 +157,20 @@ const OwnerProposalReceivedScreen = () => {
         {/* Agent Info */}
         <View style={styles.agentContainer}>
           <Image
-            source={require('../../../assets/images/icon.png')}
+            source={proposal.agent?.avatar_url ? { uri: proposal.agent.avatar_url } : require('../../../assets/images/icon.png')}
             style={styles.agentImage}
           />
           <View style={styles.agentInfo}>
             <TouchableOpacity
               onPress={() => {
+                console.log('🔗 Agent name clicked');
+                console.log('📋 Proposal agent_id:', proposal.agent_id);
+                console.log('📋 Full proposal object:', proposal);
                 if (proposal.agent_id) {
-                  router.push({ pathname: '/(agent)/profile', params: { id: proposal.agent_id } });
+                  console.log('🚀 Navigating to agent profile with ID:', proposal.agent_id);
+                  router.push({ pathname: '/(owner)/agent-profile-view', params: { agentId: proposal.agent_id } });
+                } else {
+                  console.log('❌ No agent_id found in proposal');
                 }
               }}
             >

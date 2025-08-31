@@ -53,6 +53,18 @@ export default function OwnerLayout() {
             headerShown: false,
           }}
         />
+        <Stack.Screen
+          name="proposal-received"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="agent-profile-view"
+          options={{
+            headerShown: false,
+          }}
+        />
       </Stack>
     </PropertyFormProvider>
   );

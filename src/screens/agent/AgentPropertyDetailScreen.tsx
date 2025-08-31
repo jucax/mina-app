@@ -194,9 +194,25 @@ const AgentPropertyDetailScreen = () => {
     }
   };
 
-  const isDocumentationComplete = (propertyData as any)?.documentation && typeof (propertyData as any).documentation === 'object'
-    ? Object.values((propertyData as any).documentation).every(Boolean)
-    : false;
+  // Count how many documents are selected
+  const getDocumentationStatus = () => {
+    if (!(propertyData as any)?.documentation || typeof (propertyData as any).documentation !== 'object') {
+      return { status: 'Parcial', isComplete: false };
+    }
+    
+    const selectedDocs = Object.values((propertyData as any).documentation).filter(Boolean).length;
+    
+    if (selectedDocs > 3) {
+      return { status: 'Completa', isComplete: true };
+    } else if (selectedDocs > 0) {
+      return { status: 'Parcial', isComplete: false };
+    } else {
+      return { status: 'Parcial', isComplete: false };
+    }
+  };
+  
+  const documentationInfo = getDocumentationStatus();
+  const isDocumentationComplete = documentationInfo.isComplete;
 
   const propertyImages = propertyData.images && propertyData.images.length > 0
     ? propertyData.images
@@ -334,10 +350,6 @@ const AgentPropertyDetailScreen = () => {
             <InfoIconText icon="water" label={`${propertyData.bathrooms || 0} baños`} />
             <InfoIconText icon="water-outline" label={`${propertyData.half_bathrooms || 0} medios baños`} />
           </View>
-          <View style={styles.centeredRow}>
-            <InfoIconText icon="car" label={`0 estacionamientos`} />
-            <InfoIconText icon="calendar" label={`Año: N/A`} />
-          </View>
 
           <View style={styles.areaContainer}>
             <View style={styles.areaInfoRow}>
@@ -371,7 +383,7 @@ const AgentPropertyDetailScreen = () => {
                 styles.documentationStatusText,
                 { color: isDocumentationComplete ? COLORS.secondary : COLORS.gray }
               ]}>
-                {isDocumentationComplete ? 'Completa' : 'Pendiente'}
+                {documentationInfo.status}
               </Text>
             </View>
           </View>
@@ -651,13 +663,7 @@ const styles = StyleSheet.create({
     ...FONTS.regular,
     fontWeight: 'bold',
   },
-  centeredRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 8,
-    gap: 32,
-  },
+
   areaInfoRow: {
     flexDirection: 'row',
     justifyContent: 'space-evenly',
