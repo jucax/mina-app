@@ -22,7 +22,7 @@ export interface SubscriptionPlan {
   name: string;
   price: number;
   period: string;
-  stripePriceId: string;
+  stripePriceId: string; // Note: Currently not used in payment processing - using dynamic pricing instead
   features: string[];
   description: string;
 }
@@ -31,9 +31,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'mensual',
     name: 'Mensual',
-    price: 10, // $10.0 MXN
+    price: 500, // $500.0 MXN
     period: 'mes',
-    stripePriceId: 'price_1RnuBaP9pd8KcDEZvBgxVyeD',
+    stripePriceId: 'price_1RnuBaP9pd8KcDEZvBgxVyeD', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -45,9 +45,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'semestral',
     name: 'Semestral',
-    price: 15, // $15.0 MXN
+    price: 2500, // $2,500.0 MXN
     period: '6 meses',
-    stripePriceId: 'price_1RnuBwP9pd8KcDEZ5bPfWcDI',
+    stripePriceId: 'price_1RnuBwP9pd8KcDEZ5bPfWcDI', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -59,9 +59,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'anual',
     name: 'Anual',
-    price: 19, // $19.0 MXN
+    price: 4500, // $4,500.0 MXN
     period: '12 meses',
-    stripePriceId: 'price_1RnuCAP9pd8KcDEZpEuwZQv3',
+    stripePriceId: 'price_1RnuCAP9pd8KcDEZpEuwZQv3', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -274,4 +274,4 @@ export const useStripePayment = () => {
   };
 
   return { processPayment };
-}; 
+};
