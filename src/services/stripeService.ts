@@ -31,9 +31,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'mensual',
     name: 'Mensual',
-    price: 500, // $500.0 MXN
+    price: 580, // $580.0 MXN (with 16% IVA)
     period: 'mes',
-    stripePriceId: 'price_1RnuBaP9pd8KcDEZvBgxVyeD', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1RlhSMBGJZRArFn91e5AMNli', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -45,9 +45,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'semestral',
     name: 'Semestral',
-    price: 2500, // $2,500.0 MXN
+    price: 2900, // $2,900.0 MXN (with 16% IVA)
     period: '6 meses',
-    stripePriceId: 'price_1RnuBwP9pd8KcDEZ5bPfWcDI', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1RlhSnBGJZRArFn9w9u5WpaF', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -59,9 +59,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'anual',
     name: 'Anual',
-    price: 4500, // $4,500.0 MXN
+    price: 5220, // $5,220.0 MXN (with 16% IVA)
     period: '12 meses',
-    stripePriceId: 'price_1RnuCAP9pd8KcDEZpEuwZQv3', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1RlhT9BGJZRArFn9rexmmxNN', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -165,7 +165,7 @@ export class StripeService {
   // Create subscription via backend
   private static async createSubscriptionViaBackend(priceId: string, customerId: string) {
     try {
-      console.log('📅 Creating subscription via backend...');
+      console.log('�� Creating subscription via backend...');
       
       const response = await fetch('https://mina-app-ten.vercel.app/api/create-subscription', {
         method: 'POST',

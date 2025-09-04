@@ -20,6 +20,13 @@ import { StripeService, subscriptionPlans } from '../../services/stripeService';
 
 const { width, height } = Dimensions.get('window');
 
+// Prices without IVA for display purposes
+const displayPrices = {
+  mensual: 500,
+  semestral: 2500,
+  anual: 4500
+};
+
 const AgentSubscriptionScreen = () => {
   const params = useLocalSearchParams();
   const [selectedPlan, setSelectedPlan] = useState<string | null>(null);
@@ -46,13 +53,7 @@ const AgentSubscriptionScreen = () => {
     <View style={styles.container}>
       <TouchableOpacity
         style={styles.backButton}
-        onPress={() => {
-          if (router.canGoBack?.()) {
-            router.back();
-          } else {
-            router.replace('/(general)/login');
-          }
-        }}
+        onPress={() => router.back()}
       >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
@@ -64,45 +65,31 @@ const AgentSubscriptionScreen = () => {
           resizeMode="contain"
         />
 
-        <Text style={styles.title}>
-          Elige tu plan de
-        </Text>
-        <Text style={styles.subtitle}>
-          SUSCRIPCIÓN
-        </Text>
+        {/* Title */}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>CRECER tu CARTERA</Text>
+          <Text style={styles.subtitle}>
+            Accede a todas las propiedades disponibles y conecta directamente con propietarios
+          </Text>
+        </View>
 
-        <Text style={styles.description}>
-          Selecciona el plan que mejor se adapte a tus necesidades
-        </Text>
-
-        {/* Features Square - Top */}
-        <View style={styles.featuresSquare}>
-          <Text style={styles.featuresTitle}>Incluye en todos los planes:</Text>
-          <View style={styles.featuresList}>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Acceso a todas las propiedades</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Contacto directo con propietarios</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Notificaciones de nuevas propiedades</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Soporte prioritario</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Dashboard personalizado</Text>
-            </View>
-            <View style={styles.featureRow}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.secondary} />
-              <Text style={styles.featureText}>Reportes de actividad</Text>
-            </View>
+        {/* Features */}
+        <View style={styles.featuresContainer}>
+          <View style={styles.featureItem}>
+            <Ionicons name="home" size={20} color={COLORS.secondary} />
+            <Text style={styles.featureText}>Acceso a todas las propiedades</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="call" size={20} color={COLORS.secondary} />
+            <Text style={styles.featureText}>Contacto directo con propietarios</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="notifications" size={20} color={COLORS.secondary} />
+            <Text style={styles.featureText}>Notificaciones de nuevas propiedades</Text>
+          </View>
+          <View style={styles.featureItem}>
+            <Ionicons name="headset" size={20} color={COLORS.secondary} />
+            <Text style={styles.featureText}>Soporte prioritario</Text>
           </View>
         </View>
 
@@ -110,7 +97,7 @@ const AgentSubscriptionScreen = () => {
         <View style={styles.plansContainer}>
           <Text style={styles.plansTitle}>Selecciona tu plan:</Text>
           
-          {/* First Row - 2 plans */}
+          {/* First Row - 2 plans side by side */}
           <View style={styles.plansRow}>
             {subscriptionPlans.slice(0, 2).map((plan) => (
               <TouchableOpacity
@@ -131,13 +118,19 @@ const AgentSubscriptionScreen = () => {
                   styles.planPrice,
                   selectedPlan === plan.id && styles.planPriceSelected
                 ]}>
-                  {StripeService.formatPrice(plan.price)}
+                  {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
                 </Text>
                 <Text style={[
                   styles.planPeriod,
                   selectedPlan === plan.id && styles.planPeriodSelected
                 ]}>
                   /{plan.period}
+                </Text>
+                <Text style={[
+                  styles.planIVA,
+                  selectedPlan === plan.id && styles.planIVASelected
+                ]}>
+                  No incluye IVA
                 </Text>
                 
                 {selectedPlan === plan.id && (
@@ -149,62 +142,69 @@ const AgentSubscriptionScreen = () => {
             ))}
           </View>
 
-          {/* Second Row - 1 plan */}
-          <View style={styles.plansRow}>
-            <View style={styles.singlePlanContainer}>
+          {/* Second Row - 1 plan centered */}
+          <View style={styles.plansRowCentered}>
+            {subscriptionPlans.slice(2, 3).map((plan) => (
               <TouchableOpacity
+                key={plan.id}
                 style={[
                   styles.planSquare,
-                  selectedPlan === subscriptionPlans[2].id && styles.planSquareSelected
+                  selectedPlan === plan.id && styles.planSquareSelected
                 ]}
-                onPress={() => handlePlanSelection(subscriptionPlans[2].id)}
+                onPress={() => handlePlanSelection(plan.id)}
               >
                 <Text style={[
                   styles.planName,
-                  selectedPlan === subscriptionPlans[2].id && styles.planNameSelected
+                  selectedPlan === plan.id && styles.planNameSelected
                 ]}>
-                  {subscriptionPlans[2].name}
+                  {plan.name}
                 </Text>
                 <Text style={[
                   styles.planPrice,
-                  selectedPlan === subscriptionPlans[2].id && styles.planPriceSelected
+                  selectedPlan === plan.id && styles.planPriceSelected
                 ]}>
-                  {StripeService.formatPrice(subscriptionPlans[2].price)}
+                  {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
                 </Text>
                 <Text style={[
                   styles.planPeriod,
-                  selectedPlan === subscriptionPlans[2].id && styles.planPeriodSelected
+                  selectedPlan === plan.id && styles.planPeriodSelected
                 ]}>
-                  /{subscriptionPlans[2].period}
+                  /{plan.period}
+                </Text>
+                <Text style={[
+                  styles.planIVA,
+                  selectedPlan === plan.id && styles.planIVASelected
+                ]}>
+                  No incluye IVA
                 </Text>
                 
-                {selectedPlan === subscriptionPlans[2].id && (
+                {selectedPlan === plan.id && (
                   <View style={styles.selectedIndicator}>
                     <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
                   </View>
                 )}
               </TouchableOpacity>
-            </View>
+            ))}
           </View>
         </View>
 
+        {/* Continue Button */}
         <TouchableOpacity
           style={[
             styles.continueButton,
-            (!selectedPlan || loading) && styles.continueButtonDisabled
+            !selectedPlan && styles.continueButtonDisabled
           ]}
           onPress={handleContinue}
-          disabled={!selectedPlan || loading}
+          disabled={!selectedPlan}
         >
           <Text style={styles.continueButtonText}>
-            {loading ? 'Continuando...' : 'Continuar al Pago'}
+            Continuar
           </Text>
         </TouchableOpacity>
 
+        {/* Terms */}
         <TouchableOpacity style={styles.termsButton}>
-          <Text style={styles.termsText}>
-            CONSULTA TÉRMINOS Y CONDICIONES
-          </Text>
+          <Text style={styles.termsText}>Términos y Condiciones</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -220,6 +220,12 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 32,
   },
+  logo: {
+    height: 40,
+    marginTop: 42,
+    marginBottom: 24,
+    alignSelf: 'center',
+  },
   backButton: {
     position: 'absolute',
     top: 40,
@@ -227,93 +233,73 @@ const styles = StyleSheet.create({
     padding: 16,
     zIndex: 10,
   },
-  logo: {
-    height: 40,
-    marginTop: 32,
-    alignSelf: 'center',
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: SIZES.margin.large,
   },
   title: {
     ...FONTS.title,
     fontSize: 28,
     color: COLORS.white,
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  subtitle: {
-    ...FONTS.title,
-    fontSize: 32,
-    color: COLORS.secondary,
     fontWeight: 'bold',
     textAlign: 'center',
+    marginBottom: SIZES.margin.small,
   },
-  description: {
+  subtitle: {
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.white,
     textAlign: 'center',
-    marginTop: 16,
-    marginBottom: 32,
+    opacity: 0.9,
+    lineHeight: 24,
   },
-  featuresSquare: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 32,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.2)',
+  featuresContainer: {
+    marginBottom: SIZES.margin.large,
   },
-  featuresTitle: {
-    ...FONTS.title,
-    fontSize: 20,
-    color: COLORS.white,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  featuresList: {
-    gap: 12,
-  },
-  featureRow: {
+  featureItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginBottom: SIZES.margin.medium,
   },
   featureText: {
     ...FONTS.regular,
-    fontSize: 14,
+    fontSize: 16,
     color: COLORS.white,
-    marginLeft: 12,
+    marginLeft: SIZES.margin.medium,
   },
   plansContainer: {
-    marginBottom: 32,
+    marginBottom: SIZES.margin.large,
   },
   plansTitle: {
     ...FONTS.title,
     fontSize: 20,
     color: COLORS.white,
     fontWeight: 'bold',
-    marginBottom: 20,
     textAlign: 'center',
+    marginBottom: SIZES.margin.large,
   },
   plansRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 12,
-    marginBottom: 12,
+    marginBottom: SIZES.margin.medium,
+    paddingHorizontal: 10,
   },
-  singlePlanContainer: {
-    flex: 1,
-    alignItems: 'center',
+  plansRowCentered: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginBottom: SIZES.margin.medium,
   },
   planSquare: {
-    width: width * 0.4,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 12,
-    padding: 20,
+    borderRadius: 16,
+    padding: SIZES.padding.medium,
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
+    width: Math.min(width * 0.42, 170),
     position: 'relative',
-    minHeight: 120,
+    minHeight: 160,
+    justifyContent: 'center',
   },
   planSquareSelected: {
     backgroundColor: COLORS.secondary,
@@ -325,15 +311,17 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontWeight: 'bold',
     marginBottom: 8,
+    textAlign: 'center',
   },
   planNameSelected: {
     color: COLORS.white,
   },
   planPrice: {
     ...FONTS.title,
-    fontSize: 20,
+    fontSize: 22,
     color: COLORS.secondary,
     fontWeight: 'bold',
+    marginBottom: 4,
   },
   planPriceSelected: {
     color: COLORS.white,
@@ -343,9 +331,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.white,
     opacity: 0.8,
+    marginBottom: 6,
+    textAlign: 'center',
   },
   planPeriodSelected: {
     color: COLORS.white,
+  },
+  planIVA: {
+    ...FONTS.regular,
+    fontSize: 10,
+    color: COLORS.white,
+    opacity: 0.7,
+    fontStyle: 'italic',
+    textAlign: 'center',
+  },
+  planIVASelected: {
+    color: COLORS.white,
+    opacity: 0.9,
   },
   selectedIndicator: {
     position: 'absolute',
@@ -390,4 +392,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgentSubscriptionScreen; 
+export default AgentSubscriptionScreen;

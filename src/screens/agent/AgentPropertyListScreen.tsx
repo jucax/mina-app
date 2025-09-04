@@ -12,7 +12,7 @@ import {
   Modal,
   Pressable,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
@@ -69,6 +69,62 @@ const AgentPropertyListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [responseProposalsCount, setResponseProposalsCount] = useState(0);
+
+  // Fetch user profile function
+  const fetchUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log('🔍 Current user:', user?.id);
+      
+      if (user) {
+        // First check if user is an agent
+        const { data: userAuth, error: userAuthError } = await supabase
+          .from('user_auth')
+          .select('user_type, agent_id')
+          .eq('id', user.id)
+          .single();
+
+        if (userAuthError) {
+          console.error('❌ Error fetching user auth:', userAuthError);
+          return;
+        }
+
+        console.log('🔍 User auth data:', userAuth);
+
+        if (userAuth?.user_type === 'agent' && userAuth?.agent_id) {
+          // Fetch agent profile
+          const { data: agentProfile, error } = await supabase
+            .from('agents')
+            .select('id, full_name, avatar_url')
+            .eq('id', userAuth.agent_id)
+            .single();
+
+          if (error) {
+            console.error('❌ Error fetching agent profile:', error);
+          } else {
+            console.log('✅ Agent profile fetched successfully:', agentProfile);
+            console.log('🖼️ Avatar URL:', agentProfile.avatar_url);
+            
+            // Test if the image URL is accessible
+            if (agentProfile.avatar_url) {
+              try {
+                const response = await fetch(agentProfile.avatar_url, { method: 'HEAD' });
+                console.log('🖼️ Image URL status:', response.status, response.ok ? '✅ Accessible' : '❌ Not accessible');
+              } catch (fetchError) {
+                console.error('❌ Error testing image URL:', fetchError);
+              }
+            }
+            
+            setUserProfile(agentProfile);
+          }
+        } else {
+          console.log('⚠️ User is not an agent or agent_id not found');
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error fetching user profile:', error);
+    }
+  };
 
   // Fetch properties from database
   const fetchProperties = async () => {
@@ -158,63 +214,16 @@ const AgentPropertyListScreen = () => {
 
   // Fetch user profile on component mount
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      try {
-        const { data: { user } } = await supabase.auth.getUser();
-        console.log('🔍 Current user:', user?.id);
-        
-        if (user) {
-          // First check if user is an agent
-          const { data: userAuth, error: userAuthError } = await supabase
-            .from('user_auth')
-            .select('user_type, agent_id')
-            .eq('id', user.id)
-            .single();
-
-          if (userAuthError) {
-            console.error('❌ Error fetching user auth:', userAuthError);
-            return;
-          }
-
-          console.log('🔍 User auth data:', userAuth);
-
-          if (userAuth?.user_type === 'agent' && userAuth?.agent_id) {
-            // Fetch agent profile
-            const { data: agentProfile, error } = await supabase
-              .from('agents')
-              .select('id, full_name, avatar_url')
-              .eq('id', userAuth.agent_id)
-              .single();
-
-            if (error) {
-              console.error('❌ Error fetching agent profile:', error);
-            } else {
-              console.log('✅ Agent profile fetched successfully:', agentProfile);
-              console.log('🖼️ Avatar URL:', agentProfile.avatar_url);
-              
-              // Test if the image URL is accessible
-              if (agentProfile.avatar_url) {
-                try {
-                  const response = await fetch(agentProfile.avatar_url, { method: 'HEAD' });
-                  console.log('🖼️ Image URL status:', response.status, response.ok ? '✅ Accessible' : '❌ Not accessible');
-                } catch (fetchError) {
-                  console.error('❌ Error testing image URL:', fetchError);
-                }
-              }
-              
-              setUserProfile(agentProfile);
-            }
-          } else {
-            console.log('⚠️ User is not an agent or agent_id not found');
-          }
-        }
-      } catch (error) {
-        console.error('❌ Error fetching user profile:', error);
-      }
-    };
-
     fetchUserProfile();
   }, []);
+
+  // Refresh user profile when screen comes into focus (e.g., returning from profile screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused - refreshing user profile...');
+      fetchUserProfile();
+    }, [])
+  );
 
   // Log avatar URL when it changes
   useEffect(() => {
@@ -826,4 +835,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgentPropertyListScreen; 
+export default AgentPropertyListScreen;

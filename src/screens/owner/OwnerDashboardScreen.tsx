@@ -13,7 +13,7 @@ import {
   Modal,
   RefreshControl,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { supabase } from '../../services/supabase';
 import { PropertyService } from '../../services/propertyService';
 import { ProposalService } from '../../services/proposalService';
@@ -41,13 +41,7 @@ const OwnerDashboardScreen = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [pendingProposalsCount, setPendingProposalsCount] = useState(0);
 
-  // Fetch user profile and properties on component mount
-  useEffect(() => {
-    fetchUserProfile();
-    fetchProperties();
-    fetchPendingProposalsCount();
-  }, []);
-
+  // Fetch user profile function
   const fetchUserProfile = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -91,6 +85,21 @@ const OwnerDashboardScreen = () => {
       console.error('❌ Error fetching user profile (Owner):', error);
     }
   };
+
+  // Fetch user profile and properties on component mount
+  useEffect(() => {
+    fetchUserProfile();
+    fetchProperties();
+    fetchPendingProposalsCount();
+  }, []);
+
+  // Refresh user profile when screen comes into focus (e.g., returning from profile screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused - refreshing user profile...');
+      fetchUserProfile();
+    }, [])
+  );
 
   const fetchProperties = async () => {
     try {
@@ -626,4 +635,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OwnerDashboardScreen; 
+export default OwnerDashboardScreen;

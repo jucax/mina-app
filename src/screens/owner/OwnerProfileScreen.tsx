@@ -36,65 +36,65 @@ const OwnerProfileScreen = () => {
   // Check if we're viewing another owner's profile (from params) or current user's profile
   const isViewingOtherProfile = params.agentImage && params.agentName;
 
-  useEffect(() => {
-    const fetchProfile = async () => {
-      try {
-        if (isViewingOtherProfile) {
-          // Use the profile data from params (for viewing other owners)
-          console.log('👥 Viewing other owner profile from params');
-          setOwnerProfile({
-            id: '',
-            full_name: params.agentName as string,
-            email: '',
-            phone: params.contact as string,
-            avatar_url: params.agentImage as string,
-          });
-        } else {
-          // Fetch current user's profile
-          const { data: { user } } = await supabase.auth.getUser();
-          console.log('🔍 Current user (Owner Profile):', user?.id);
-          
-          if (user) {
-            // First check if user is an owner
-            const { data: userAuth, error: userAuthError } = await supabase
-              .from('user_auth')
-              .select('user_type, owner_id')
-              .eq('id', user.id)
+  const fetchProfile = async () => {
+    try {
+      if (isViewingOtherProfile) {
+        // Use the profile data from params (for viewing other owners)
+        console.log('👥 Viewing other owner profile from params');
+        setOwnerProfile({
+          id: '',
+          full_name: params.agentName as string,
+          email: '',
+          phone: params.contact as string,
+          avatar_url: params.agentImage as string,
+        });
+      } else {
+        // Fetch current user's profile
+        const { data: { user } } = await supabase.auth.getUser();
+        console.log('🔍 Current user (Owner Profile):', user?.id);
+        
+        if (user) {
+          // First check if user is an owner
+          const { data: userAuth, error: userAuthError } = await supabase
+            .from('user_auth')
+            .select('user_type, owner_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userAuthError) {
+            console.error('❌ Error fetching user auth (Owner Profile):', userAuthError);
+            return;
+          }
+
+          console.log('🔍 User auth data (Owner Profile):', userAuth);
+
+          if (userAuth?.user_type === 'owner' && userAuth?.owner_id) {
+            // Fetch owner profile
+            const { data: ownerProfile, error } = await supabase
+              .from('owners')
+              .select('id, full_name, email, phone, avatar_url, created_at')
+              .eq('id', userAuth.owner_id)
               .single();
 
-            if (userAuthError) {
-              console.error('❌ Error fetching user auth (Owner Profile):', userAuthError);
-              return;
-            }
-
-            console.log('🔍 User auth data (Owner Profile):', userAuth);
-
-            if (userAuth?.user_type === 'owner' && userAuth?.owner_id) {
-              // Fetch owner profile
-              const { data: ownerProfile, error } = await supabase
-                .from('owners')
-                .select('id, full_name, email, phone, avatar_url, created_at')
-                .eq('id', userAuth.owner_id)
-                .single();
-
-              if (error) {
-                console.error('❌ Error fetching owner profile (Owner Profile):', error);
-              } else {
-                console.log('✅ Owner profile fetched successfully (Owner Profile):', ownerProfile);
-                setOwnerProfile(ownerProfile);
-              }
+            if (error) {
+              console.error('❌ Error fetching owner profile (Owner Profile):', error);
             } else {
-              console.log('⚠️ User is not an owner or owner_id not found (Owner Profile)');
+              console.log('✅ Owner profile fetched successfully (Owner Profile):', ownerProfile);
+              setOwnerProfile(ownerProfile);
             }
+          } else {
+            console.log('⚠️ User is not an owner or owner_id not found (Owner Profile)');
           }
         }
-      } catch (error) {
-        console.error('❌ Error fetching profile (Owner Profile):', error);
-      } finally {
-        setLoading(false);
       }
-    };
+    } catch (error) {
+      console.error('❌ Error fetching profile (Owner Profile):', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchProfile();
   }, [isViewingOtherProfile]);
 
@@ -147,7 +147,7 @@ const OwnerProfileScreen = () => {
       console.log('📤 Starting profile image upload process...');
       console.log('📁 Profile image URI:', imageUri);
 
-      // Use the same logic as RegisterScreen - use user.id instead of owner.id
+      // Use the SAME logic as RegisterScreen - FileSystem.uploadAsync method
       const fileExt = imageUri.split('.').pop();
       const fileName = `${user.id}.${fileExt}`;
       const supabaseUrl = 'https://tliwzfdnpeozlanhpxmn.supabase.co';
@@ -159,22 +159,37 @@ const OwnerProfileScreen = () => {
       if (fileExt === 'png') contentType = 'image/png';
       if (fileExt === 'webp') contentType = 'image/webp';
 
-      // Use Supabase client for upload with upsert option
-      console.log('🚀 Uploading using Supabase client with upsert...');
-      
-      // Convert URI to blob first
-      const response = await fetch(imageUri);
-      const blob = await response.blob();
-      
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from(bucket)
-        .upload(fileName, blob, {
-          contentType: contentType,
-          upsert: true // This will overwrite existing files
-        });
+      // First, try to delete existing file to avoid duplicate error
+      console.log('🗑️ Attempting to delete existing profile image...');
+      try {
+        const { error: deleteError } = await supabase.storage
+          .from(bucket)
+          .remove([fileName]);
+        
+        if (deleteError) {
+          console.log('ℹ️ No existing file to delete or delete failed (this is OK):', deleteError.message);
+        } else {
+          console.log('✅ Existing file deleted successfully');
+        }
+      } catch (deleteErr) {
+        console.log('ℹ️ Delete operation failed (this is OK):', deleteErr);
+      }
 
-      if (uploadError) {
-        throw new Error(`Upload failed: ${uploadError.message}`);
+      // Upload the file using FileSystem.uploadAsync (SAME as RegisterScreen)
+      console.log('🚀 Uploading to Supabase Storage REST endpoint using FileSystem.uploadAsync...');
+      const uploadRes = await FileSystem.uploadAsync(uploadUrl, imageUri, {
+        httpMethod: 'POST',
+        headers: {
+          'Authorization': `Bearer ${supabaseAnonKey}`,
+          'Content-Type': contentType,
+        },
+        uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
+      });
+
+      console.log('📤 uploadAsync response:', uploadRes);
+
+      if (uploadRes.status !== 200 && uploadRes.status !== 201) {
+        throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.body}`);
       }
 
       // Construct the public URL (same as RegisterScreen)
@@ -189,37 +204,14 @@ const OwnerProfileScreen = () => {
 
       if (updateError) throw updateError;
 
-      // Update local state
+      // Update local state immediately
       setOwnerProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
+      console.log('✅ Local state updated with new avatar URL');
 
-      // Also fetch the updated profile to ensure UI reflects the change
-      setTimeout(async () => {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
-            const { data: userAuth } = await supabase
-              .from('user_auth')
-              .select('owner_id')
-              .eq('id', user.id)
-              .single();
-
-            if (userAuth?.owner_id) {
-              const { data: updatedProfile } = await supabase
-                .from('owners')
-                .select('id, full_name, email, phone, avatar_url, created_at')
-                .eq('id', userAuth.owner_id)
-                .single();
-
-              if (updatedProfile) {
-                setOwnerProfile(updatedProfile);
-                console.log('🔄 Profile refreshed after image update');
-              }
-            }
-          }
-        } catch (refreshError) {
-          console.log('⚠️ Could not refresh profile, but upload was successful');
-        }
-      }, 1000);
+      // Also refresh the profile from database to ensure consistency
+      console.log('🔄 Refreshing profile from database...');
+      await fetchProfile();
+      console.log('✅ Profile refreshed from database');
 
       Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente');
       console.log('✅ Profile image updated successfully');
@@ -535,4 +527,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OwnerProfileScreen; 
+export default OwnerProfileScreen;
