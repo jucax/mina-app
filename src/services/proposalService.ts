@@ -149,46 +149,127 @@ export class ProposalService {
     }
   }
 
-  // Get a specific proposal by ID
+  // Get a specific proposal by ID with proper error handling
   static async getProposalById(id: string): Promise<Proposal | null> {
     try {
-      const { data: proposal, error } = await supabase
+      console.log('🔍 Fetching proposal with ID:', id);
+      
+      // First, get the basic proposal data
+      const { data: proposal, error: proposalError } = await supabase
         .from('proposals')
-        .select(`
-          *,
-          agent:agents(
+        .select('*')
+        .eq('id', id)
+        .single();
+
+      if (proposalError) {
+        console.error('❌ Error fetching proposal:', proposalError);
+        if (proposalError.code === 'PGRST116') {
+          throw new Error('Propuesta no encontrada');
+        }
+        throw proposalError;
+      }
+
+      if (!proposal) {
+        console.log('❌ No proposal found');
+        return null;
+      }
+
+      console.log('✅ Proposal found:', proposal);
+
+      // Try to fetch agent data
+      let agentData = null;
+      if (proposal.agent_id) {
+        console.log('🔍 Fetching agent data for ID:', proposal.agent_id);
+        
+        const { data: agent, error: agentError } = await supabase
+          .from('agents')
+          .select(`
             full_name,
             avatar_url,
             agency_name,
             experience_years,
             properties_sold,
             commission_percentage
-          ),
-          property:properties(
+          `)
+          .eq('id', proposal.agent_id)
+          .maybeSingle();
+
+        if (agentError) {
+          console.error('❌ Error fetching agent data:', agentError);
+        } else if (agent) {
+          console.log('✅ Agent data found:', agent);
+          agentData = agent;
+        } else {
+          console.log('⚠️ Agent not found with ID:', proposal.agent_id);
+        }
+      }
+
+      // Try to fetch property data
+      let propertyData = null;
+      if (proposal.property_id) {
+        console.log('🔍 Fetching property data for ID:', proposal.property_id);
+        
+        const { data: property, error: propertyError } = await supabase
+          .from('properties')
+          .select(`
             property_type,
             intent,
             price,
             municipality,
             state,
             images
-          ),
-          owner:owners(
+          `)
+          .eq('id', proposal.property_id)
+          .maybeSingle();
+
+        if (propertyError) {
+          console.error('❌ Error fetching property data:', propertyError);
+        } else if (property) {
+          console.log('✅ Property data found:', property);
+          propertyData = property;
+        } else {
+          console.log('⚠️ Property not found with ID:', proposal.property_id);
+        }
+      }
+
+      // Try to fetch owner data
+      let ownerData = null;
+      if (proposal.owner_id) {
+        console.log('🔍 Fetching owner data for ID:', proposal.owner_id);
+        
+        const { data: owner, error: ownerError } = await supabase
+          .from('owners')
+          .select(`
             full_name,
             email,
             phone
-          )
-        `)
-        .eq('id', id)
-        .single();
+          `)
+          .eq('id', proposal.owner_id)
+          .maybeSingle();
 
-      if (error) {
-        console.error('Error fetching proposal:', error);
-        throw error;
+        if (ownerError) {
+          console.error('❌ Error fetching owner data:', ownerError);
+        } else if (owner) {
+          console.log('✅ Owner data found:', owner);
+          ownerData = owner;
+        } else {
+          console.log('⚠️ Owner not found with ID:', proposal.owner_id);
+        }
       }
 
-      return proposal;
+      // Combine all data
+      const fullProposal: Proposal = {
+        ...proposal,
+        agent: agentData,
+        property: propertyData,
+        owner: ownerData,
+      };
+
+      console.log('✅ Final proposal with all data:', fullProposal);
+      return fullProposal;
+
     } catch (error) {
-      console.error('Error in getProposalById:', error);
+      console.error('❌ Error in getProposalById:', error);
       throw error;
     }
   }
@@ -198,7 +279,7 @@ export class ProposalService {
     try {
       const { error } = await supabase
         .from('proposals')
-        .update({ status })
+        .update({ status, updated_at: new Date().toISOString() })
         .eq('id', id);
 
       if (error) {
@@ -211,7 +292,7 @@ export class ProposalService {
     }
   }
 
-  // Get proposals sent by an agent
+  // Get proposals by agent
   static async getProposalsByAgent(): Promise<Proposal[]> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -263,7 +344,7 @@ export class ProposalService {
     }
   }
 
-  // Check how many proposals an agent has sent for a specific property
+  // Get agent proposal count for a specific property
   static async getAgentProposalCountForProperty(propertyId: string): Promise<number> {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -282,21 +363,21 @@ export class ProposalService {
         throw new Error('Usuario no es un agente válido');
       }
 
-      const { data: proposals, error } = await supabase
+      const { count, error } = await supabase
         .from('proposals')
-        .select('id')
-        .eq('property_id', propertyId)
-        .eq('agent_id', userAuth.agent_id);
+        .select('*', { count: 'exact' })
+        .eq('agent_id', userAuth.agent_id)
+        .eq('property_id', propertyId);
 
       if (error) {
-        console.error('Error fetching agent proposal count:', error);
+        console.error('Error fetching proposal count:', error);
         throw error;
       }
 
-      return proposals?.length || 0;
+      return count || 0;
     } catch (error) {
       console.error('Error in getAgentProposalCountForProperty:', error);
       throw error;
     }
   }
-} 
+}

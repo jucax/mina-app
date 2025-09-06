@@ -8,7 +8,6 @@ import {
   ScrollView,
   Dimensions,
   Alert,
-  Platform,
 } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { supabase } from '../../services/supabase';
@@ -23,7 +22,6 @@ interface AgentProfile {
   email: string;
   phone: string;
   agency_name?: string;
-  license_number?: string;
   subscription_plan?: string;
   avatar_url?: string;
   created_at?: string;
@@ -44,6 +42,7 @@ const OwnerAgentProfileViewScreen = () => {
   const { agentId } = useLocalSearchParams<{ agentId: string }>();
   const [agentProfile, setAgentProfile] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('🚀 OwnerAgentProfileViewScreen mounted');
@@ -53,13 +52,35 @@ const OwnerAgentProfileViewScreen = () => {
       try {
         if (!agentId) {
           console.log('❌ No agentId provided');
-          Alert.alert('Error', 'ID del agente no encontrado');
+          setError('ID del agente no encontrado');
           return;
         }
 
         console.log('🔍 Fetching agent profile for ID:', agentId);
 
-        const { data: agentProfile, error } = await supabase
+        // First, let's check if the agent exists
+        const { data: agentCheck, error: checkError } = await supabase
+          .from('agents')
+          .select('id')
+          .eq('id', agentId)
+          .maybeSingle();
+
+        if (checkError) {
+          console.error('❌ Error checking agent existence:', checkError);
+          setError('Error al verificar el agente');
+          return;
+        }
+
+        if (!agentCheck) {
+          console.log('❌ Agent not found with ID:', agentId);
+          setError('Agente no encontrado');
+          return;
+        }
+
+        console.log('✅ Agent exists, fetching full profile...');
+
+        // Now fetch the full agent profile
+        const { data: agentProfile, error: fetchError } = await supabase
           .from('agents')
           .select(`
             id, 
@@ -67,7 +88,6 @@ const OwnerAgentProfileViewScreen = () => {
             email, 
             phone, 
             agency_name, 
-            license_number,
             subscription_plan, 
             avatar_url, 
             created_at, 
@@ -84,11 +104,17 @@ const OwnerAgentProfileViewScreen = () => {
             description
           `)
           .eq('id', agentId)
-          .single();
+          .maybeSingle();
 
-        if (error) {
-          console.error('❌ Error fetching agent profile:', error);
-          Alert.alert('Error', 'No se pudo cargar el perfil del agente');
+        if (fetchError) {
+          console.error('❌ Error fetching agent profile:', fetchError);
+          setError('Error al cargar el perfil del agente');
+          return;
+        }
+
+        if (!agentProfile) {
+          console.log('❌ Agent profile not found');
+          setError('Perfil del agente no encontrado');
           return;
         }
 
@@ -96,7 +122,7 @@ const OwnerAgentProfileViewScreen = () => {
         setAgentProfile(agentProfile);
       } catch (error) {
         console.error('❌ Error in fetchAgentProfile:', error);
-        Alert.alert('Error', 'Ocurrió un error al cargar el perfil');
+        setError('Ocurrió un error al cargar el perfil');
       } finally {
         setLoading(false);
       }
@@ -110,7 +136,7 @@ const OwnerAgentProfileViewScreen = () => {
     return date.toLocaleDateString('es-MX', {
       year: 'numeric',
       month: 'long',
-      day: 'numeric',
+      day: 'numeric'
     });
   };
 
@@ -124,12 +150,6 @@ const OwnerAgentProfileViewScreen = () => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-        </TouchableOpacity>
         <View style={styles.loadingContainer}>
           <Text style={styles.loadingText}>Cargando perfil del agente...</Text>
         </View>
@@ -137,7 +157,7 @@ const OwnerAgentProfileViewScreen = () => {
     );
   }
 
-  if (!agentProfile) {
+  if (error || !agentProfile) {
     return (
       <View style={styles.container}>
         <TouchableOpacity
@@ -146,8 +166,69 @@ const OwnerAgentProfileViewScreen = () => {
         >
           <Ionicons name="arrow-back" size={28} color={COLORS.white} />
         </TouchableOpacity>
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Perfil del agente no encontrado</Text>
+        
+        <View style={styles.errorContainer}>
+          <Ionicons name="person-circle-outline" size={80} color={COLORS.secondary} />
+          <Text style={styles.errorText}>
+            {error || 'No se pudo cargar el perfil del agente'}
+          </Text>
+          <Text style={styles.errorSubtext}>
+            El agente puede haber eliminado su cuenta o no estar disponible.
+          </Text>
+          <TouchableOpacity 
+            style={styles.retryButton} 
+            onPress={() => {
+              setError(null);
+              setLoading(true);
+              // Retry the fetch
+              const fetchAgentProfile = async () => {
+                try {
+                  if (!agentId) return;
+                  
+                  const { data: agentProfile, error: fetchError } = await supabase
+                    .from('agents')
+                    .select(`
+                      id, 
+                      full_name, 
+                      email, 
+                      phone, 
+                      agency_name, 
+                      subscription_plan, 
+                      avatar_url, 
+                      created_at, 
+                      postal_code, 
+                      state, 
+                      municipality, 
+                      neighborhood, 
+                      street, 
+                      country, 
+                      experience_years, 
+                      properties_sold, 
+                      commission_percentage, 
+                      works_at_agency, 
+                      description
+                    `)
+                    .eq('id', agentId)
+                    .maybeSingle();
+
+                  if (fetchError || !agentProfile) {
+                    setError('Agente no encontrado');
+                  } else {
+                    setAgentProfile(agentProfile);
+                    setError(null);
+                  }
+                } catch (error) {
+                  setError('Error al cargar el perfil');
+                } finally {
+                  setLoading(false);
+                }
+              };
+              
+              fetchAgentProfile();
+            }}
+          >
+            <Text style={styles.retryButtonText}>Intentar de nuevo</Text>
+          </TouchableOpacity>
         </View>
       </View>
     );
@@ -189,73 +270,69 @@ const OwnerAgentProfileViewScreen = () => {
         {/* Contact Information */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Información de Contacto</Text>
-          <View style={styles.sectionContent}>
-            <View style={styles.infoItem}>
-              <Ionicons name="mail" size={20} color={COLORS.secondary} />
-              <Text style={styles.infoText}>{agentProfile.email}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Ionicons name="call" size={20} color={COLORS.secondary} />
-              <Text style={styles.infoText}>{agentProfile.phone}</Text>
-            </View>
-            {agentProfile.license_number && (
-              <View style={styles.infoItem}>
-                <Ionicons name="document-text" size={20} color={COLORS.secondary} />
-                <Text style={styles.infoText}>Licencia: {agentProfile.license_number}</Text>
-              </View>
-            )}
+          
+          <View style={styles.infoRow}>
+            <Ionicons name="mail" size={20} color={COLORS.secondary} />
+            <Text style={styles.infoText}>{agentProfile.email}</Text>
           </View>
+          
+          <View style={styles.infoRow}>
+            <Ionicons name="call" size={20} color={COLORS.secondary} />
+            <Text style={styles.infoText}>{agentProfile.phone}</Text>
+          </View>
+          
+          {agentProfile.postal_code && (
+            <View style={styles.infoRow}>
+              <Ionicons name="location" size={20} color={COLORS.secondary} />
+              <Text style={styles.infoText}>
+                {agentProfile.street && `${agentProfile.street}, `}
+                {agentProfile.neighborhood && `${agentProfile.neighborhood}, `}
+                {agentProfile.municipality && `${agentProfile.municipality}, `}
+                {agentProfile.state && `${agentProfile.state}, `}
+                {agentProfile.postal_code}
+              </Text>
+            </View>
+          )}
         </View>
 
-        {/* Experience Information */}
-        {(agentProfile.experience_years || agentProfile.properties_sold) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Experiencia</Text>
-            <View style={styles.sectionContent}>
-              {agentProfile.experience_years && (
-                <View style={styles.infoItem}>
-                  <Ionicons name="time" size={20} color={COLORS.secondary} />
-                  <Text style={styles.infoText}>{agentProfile.experience_years} años de experiencia</Text>
-                </View>
-              )}
-              {agentProfile.properties_sold && (
-                <View style={styles.infoItem}>
-                  <Ionicons name="home" size={20} color={COLORS.secondary} />
-                  <Text style={styles.infoText}>{agentProfile.properties_sold} propiedades vendidas</Text>
-                </View>
-              )}
-              {agentProfile.commission_percentage && (
-                <View style={styles.infoItem}>
-                  <Ionicons name="trending-up" size={20} color={COLORS.secondary} />
-                  <Text style={styles.infoText}>Comisión: {agentProfile.commission_percentage}%</Text>
-                </View>
-              )}
+        {/* Professional Information */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Información Profesional</Text>
+          
+          {agentProfile.experience_years && (
+            <View style={styles.infoRow}>
+              <Ionicons name="briefcase" size={20} color={COLORS.secondary} />
+              <Text style={styles.infoText}>{agentProfile.experience_years} años de experiencia</Text>
             </View>
-          </View>
-        )}
-
-        {/* Location Information */}
-        {(agentProfile.state || agentProfile.municipality) && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Ubicación</Text>
-            <View style={styles.sectionContent}>
-              <View style={styles.infoItem}>
-                <Ionicons name="location" size={20} color={COLORS.secondary} />
-                <Text style={styles.infoText}>
-                  {[agentProfile.municipality, agentProfile.state].filter(Boolean).join(', ')}
-                </Text>
-              </View>
+          )}
+          
+          {agentProfile.properties_sold && (
+            <View style={styles.infoRow}>
+              <Ionicons name="home" size={20} color={COLORS.secondary} />
+              <Text style={styles.infoText}>{agentProfile.properties_sold} propiedades vendidas</Text>
             </View>
+          )}
+          
+          {agentProfile.commission_percentage && (
+            <View style={styles.infoRow}>
+              <Ionicons name="pricetag" size={20} color={COLORS.secondary} />
+              <Text style={styles.infoText}>Comisión: {agentProfile.commission_percentage}%</Text>
+            </View>
+          )}
+          
+          <View style={styles.infoRow}>
+            <Ionicons name="business" size={20} color={COLORS.secondary} />
+            <Text style={styles.infoText}>
+              {agentProfile.works_at_agency ? 'Trabaja en inmobiliaria' : 'Independiente'}
+            </Text>
           </View>
-        )}
+        </View>
 
         {/* Description */}
         {agentProfile.description && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Descripción</Text>
-            <View style={styles.sectionContent}>
-              <Text style={styles.descriptionText}>{agentProfile.description}</Text>
-            </View>
+            <Text style={styles.descriptionText}>{agentProfile.description}</Text>
           </View>
         )}
 
@@ -263,12 +340,7 @@ const OwnerAgentProfileViewScreen = () => {
         {agentProfile.created_at && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Miembro desde</Text>
-            <View style={styles.sectionContent}>
-              <View style={styles.infoItem}>
-                <Ionicons name="calendar" size={20} color={COLORS.secondary} />
-                <Text style={styles.infoText}>{formatDate(agentProfile.created_at)}</Text>
-              </View>
-            </View>
+            <Text style={styles.infoText}>{formatDate(agentProfile.created_at)}</Text>
           </View>
         )}
       </ScrollView>
@@ -281,66 +353,63 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 60 : 40,
-    left: 0,
-    padding: 16,
-    zIndex: 10,
-  },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
     padding: 24,
-    paddingTop: Platform.OS === 'ios' ? 100 : 80,
-    paddingBottom: 40,
+    paddingBottom: 32,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 40,
+    left: 0,
+    padding: 16,
+    zIndex: 10,
   },
   title: {
     ...FONTS.title,
-    fontSize: Math.max(SIZES.extraLarge, 24),
+    fontSize: 28,
     color: COLORS.white,
-    fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 32,
-  },
-  profileHeader: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 24,
+    marginTop: 60,
     marginBottom: 24,
   },
+  profileHeader: {
+    flexDirection: 'row',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 24,
+    alignItems: 'center',
+  },
   profileImage: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    marginBottom: 16,
-    borderWidth: 3,
-    borderColor: COLORS.secondary,
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    marginRight: 16,
   },
   profileInfo: {
-    alignItems: 'center',
+    flex: 1,
   },
   agentName: {
     ...FONTS.title,
-    fontSize: Math.max(SIZES.large, 20),
+    fontSize: 22,
     color: COLORS.white,
     fontWeight: 'bold',
     marginBottom: 4,
-    textAlign: 'center',
   },
   agentTitle: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.medium, 16),
-    color: COLORS.white,
-    opacity: 0.8,
+    fontSize: 16,
+    color: COLORS.secondary,
     marginBottom: 4,
   },
   agentAgency: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.font, 14),
-    color: COLORS.secondary,
+    fontSize: 14,
+    color: COLORS.white,
+    opacity: 0.8,
     marginBottom: 8,
   },
   planBadge: {
@@ -348,45 +417,44 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 12,
+    alignSelf: 'flex-start',
   },
   planText: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.font - 2, 12),
+    fontSize: 12,
     color: COLORS.white,
     fontWeight: 'bold',
   },
   section: {
-    marginBottom: 24,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 20,
+    marginBottom: 16,
   },
   sectionTitle: {
     ...FONTS.title,
-    fontSize: Math.max(SIZES.large, 18),
+    fontSize: 18,
     color: COLORS.secondary,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
-  sectionContent: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 16,
-  },
-  infoItem: {
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginBottom: 12,
   },
   infoText: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.font, 14),
+    fontSize: 16,
     color: COLORS.white,
     marginLeft: 12,
     flex: 1,
   },
   descriptionText: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.font, 14),
+    fontSize: 16,
     color: COLORS.white,
-    lineHeight: 20,
+    lineHeight: 24,
   },
   loadingContainer: {
     flex: 1,
@@ -395,9 +463,49 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...FONTS.regular,
-    fontSize: Math.max(SIZES.medium, 16),
+    fontSize: 18,
     color: COLORS.white,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  errorText: {
+    ...FONTS.regular,
+    fontSize: 18,
+    color: COLORS.white,
+    textAlign: 'center',
+    marginBottom: 12,
+    marginTop: 16,
+  },
+  errorSubtext: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.white,
+    textAlign: 'center',
+    opacity: 0.7,
+    marginBottom: 24,
+  },
+  retryButton: {
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 8,
+  },
+  retryButtonText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  backButtonText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
   },
 });
 
-export default OwnerAgentProfileViewScreen; 
+export default OwnerAgentProfileViewScreen;

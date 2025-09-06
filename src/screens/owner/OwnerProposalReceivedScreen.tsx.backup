@@ -25,16 +25,12 @@ const OwnerProposalReceivedScreen = () => {
   useEffect(() => {
     const fetchProposal = async () => {
       try {
-        console.log('🔍 Fetching proposal with ID:', proposalId);
         if (proposalId) {
           const data = await ProposalService.getProposalById(proposalId);
-          console.log('📋 Proposal data received:', data);
-          console.log('👤 Agent data in proposal:', data?.agent);
-          console.log('🆔 Agent ID in proposal:', data?.agent_id);
           setProposal(data);
         }
       } catch (error) {
-        console.error('❌ Error fetching proposal:', error);
+        console.error('Error fetching proposal:', error);
         Alert.alert(
           'Error',
           'No se pudo cargar la propuesta.',
@@ -54,14 +50,19 @@ const OwnerProposalReceivedScreen = () => {
     setResponding(true);
     try {
       await ProposalService.updateProposalStatus(proposal.id, 'accepted');
+      
       Alert.alert(
         '¡Propuesta Aceptada!',
-        'Has aceptado la propuesta del asesor. Se le notificará.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        '¡Felicidades! Tu información de contacto ha sido compartida con este agente. Él debería contactarte pronto para coordinar los siguientes pasos.',
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(owner)/notifications', params: { refresh: '1' } }) }]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error accepting proposal:', error);
-      Alert.alert('Error', 'No se pudo aceptar la propuesta.');
+      Alert.alert(
+        'Error',
+        'No se pudo aceptar la propuesta. Por favor, intenta de nuevo.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setResponding(false);
     }
@@ -73,24 +74,22 @@ const OwnerProposalReceivedScreen = () => {
     setResponding(true);
     try {
       await ProposalService.updateProposalStatus(proposal.id, 'rejected');
+      
       Alert.alert(
         'Propuesta Rechazada',
-        'Has rechazado la propuesta del asesor.',
-        [{ text: 'OK', onPress: () => router.back() }]
+        'No te preocupes, hemos notificado al agente sobre tu decisión. Estamos seguros de que encontrarás al agente perfecto para tu propiedad.',
+        [{ text: 'OK', onPress: () => router.replace({ pathname: '/(owner)/notifications', params: { refresh: '1' } }) }]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error rejecting proposal:', error);
-      Alert.alert('Error', 'No se pudo rechazar la propuesta.');
+      Alert.alert(
+        'Error',
+        'No se pudo rechazar la propuesta. Por favor, intenta de nuevo.',
+        [{ text: 'OK' }]
+      );
     } finally {
       setResponding(false);
     }
-  };
-
-  const getPropertyImage = (proposal: Proposal) => {
-    if (proposal.property?.images && proposal.property.images.length > 0) {
-      return { uri: proposal.property.images[0] };
-    }
-    return require('../../../assets/images/logo_login_screen.png');
   };
 
   const formatPrice = (price: number) => {
@@ -101,30 +100,11 @@ const OwnerProposalReceivedScreen = () => {
     }).format(price);
   };
 
-  const handleAgentProfilePress = () => {
-    if (!proposal) {
-      console.log('❌ No proposal data available');
-      return;
+  const getPropertyImage = (proposal: Proposal) => {
+    if (proposal.property?.images && proposal.property.images.length > 0) {
+      return { uri: proposal.property.images[0] };
     }
-
-    console.log('🔗 Agent profile button clicked');
-    console.log('📋 Proposal agent_id:', proposal.agent_id);
-    console.log('👤 Agent data:', proposal.agent);
-    
-    if (proposal.agent_id) {
-      console.log('🚀 Navigating to agent profile with ID:', proposal.agent_id);
-      router.push({ 
-        pathname: '/(owner)/agent-profile-view', 
-        params: { agentId: proposal.agent_id } 
-      });
-    } else {
-      console.log('❌ No agent_id found in proposal');
-      Alert.alert(
-        'Error',
-        'No se pudo encontrar la información del agente.',
-        [{ text: 'OK' }]
-      );
-    }
+    return require('../../../assets/images/logo_login_screen.png');
   };
 
   if (loading) {
@@ -140,11 +120,8 @@ const OwnerProposalReceivedScreen = () => {
   if (!proposal) {
     return (
       <View style={styles.container}>
-        <View style={styles.errorContainer}>
-          <Text style={styles.errorText}>No se pudo cargar la propuesta</Text>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backButtonText}>Volver</Text>
-          </TouchableOpacity>
+        <View style={styles.loadingContainer}>
+          <Text style={styles.loadingText}>Propuesta no encontrada</Text>
         </View>
       </View>
     );
@@ -152,12 +129,16 @@ const OwnerProposalReceivedScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
+      {/* Remove header: back button and title */}
+      {/* <TouchableOpacity
         style={styles.backButton}
         onPress={() => router.back()}
       >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
       </TouchableOpacity>
+      <Text style={styles.title}>
+        Propuesta de Valor
+      </Text> */}
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.scrollContent}>
         <Text style={styles.subtitle}>
@@ -173,40 +154,31 @@ const OwnerProposalReceivedScreen = () => {
           />
         )}
 
-        {/* Agent Info - Improved */}
+        {/* Agent Info */}
         <View style={styles.agentContainer}>
           <Image
-            source={
-              proposal.agent?.avatar_url 
-                ? { uri: proposal.agent.avatar_url } 
-                : require('../../../assets/images/icon.png')
-            }
+            source={proposal.agent?.avatar_url ? { uri: proposal.agent.avatar_url } : require('../../../assets/images/icon.png')}
             style={styles.agentImage}
-            onError={() => console.log('❌ Error loading agent image')}
           />
           <View style={styles.agentInfo}>
             <TouchableOpacity
-              style={styles.agentNameButton}
-              onPress={handleAgentProfilePress}
+              onPress={() => {
+                console.log('🔗 Agent name clicked');
+                console.log('📋 Proposal agent_id:', proposal.agent_id);
+                console.log('📋 Full proposal object:', proposal);
+                if (proposal.agent_id) {
+                  console.log('🚀 Navigating to agent profile with ID:', proposal.agent_id);
+                  router.push({ pathname: '/(owner)/agent-profile-view', params: { agentId: proposal.agent_id } });
+                } else {
+                  console.log('❌ No agent_id found in proposal');
+                }
+              }}
             >
-              <Text style={styles.agentNameButtonText}>
-                {proposal.agent?.full_name || 'Asesor Inmobiliario'}
-              </Text>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.secondary} />
+              <Text style={styles.agentNameButton}>{proposal.agent?.full_name || 'Asesor'}</Text>
             </TouchableOpacity>
             <Text style={styles.agentTitle}>Asesor Inmobiliario</Text>
             {proposal.agent?.agency_name && (
               <Text style={styles.agentAgency}>{proposal.agent.agency_name}</Text>
-            )}
-            {proposal.agent?.experience_years && (
-              <Text style={styles.agentExperience}>
-                {proposal.agent.experience_years} años de experiencia
-              </Text>
-            )}
-            {proposal.agent?.properties_sold && (
-              <Text style={styles.agentProperties}>
-                {proposal.agent.properties_sold} propiedades vendidas
-              </Text>
             )}
           </View>
         </View>
@@ -226,10 +198,31 @@ const OwnerProposalReceivedScreen = () => {
           </View>
         )}
 
-        {/* Proposal Text */}
-        <View style={styles.proposalContainer}>
-          <Text style={styles.proposalTitle}>Propuesta del Asesor</Text>
-          <Text style={styles.proposalText}>{proposal.proposal_text}</Text>
+        {/* Agent Experience */}
+        {proposal.agent && (
+          <View style={styles.experienceContainer}>
+            <Text style={styles.sectionTitle}>Experiencia del Asesor</Text>
+            <View style={styles.experienceDetails}>
+              {proposal.agent.experience_years && (
+                <View style={styles.experienceItem}>
+                  <Ionicons name="time" size={20} color={COLORS.secondary} />
+                  <Text style={styles.experienceText}>{proposal.agent.experience_years} años de experiencia</Text>
+                </View>
+              )}
+              {proposal.agent.properties_sold && (
+                <View style={styles.experienceItem}>
+                  <Ionicons name="home" size={20} color={COLORS.secondary} />
+                  <Text style={styles.experienceText}>{proposal.agent.properties_sold} propiedades vendidas</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Proposal Message */}
+        <Text style={styles.sectionTitle}>Mensaje del Asesor</Text>
+        <View style={styles.messageContainer}>
+          <Text style={styles.messageText}>{proposal.proposal_text}</Text>
         </View>
 
         {/* Action Buttons */}
@@ -239,21 +232,14 @@ const OwnerProposalReceivedScreen = () => {
             onPress={handleReject}
             disabled={responding}
           >
-            <Ionicons name="close" size={24} color={COLORS.white} />
-            <Text style={styles.actionButtonText}>
-              {responding ? 'Procesando...' : 'Rechazar'}
-            </Text>
+            <Text style={styles.actionButtonText}>Rechazar</Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.actionButton, styles.acceptButton]}
             onPress={handleAccept}
             disabled={responding}
           >
-            <Ionicons name="checkmark" size={24} color={COLORS.white} />
-            <Text style={styles.actionButtonText}>
-              {responding ? 'Procesando...' : 'Aceptar'}
-            </Text>
+            <Text style={styles.actionButtonText}>Aceptar</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -271,153 +257,143 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    paddingBottom: 32,
-  },
-  backButton: {
-    position: 'absolute',
-    top: 40,
-    left: 0,
-    padding: 16,
-    zIndex: 10,
+    paddingBottom: 100,
   },
   subtitle: {
     ...FONTS.regular,
-    fontSize: 18,
+    fontSize: 16,
     color: COLORS.white,
     textAlign: 'center',
-    marginTop: 60,
     marginBottom: 24,
+    opacity: 0.9,
   },
   propertyImage: {
     width: '100%',
     height: 200,
     borderRadius: 16,
-    marginBottom: 24,
+    marginBottom: 20,
   },
   agentContainer: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-    alignItems: 'center',
+    padding: 16,
+    marginBottom: 20,
   },
   agentImage: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    marginRight: 16,
   },
   agentInfo: {
+    marginLeft: 16,
     flex: 1,
   },
-  agentNameButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  agentNameButtonText: {
+  agentName: {
     ...FONTS.title,
     fontSize: 18,
-    color: COLORS.secondary,
+    color: COLORS.white,
     fontWeight: 'bold',
-    marginRight: 8,
   },
   agentTitle: {
     ...FONTS.regular,
     fontSize: 14,
     color: COLORS.white,
-    marginBottom: 4,
+    opacity: 0.8,
   },
   agentAgency: {
     ...FONTS.regular,
-    fontSize: 14,
-    color: COLORS.white,
-    opacity: 0.8,
-    marginBottom: 2,
-  },
-  agentExperience: {
-    ...FONTS.regular,
     fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.7,
-    marginBottom: 2,
-  },
-  agentProperties: {
-    ...FONTS.regular,
-    fontSize: 12,
-    color: COLORS.white,
-    opacity: 0.7,
+    color: COLORS.secondary,
+    marginTop: 2,
   },
   propertyInfo: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
     borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
+    padding: 16,
+    marginBottom: 20,
   },
   propertyTitle: {
     ...FONTS.title,
-    fontSize: 20,
+    fontSize: 18,
     color: COLORS.white,
     fontWeight: 'bold',
     marginBottom: 8,
   },
   propertyLocation: {
     ...FONTS.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.white,
     marginBottom: 8,
   },
   propertyPrice: {
     ...FONTS.title,
-    fontSize: 24,
+    fontSize: 20,
     color: COLORS.secondary,
     fontWeight: 'bold',
   },
-  proposalContainer: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 24,
-  },
-  proposalTitle: {
+  sectionTitle: {
     ...FONTS.title,
-    fontSize: 18,
+    fontSize: 20,
     color: COLORS.secondary,
     fontWeight: 'bold',
     marginBottom: 12,
   },
-  proposalText: {
+  experienceContainer: {
+    marginBottom: 20,
+  },
+  experienceDetails: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+  },
+  experienceItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  experienceText: {
     ...FONTS.regular,
-    fontSize: 16,
+    fontSize: 14,
     color: COLORS.white,
-    lineHeight: 24,
+    marginLeft: 8,
+  },
+  messageContainer: {
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 32,
+  },
+  messageText: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.white,
+    lineHeight: 20,
   },
   actionButtons: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    gap: 16,
+    marginBottom: 24,
   },
   actionButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     paddingVertical: 16,
-    borderRadius: 12,
+    borderRadius: 24,
+    alignItems: 'center',
+    marginHorizontal: 8,
   },
   rejectButton: {
     backgroundColor: '#FF6B6B',
   },
   acceptButton: {
-    backgroundColor: COLORS.secondary,
+    backgroundColor: '#4CAF50',
   },
   actionButtonText: {
     ...FONTS.regular,
     fontSize: 16,
     color: COLORS.white,
     fontWeight: 'bold',
-    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -429,25 +405,17 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: COLORS.white,
   },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
-  },
-  errorText: {
-    ...FONTS.regular,
+  agentNameButton: {
+    ...FONTS.title,
     fontSize: 18,
     color: COLORS.white,
-    textAlign: 'center',
-    marginBottom: 24,
-  },
-  backButtonText: {
-    ...FONTS.regular,
-    fontSize: 16,
-    color: COLORS.secondary,
     fontWeight: 'bold',
+    textDecorationLine: 'underline',
   },
 });
 
-export default OwnerProposalReceivedScreen;
+export const options = {
+  headerShown: false,
+};
+
+export default OwnerProposalReceivedScreen; 
