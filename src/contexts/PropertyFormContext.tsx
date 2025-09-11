@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
 import { PropertyFormData } from '../types/property';
+import { supabase } from '../services/supabase';
 
 interface PropertyFormContextType {
   formData: PropertyFormData;
@@ -91,29 +92,56 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
   const [formData, setFormData] = useState<PropertyFormData>(initialFormData);
   const [isLoaded, setIsLoaded] = useState(false);
   const [currentStep, setCurrentStepState] = useState<string>('intent');
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get user-specific storage keys
+  const getStorageKeys = (userId: string) => ({
+    formData: `propertyFormData_${userId}`,
+    progress: `propertyFormProgress_${userId}`
+  });
 
   // Load form data and progress from AsyncStorage on mount
   useEffect(() => {
     const loadFormData = async () => {
       try {
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('📱 No authenticated user, using initial form data');
+          setFormData(initialFormData);
+          setCurrentStepState('intent');
+          setIsLoaded(true);
+          return;
+        }
+
+        setCurrentUserId(user.id);
+        const storageKeys = getStorageKeys(user.id);
+        
         const [savedData, savedStep] = await Promise.all([
-          AsyncStorage.getItem('propertyFormData'),
-          AsyncStorage.getItem('propertyFormProgress')
+          AsyncStorage.getItem(storageKeys.formData),
+          AsyncStorage.getItem(storageKeys.progress)
         ]);
         
         if (savedData) {
           const parsedData = JSON.parse(savedData);
-          console.log('📱 Loaded form data from storage:', parsedData);
+          console.log('�� Loaded form data from storage:', parsedData);
           setFormData(parsedData);
+        } else {
+          setFormData(initialFormData);
         }
         
         if (savedStep) {
           const parsedStep = JSON.parse(savedStep);
           console.log('📱 Loaded progress from storage:', parsedStep);
           setCurrentStepState(parsedStep);
+        } else {
+          setCurrentStepState('intent');
         }
       } catch (error) {
         console.error('Error loading form data:', error);
+        setFormData(initialFormData);
+        setCurrentStepState('intent');
       } finally {
         setIsLoaded(true);
       }
@@ -122,12 +150,70 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     loadFormData();
   }, []);
 
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Auth state changed, clearing form data');
+        setFormData(initialFormData);
+        setCurrentStepState('intent');
+        setCurrentUserId(null);
+        // Clear all form data from storage
+        AsyncStorage.multiRemove([
+          'agentFormData',
+          'propertyFormData',
+          'propertyFormProgress'
+        ]).catch(error => {
+          console.error('Error clearing form data on logout:', error);
+        });
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        console.log('🔄 User signed in, loading form data for:', session.user.id);
+        setCurrentUserId(session.user.id);
+        // Load form data for the new user
+        loadFormDataForUser(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadFormDataForUser = async (userId: string) => {
+    try {
+      const storageKeys = getStorageKeys(userId);
+      const [savedData, savedStep] = await Promise.all([
+        AsyncStorage.getItem(storageKeys.formData),
+        AsyncStorage.getItem(storageKeys.progress)
+      ]);
+      
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        console.log('📱 Loaded form data for user:', parsedData);
+        setFormData(parsedData);
+      } else {
+        setFormData(initialFormData);
+      }
+      
+      if (savedStep) {
+        const parsedStep = JSON.parse(savedStep);
+        console.log('📱 Loaded progress for user:', parsedStep);
+        setCurrentStepState(parsedStep);
+      } else {
+        setCurrentStepState('intent');
+      }
+    } catch (error) {
+      console.error('Error loading form data for user:', error);
+      setFormData(initialFormData);
+      setCurrentStepState('intent');
+    }
+  };
+
   // Save form data when app goes to background
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
+      if ((nextAppState === 'background' || nextAppState === 'inactive') && currentUserId) {
         console.log('📱 App going to background, saving form data...');
-        AsyncStorage.setItem('propertyFormData', JSON.stringify(formData))
+        const storageKeys = getStorageKeys(currentUserId);
+        AsyncStorage.setItem(storageKeys.formData, JSON.stringify(formData))
           .then(() => {
             console.log('✅ Form data saved on app state change');
           })
@@ -142,7 +228,7 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     return () => {
       subscription?.remove();
     };
-  }, [formData]);
+  }, [formData, currentUserId]);
 
   const updateFormData = async (updates: Partial<PropertyFormData>) => {
     console.log('🔄 Updating form data:', updates);
@@ -153,14 +239,17 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
       };
       console.log('📊 New form data state:', newData);
       
-      // Save to AsyncStorage immediately
-      AsyncStorage.setItem('propertyFormData', JSON.stringify(newData))
-        .then(() => {
-          console.log('✅ Form data saved to AsyncStorage successfully');
-        })
-        .catch(error => {
-          console.error('❌ Error saving form data to AsyncStorage:', error);
-        });
+      // Save to AsyncStorage immediately if user is authenticated
+      if (currentUserId) {
+        const storageKeys = getStorageKeys(currentUserId);
+        AsyncStorage.setItem(storageKeys.formData, JSON.stringify(newData))
+          .then(() => {
+            console.log('✅ Form data saved to AsyncStorage successfully');
+          })
+          .catch(error => {
+            console.error('❌ Error saving form data to AsyncStorage:', error);
+          });
+      }
       
       return newData;
     });
@@ -169,14 +258,17 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
   const setCurrentStep = async (step: string) => {
     console.log('🔄 Setting current step:', step);
     setCurrentStepState(step);
-    // Save progress to AsyncStorage immediately
-    AsyncStorage.setItem('propertyFormProgress', JSON.stringify(step))
-      .then(() => {
-        console.log('✅ Progress saved to AsyncStorage successfully');
-      })
-      .catch(error => {
-        console.error('❌ Error saving progress to AsyncStorage:', error);
-      });
+    // Save progress to AsyncStorage immediately if user is authenticated
+    if (currentUserId) {
+      const storageKeys = getStorageKeys(currentUserId);
+      AsyncStorage.setItem(storageKeys.progress, JSON.stringify(step))
+        .then(() => {
+          console.log('✅ Progress saved to AsyncStorage successfully');
+        })
+        .catch(error => {
+          console.error('❌ Error saving progress to AsyncStorage:', error);
+        });
+    }
   };
 
   const getNextStep = (): string => {
@@ -191,10 +283,13 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
     console.log('🔄 Resetting form data');
     setFormData(initialFormData);
     setCurrentStepState('intent');
-    Promise.all([
-      AsyncStorage.removeItem('propertyFormData'),
-      AsyncStorage.removeItem('propertyFormProgress')
-    ]).catch(error => console.error('Error removing form data:', error));
+    if (currentUserId) {
+      const storageKeys = getStorageKeys(currentUserId);
+      Promise.all([
+        AsyncStorage.removeItem(storageKeys.formData),
+        AsyncStorage.removeItem(storageKeys.progress)
+      ]).catch(error => console.error('Error removing form data:', error));
+    }
   };
 
   const isFormComplete = (): boolean => {
@@ -227,4 +322,4 @@ export const PropertyFormProvider: React.FC<PropertyFormProviderProps> = ({ chil
       {children}
     </PropertyFormContext.Provider>
   );
-}; 
+};

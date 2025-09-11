@@ -14,19 +14,19 @@ export const COLORS = {
 
 export const FONTS = {
   regular: {
-    fontSize: Math.max(16, 14), // Responsive font size
+    fontSize: 16,
     fontWeight: '400' as const,
   },
   medium: {
-    fontSize: Math.max(16, 14), // Responsive font size
+    fontSize: 16,
     fontWeight: '500' as const,
   },
   bold: {
-    fontSize: Math.max(16, 14), // Responsive font size
+    fontSize: 16,
     fontWeight: '700' as const,
   },
   title: {
-    fontSize: Math.max(24, 20), // Responsive font size
+    fontSize: 24,
     fontWeight: '700' as const,
     letterSpacing: 1.5,
   },
@@ -131,4 +131,4 @@ export const commonStyles = StyleSheet.create({
     marginBottom: Math.max(8, 6), // Responsive margin
     fontWeight: '600',
   },
-}); 
+});

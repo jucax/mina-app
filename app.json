@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mina.realestate.app",
+      "bundleIdentifier": "com.minarealestate.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false
       }
@@ -23,7 +23,7 @@
       },
       "icon": "./assets/images/mina-app-icon.png",
       "edgeToEdgeEnabled": true,
-      "package": "com.mina.realestate.app"
+      "package": "com.minarealestate.app"
     },
     "web": {
       "bundler": "metro",

@@ -104,7 +104,12 @@ const OwnerDashboardScreen = () => {
   const fetchProperties = async () => {
     try {
       setLoading(true);
-      const userProperties = await PropertyService.getUserProperties();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+      
+      const userProperties = await PropertyService.getPropertiesByOwner(user.id);
       setProperties(userProperties);
       console.log('✅ Properties fetched successfully:', userProperties.length);
     } catch (error) {
@@ -211,52 +216,69 @@ const OwnerDashboardScreen = () => {
     </Modal>
   );
 
-  const renderPropertyCard = ({ item: property, index }: { item: Property; index: number }) => (
-    <TouchableOpacity
-      style={styles.propertyCard}
-      onPress={() => {
-        if (property.id) {
-          router.push({
-            pathname: '/(owner)/property/[id]',
-            params: { id: property.id }
-          });
-        }
-      }}
-    >
-      <Image
-        source={getPropertyImage(property)}
-        style={styles.propertyImage}
-        resizeMode="cover"
-      />
+  const renderPropertyCard = ({ item: property, index }: { item: Property; index: number }) => {
+    // Check if the location text is too long
+    const locationText = `${property.municipality}, ${property.state}`;
+    const isLocationLong = locationText.length > 25; // Adjust threshold as needed
+    
+    return (
       <TouchableOpacity
-        style={styles.favoriteButton}
-        onPress={() => toggleFavorite(index)}
+        style={styles.propertyCard}
+        onPress={() => {
+          if (property.id) {
+            router.push({
+              pathname: '/(owner)/property/[id]',
+              params: { id: property.id }
+            });
+          }
+        }}
       >
-        <Ionicons
-          name={favoriteIndices.has(index) ? "heart" : "heart-outline"}
-          size={28}
-          color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
+        <Image
+          source={getPropertyImage(property)}
+          style={styles.propertyImage}
+          resizeMode="cover"
         />
-      </TouchableOpacity>
-      <View style={styles.propertyInfo}>
-        <View style={styles.locationContainer}>
-          <Ionicons name="location" size={22} color={COLORS.secondary} />
-          <View style={styles.locationTextContainer}>
-            <Text style={styles.locationText}>
-              {property.municipality}, {property.state}
-            </Text>
-            <Text style={styles.propertyTypeText}>
-              {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
-            </Text>
+        <TouchableOpacity
+          style={styles.favoriteButton}
+          onPress={() => toggleFavorite(index)}
+        >
+          <Ionicons
+            name={favoriteIndices.has(index) ? "heart" : "heart-outline"}
+            size={28}
+            color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
+          />
+        </TouchableOpacity>
+        <View style={styles.propertyInfo}>
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={22} color={COLORS.secondary} />
+            <View style={styles.locationTextContainer}>
+              {isLocationLong ? (
+                <View>
+                  <Text style={styles.locationText}>
+                    {property.municipality}
+                  </Text>
+                  <Text style={styles.locationText}>
+                    {property.state}
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.locationText}>
+                  {property.municipality}, {property.state}
+                </Text>
+              )}
+              <Text style={styles.propertyTypeText}>
+                {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+              </Text>
+            </View>
+          </View>
+          <View style={styles.commissionContainer}>
+            <Text style={styles.commissionText}>{property.commission_percentage}%</Text>
+            <Text style={styles.commissionLabel}>Comisión</Text>
           </View>
         </View>
-        <View style={styles.commissionContainer}>
-          <Text style={styles.commissionText}>{property.commission_percentage}%</Text>
-          <Text style={styles.commissionLabel}>Comisión</Text>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -540,7 +562,7 @@ const styles = StyleSheet.create({
     bottom: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Changed from 'center' to 'flex-start' for better alignment
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 12,
@@ -549,31 +571,37 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
+    minHeight: 60, // Ensure minimum height for the info container
   },
   locationContainer: {
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start', // Changed from 'center' to 'flex-start'
     flex: 1,
   },
   locationTextContainer: {
     marginLeft: 6,
+    flex: 1, // Allow it to take available space
   },
   locationText: {
     ...FONTS.regular,
     fontWeight: '600',
+    fontSize: 14, // Slightly smaller font for better fit
   },
   propertyTypeText: {
     ...FONTS.regular,
+    fontSize: 12, // Smaller font for property type
+    marginTop: 2,
   },
   commissionContainer: {
     alignItems: 'flex-end',
+    marginLeft: 8, // Add some margin to separate from location text
   },
   commissionText: {
     ...FONTS.title,
-    fontSize: 28,
+    fontSize: 24, // Slightly smaller for better fit
   },
   commissionLabel: {
-    fontSize: 14,
+    fontSize: 12, // Smaller font for label
     color: 'rgba(0, 0, 0, 0.5)',
   },
   favoriteButton: {

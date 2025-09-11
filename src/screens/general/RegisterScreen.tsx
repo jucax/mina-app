@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { makeRedirectUri } from 'expo-auth-session';
 // import { useAuthRequest, discovery as googleDiscovery } from 'expo-auth-session/providers/google';
 import { Ionicons } from '@expo/vector-icons';
 import * as FileSystem from 'expo-file-system';
+import { clearAllFormData } from '../../utils/formDataUtils';
 
 const { width, height } = Dimensions.get('window');
 
@@ -46,6 +47,21 @@ const RegisterScreen = () => {
   
   // Password requirements state
   const [passwordFocused, setPasswordFocused] = useState(false);
+
+  // Clear any existing form data when component mounts
+  useEffect(() => {
+    const clearExistingFormData = async () => {
+      try {
+        console.log('🔄 Clearing existing form data for new user registration...');
+        await clearAllFormData();
+        console.log('✅ Existing form data cleared successfully');
+      } catch (error) {
+        console.error('❌ Error clearing existing form data:', error);
+      }
+    };
+
+    clearExistingFormData();
+  }, []);
 
   // Password requirements validation
   const passwordRequirements = {
@@ -146,6 +162,9 @@ const RegisterScreen = () => {
     try {
       setLoading(true);
       console.log('🔄 Intentando registrar con:', email);
+
+      // Clear any existing form data before registration
+      await clearAllFormData();
 
       // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -738,4 +757,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default RegisterScreen; 
+export default RegisterScreen;

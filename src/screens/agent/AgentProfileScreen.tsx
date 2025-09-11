@@ -2,19 +2,23 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  TouchableOpacity,
   StyleSheet,
-  Image,
   ScrollView,
-  Dimensions,
+  TouchableOpacity,
+  Image,
   Alert,
+  Dimensions,
+  Platform,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
-import { supabase, supabaseAnonKey } from '../../services/supabase';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, FONTS } from '../../styles/globalStyles';
+import { router, useLocalSearchParams } from 'expo-router';
+import { supabase } from '../../services/supabase';
+import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system';
+import { supabaseAnonKey } from '../../services/supabase';
+import { useFocusEffect } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const { width, height } = Dimensions.get('window');
 
@@ -23,174 +27,140 @@ interface AgentProfile {
   full_name: string;
   email: string;
   phone: string;
-  agency_name?: string;
-  license_number?: string;
-  subscription_plan?: string;
   avatar_url?: string;
-  created_at?: string;
-  postal_code?: string;
-  state?: string;
-  municipality?: string;
-  neighborhood?: string;
-  street?: string;
-  country?: string;
-  experience_years?: number;
-  properties_sold?: number;
-  commission_percentage?: number;
-  works_at_agency?: boolean;
-  description?: string;
+  country: string;
+  state: string;
+  municipality: string;
+  neighborhood: string;
+  street: string;
+  postal_code: string;
+  experience_years: string;
+  properties_sold: string;
+  commission_percentage: number;
+  works_at_agency: boolean;
+  agency_name?: string;
+  description: string;
+  created_at: string;
 }
 
 const AgentProfileScreen = () => {
   const params = useLocalSearchParams();
   const [agentProfile, setAgentProfile] = useState<AgentProfile | null>(null);
   const [loading, setLoading] = useState(true);
-  const [imageUploading, setImageUploading] = useState(false);
+  const [isViewingOtherProfile, setIsViewingOtherProfile] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Check if we're viewing another agent's profile (from params) or current user's profile
-  const isViewingOtherProfile = params.agentImage && params.agentName;
+  // Check if we're viewing another agent's profile
+  useEffect(() => {
+    if (params.agentId && params.agentId !== 'current') {
+      setIsViewingOtherProfile(true);
+    }
+  }, [params.agentId]);
 
-  const fetchProfile = async () => {
+  const loadAgentProfile = async () => {
     try {
-      if (isViewingOtherProfile) {
-        // Use the profile data from params (for viewing other agents)
-        console.log('👥 Viewing other agent profile from params');
-        setAgentProfile({
-          id: '',
-          full_name: params.agentName as string,
-          email: '',
-          phone: params.contact as string,
-          avatar_url: params.agentImage as string,
-        });
-      } else {
-        // Fetch current user's profile
-        const { data: { user } } = await supabase.auth.getUser();
-        console.log('🔍 Current user (Agent Profile):', user?.id);
-        
-        if (user) {
-          // First check if user is an agent
-          const { data: userAuth, error: userAuthError } = await supabase
-            .from('user_auth')
-            .select('user_type, agent_id')
-            .eq('id', user.id)
-            .single();
+      setLoading(true);
+      
+      if (isViewingOtherProfile && params.agentId) {
+        // Load another agent's profile
+        const { data, error } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('id', params.agentId)
+          .single();
 
-          if (userAuthError) {
-            console.error('❌ Error fetching user auth (Agent Profile):', userAuthError);
-            return;
-          }
-
-          console.log('🔍 User auth data (Agent Profile):', userAuth);
-
-          if (userAuth?.user_type === 'agent' && userAuth?.agent_id) {
-            // Fetch agent profile
-            const { data: agentProfile, error } = await supabase
-              .from('agents')
-              .select('id, full_name, email, phone, agency_name, subscription_plan, avatar_url, created_at, postal_code, state, municipality, neighborhood, street, country, experience_years, properties_sold, commission_percentage, works_at_agency, description')
-              .eq('id', userAuth.agent_id)
-              .single();
-
-            if (error) {
-              console.error('❌ Error fetching agent profile (Agent Profile):', error);
-            } else {
-              console.log('✅ Agent profile fetched successfully (Agent Profile):', agentProfile);
-              setAgentProfile(agentProfile);
-            }
-          } else {
-            console.log('⚠️ User is not an agent or agent_id not found (Agent Profile)');
-          }
+        if (error) {
+          console.error('Error loading agent profile:', error);
+          Alert.alert('Error', 'No se pudo cargar el perfil del agente');
+          return;
         }
+
+        setAgentProfile(data);
+      } else {
+        // Load current user's profile
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          Alert.alert('Error', 'No hay usuario autenticado');
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from('agents')
+          .select('*')
+          .eq('id', user.id)
+          .single();
+
+        if (error) {
+          console.error('Error loading agent profile:', error);
+          Alert.alert('Error', 'No se pudo cargar tu perfil');
+          return;
+        }
+
+        setAgentProfile(data);
       }
     } catch (error) {
-      console.error('❌ Error fetching profile (Agent Profile):', error);
+      console.error('Error loading agent profile:', error);
+      Alert.alert('Error', 'Ocurrió un error al cargar el perfil');
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => {
-    fetchProfile();
-  }, [isViewingOtherProfile]);
-
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'N/A';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('es-MX', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  };
+  // Refresh profile when screen comes into focus
+  useFocusEffect(
+    React.useCallback(() => {
+      loadAgentProfile();
+    }, [isViewingOtherProfile, params.agentId])
+  );
 
   const pickImage = async () => {
-    try {
-      // Request permissions
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      
-      if (status !== 'granted') {
-        Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
-        return;
-      }
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    
+    if (status !== 'granted') {
+      Alert.alert('Permiso necesario', 'Por favor, concede permiso para acceder a tus fotos');
+      return;
+    }
 
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [1, 1],
-        quality: 0.5,
-      });
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [1, 1],
+      quality: 0.5,
+    });
 
-      if (!result.canceled && result.assets[0]) {
-        await uploadProfileImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
-      Alert.alert('Error', 'No se pudo seleccionar la imagen');
+    if (!result.canceled) {
+      await uploadProfileImage(result.assets[0].uri);
     }
   };
 
   const uploadProfileImage = async (imageUri: string) => {
-    if (!agentProfile?.id || isViewingOtherProfile) return;
-
     try {
-      setImageUploading(true);
-
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Usuario no autenticado');
+      if (!user) {
+        Alert.alert('Error', 'No hay usuario autenticado');
+        return;
+      }
 
-      console.log('📤 Starting profile image upload process...');
-      console.log('📁 Profile image URI:', imageUri);
-
-      // Use the SAME logic as RegisterScreen - FileSystem.uploadAsync method
       const fileExt = imageUri.split('.').pop();
       const fileName = `${user.id}.${fileExt}`;
       const supabaseUrl = 'https://tliwzfdnpeozlanhpxmn.supabase.co';
       const bucket = 'profile-images';
       const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${fileName}`;
 
-      // Determine content type (same as RegisterScreen)
+      // Determine content type
       let contentType = 'image/jpeg';
       if (fileExt === 'png') contentType = 'image/png';
       if (fileExt === 'webp') contentType = 'image/webp';
 
-      // First, try to delete existing file to avoid duplicate error
-      console.log('🗑️ Attempting to delete existing profile image...');
+      // Delete existing image first
       try {
-        const { error: deleteError } = await supabase.storage
-          .from(bucket)
-          .remove([fileName]);
-        
-        if (deleteError) {
-          console.log('ℹ️ No existing file to delete or delete failed (this is OK):', deleteError.message);
-        } else {
-          console.log('✅ Existing file deleted successfully');
-        }
-      } catch (deleteErr) {
-        console.log('ℹ️ Delete operation failed (this is OK):', deleteErr);
+        await supabase.storage.from(bucket).remove([fileName]);
+        console.log('✅ Existing image deleted');
+      } catch (deleteError) {
+        console.log('ℹ️ No existing image to delete or error deleting:', deleteError);
       }
 
-      // Upload the file using FileSystem.uploadAsync (SAME as RegisterScreen)
-      console.log('🚀 Uploading to Supabase Storage REST endpoint using FileSystem.uploadAsync...');
+      // Upload new image
       const uploadRes = await FileSystem.uploadAsync(uploadUrl, imageUri, {
         httpMethod: 'POST',
         headers: {
@@ -200,74 +170,80 @@ const AgentProfileScreen = () => {
         uploadType: FileSystem.FileSystemUploadType.BINARY_CONTENT,
       });
 
-      console.log('📤 uploadAsync response:', uploadRes);
-
       if (uploadRes.status !== 200 && uploadRes.status !== 201) {
         throw new Error(`Upload failed: ${uploadRes.status} ${uploadRes.body}`);
       }
 
-      // Construct the public URL (same as RegisterScreen)
+      // Update agent profile with new image URL
       const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${fileName}`;
-      console.log('✅ Profile image uploaded and public URL:', publicUrl);
-
-      // Update database
+      
       const { error: updateError } = await supabase
         .from('agents')
         .update({ avatar_url: publicUrl })
-        .eq('id', agentProfile.id);
+        .eq('id', user.id);
 
-      if (updateError) throw updateError;
+      if (updateError) {
+        throw updateError;
+      }
 
-      // Update local state immediately
+      // Update local state
       setAgentProfile(prev => prev ? { ...prev, avatar_url: publicUrl } : null);
-      console.log('✅ Local state updated with new avatar URL');
-
-      // Also refresh the profile from database to ensure consistency
-      console.log('🔄 Refreshing profile from database...');
-      await fetchProfile();
-      console.log('✅ Profile refreshed from database');
-
+      
       Alert.alert('Éxito', 'Imagen de perfil actualizada correctamente');
-      console.log('✅ Agent profile image updated successfully');
-
     } catch (error) {
-      console.error('❌ Error uploading agent profile image:', error);
+      console.error('Error uploading profile image:', error);
       Alert.alert('Error', 'No se pudo actualizar la imagen de perfil');
-    } finally {
-      setImageUploading(false);
     }
   };
-
-  const InfoRow = ({ icon, label, value }: { icon: string; label: string; value: string }) => (
-    <View style={styles.infoRow}>
-      <View style={styles.infoIconContainer}>
-        <Ionicons name={icon as any} size={24} color={COLORS.primary} />
-      </View>
-      <View style={styles.infoContent}>
-        <Text style={styles.infoLabel}>{label}</Text>
-        <Text style={styles.infoValue}>{value || 'N/A'}</Text>
-      </View>
-    </View>
-  );
 
   const handleEditProfile = () => {
-    if (agentProfile?.id) {
-      router.push({
-        pathname: '/(agent)/profile/edit',
-        params: { id: agentProfile.id }
-      });
+    router.push('/(agent)/agent-registration' as any);
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
+    });
+  };
+
+  const handleLogout = async () => {
+    try {
+      // Clear all form data before logout
+      console.log('🔄 Clearing form data before logout...');
+      await AsyncStorage.multiRemove([
+        'agentFormData',
+        'propertyFormData',
+        'propertyFormProgress'
+      ]);
+      console.log('✅ Form data cleared successfully');
+
+      // Sign out from Supabase
+      await supabase.auth.signOut();
+      
+      // Navigate to login screen
+      router.replace('/(general)/login');
+    } catch (error) {
+      console.error('Error during logout:', error);
+      Alert.alert('Error', 'Ocurrió un error al cerrar sesión');
     }
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Cargando perfil...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <Text style={styles.loadingText}>Cargando perfil...</Text>
-        </View>
-      ) : agentProfile ? (
-        <ScrollView style={styles.scrollView}>
-          {/* Header with back button */}
+      {agentProfile ? (
+        <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+          {/* Header */}
           <View style={styles.header}>
             <TouchableOpacity
               style={styles.backButton}
@@ -275,180 +251,123 @@ const AgentProfileScreen = () => {
             >
               <Ionicons name="arrow-back" size={24} color={COLORS.white} />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Perfil</Text>
-            <View style={styles.headerSpacer} />
+            <Text style={styles.headerTitle}>
+              {isViewingOtherProfile ? 'Perfil del Agente' : 'Mi Perfil'}
+            </Text>
+            <View style={styles.placeholder} />
           </View>
 
-          {/* Profile Image Section */}
-          <View style={styles.profileImageSection}>
-            {agentProfile.avatar_url ? (
-              <Image
-                source={{ uri: agentProfile.avatar_url }}
-                style={styles.profileImage}
-                onError={() => {}}
-              />
-            ) : (
-              <View style={styles.profileImagePlaceholder}>
-                <Ionicons name="person" size={60} color={COLORS.white} />
+          {/* Profile Card */}
+          <View style={styles.profileCard}>
+            <TouchableOpacity 
+              style={styles.profileImageContainer}
+              onPress={isViewingOtherProfile ? undefined : pickImage}
+              disabled={isViewingOtherProfile}
+            >
+              {agentProfile.avatar_url ? (
+                <Image source={{ uri: agentProfile.avatar_url }} style={styles.profileImage} />
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <Ionicons name="person" size={40} color={COLORS.white} />
+                </View>
+              )}
+              {!isViewingOtherProfile && (
+                <View style={styles.editImageButton}>
+                  <Ionicons name="camera" size={16} color={COLORS.white} />
+                </View>
+              )}
+            </TouchableOpacity>
+
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{agentProfile.full_name}</Text>
+              <Text style={styles.profileTitle}>Agente Inmobiliario</Text>
+            </View>
+          </View>
+
+          {/* Profile Details */}
+          <View style={styles.detailsContainer}>
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Información Personal</Text>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="mail" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Email:</Text>
+                <Text style={styles.infoValue}>{agentProfile.email}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="call" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Teléfono:</Text>
+                <Text style={styles.infoValue}>{agentProfile.phone}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="location" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Ubicación:</Text>
+                <Text style={styles.infoValue}>
+                  {agentProfile.street}, {agentProfile.neighborhood}, {agentProfile.municipality}, {agentProfile.state}
+                </Text>
+              </View>
+            </View>
+
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Información Profesional</Text>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="briefcase" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Experiencia:</Text>
+                <Text style={styles.infoValue}>{agentProfile.experience_years} años</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="home" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Propiedades vendidas:</Text>
+                <Text style={styles.infoValue}>{agentProfile.properties_sold}</Text>
+              </View>
+              
+              <View style={styles.infoRow}>
+                <Ionicons name="percent" size={20} color={COLORS.primary} />
+                <Text style={styles.infoLabel}>Comisión:</Text>
+                <Text style={styles.infoValue}>{agentProfile.commission_percentage}%</Text>
+              </View>
+              
+              {agentProfile.works_at_agency && agentProfile.agency_name && (
+                <View style={styles.infoRow}>
+                  <Ionicons name="business" size={20} color={COLORS.primary} />
+                  <Text style={styles.infoLabel}>Agencia:</Text>
+                  <Text style={styles.infoValue}>{agentProfile.agency_name}</Text>
+                </View>
+              )}
+            </View>
+
+            {agentProfile.description && (
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>Descripción</Text>
+                <Text style={styles.description}>{agentProfile.description}</Text>
               </View>
             )}
-            
-            {/* Only show change button for own profile */}
+
+            {/* Edit Button */}
             {!isViewingOtherProfile && (
               <TouchableOpacity
-                style={styles.changeImageButton}
-                onPress={pickImage}
-                disabled={imageUploading}
+                style={styles.editButton}
+                onPress={handleEditProfile}
               >
-                <Ionicons 
-                  name={agentProfile.avatar_url ? "camera" : "add-circle"} 
-                  size={16} 
-                  color={COLORS.white} 
-                />
-                <Text style={styles.changeImageButtonText}>
-                  {imageUploading 
-                    ? 'Subiendo...' 
-                    : agentProfile.avatar_url 
-                      ? 'Cambiar imagen' 
-                      : 'Agregar imagen'
-                  }
-                </Text>
+                <Ionicons name="create" size={24} color={COLORS.white} />
+                <Text style={styles.editButtonText}>Editar Perfil</Text>
               </TouchableOpacity>
             )}
-            
-            <Text style={styles.profileName}>{agentProfile.full_name}</Text>
-            <Text style={styles.profileTitle}>Asesor Inmobiliario</Text>
+            {/* Log Out Button */}
+            {!isViewingOtherProfile && (
+              <TouchableOpacity
+                style={[styles.editButton, { backgroundColor: COLORS.primary, borderWidth: 1, borderColor: COLORS.secondary, marginTop: 8 }]}
+                onPress={handleLogout}
+              >
+                <Ionicons name="log-out-outline" size={24} color={COLORS.secondary} />
+                <Text style={[styles.editButtonText, { color: COLORS.secondary }]}>Cerrar Sesión</Text>
+              </TouchableOpacity>
+            )}
           </View>
-
-          {/* Profile Info Card */}
-          <View style={styles.infoCard}>
-            <Text style={styles.sectionTitle}>Información Personal</Text>
-            
-            <InfoRow 
-              icon="person" 
-              label="Nombre completo" 
-              value={agentProfile.full_name} 
-            />
-            
-            <InfoRow 
-              icon="mail" 
-              label="Correo electrónico" 
-              value={agentProfile.email} 
-            />
-            
-            <InfoRow 
-              icon="call" 
-              label="Teléfono" 
-              value={agentProfile.phone} 
-            />
-            
-            <InfoRow 
-              icon="location" 
-              label="Código Postal" 
-              value={agentProfile.postal_code || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="location" 
-              label="Estado" 
-              value={agentProfile.state || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="location" 
-              label="Municipio" 
-              value={agentProfile.municipality || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="location" 
-              label="Colonia" 
-              value={agentProfile.neighborhood || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="location" 
-              label="Calle" 
-              value={agentProfile.street || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="flag" 
-              label="País" 
-              value={agentProfile.country || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="briefcase" 
-              label="Años de experiencia" 
-              value={agentProfile.experience_years?.toString() || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="home" 
-              label="Propiedades vendidas" 
-              value={agentProfile.properties_sold?.toString() || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="pricetag" 
-              label="Comisión (%)" 
-              value={agentProfile.commission_percentage?.toString() || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="business" 
-              label="¿Trabaja en inmobiliaria?" 
-              value={agentProfile.works_at_agency ? 'Sí' : 'No'} 
-            />
-            
-            <InfoRow 
-              icon="business" 
-              label="Nombre de la inmobiliaria" 
-              value={agentProfile.agency_name || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="document" 
-              label="Descripción" 
-              value={agentProfile.description || 'No especificado'} 
-            />
-            
-            <InfoRow 
-              icon="star" 
-              label="Plan de suscripción" 
-              value={
-                agentProfile.subscription_plan === 'mensual' ? 'Mensual' :
-                agentProfile.subscription_plan === 'semestral' ? 'Semestral' :
-                agentProfile.subscription_plan === 'anual' ? 'Anual' :
-                agentProfile.subscription_plan || 'No especificado'
-              } 
-            />
-          </View>
-
-          {/* Edit Button */}
-          {!isViewingOtherProfile && (
-            <TouchableOpacity
-              style={styles.editButton}
-              onPress={handleEditProfile}
-            >
-              <Ionicons name="create" size={24} color={COLORS.white} />
-              <Text style={styles.editButtonText}>Editar Perfil</Text>
-            </TouchableOpacity>
-          )}
-          {/* Log Out Button */}
-          {!isViewingOtherProfile && (
-            <TouchableOpacity
-              style={[styles.editButton, { backgroundColor: COLORS.primary, borderWidth: 1, borderColor: COLORS.secondary, marginTop: 8 }]}
-              onPress={async () => {
-                await supabase.auth.signOut();
-                router.replace('/(general)/login');
-              }}
-            >
-              <Ionicons name="log-out-outline" size={24} color={COLORS.secondary} />
-              <Text style={[styles.editButtonText, { color: COLORS.secondary }]}>Cerrar Sesión</Text>
-            </TouchableOpacity>
-          )}
         </ScrollView>
       ) : (
         <View style={styles.errorContainer}>
@@ -464,6 +383,17 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: COLORS.primary,
   },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    color: COLORS.white,
+    fontSize: SIZES.large,
+    fontFamily: FONTS.medium,
+  },
   scrollView: {
     flex: 1,
   },
@@ -471,150 +401,148 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
+    paddingHorizontal: SIZES.padding.large,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: SIZES.padding.medium,
   },
   backButton: {
-    padding: 8,
+    padding: SIZES.padding.small,
   },
   headerTitle: {
-    ...FONTS.title,
-    fontSize: 20,
     color: COLORS.white,
-    fontWeight: 'bold',
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    textAlign: 'center',
   },
-  headerSpacer: {
+  placeholder: {
     width: 40,
   },
-  profileImageSection: {
+  profileCard: {
     alignItems: 'center',
-    paddingVertical: 30,
+    paddingHorizontal: SIZES.padding.large,
+    paddingBottom: SIZES.padding.large,
+  },
+  profileImageContainer: {
+    position: 'relative',
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: SIZES.margin.medium,
   },
   profileImage: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.white,
   },
   profileImagePlaceholder: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: COLORS.secondary,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     justifyContent: 'center',
     alignItems: 'center',
   },
+  editImageButton: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    backgroundColor: COLORS.secondary,
+    borderRadius: 15,
+    width: 30,
+    height: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    alignItems: 'center',
+  },
   profileName: {
-    ...FONTS.title,
-    fontSize: 24,
     color: COLORS.white,
-    fontWeight: 'bold',
-    marginTop: 16,
+    fontSize: SIZES.extraLarge,
+    fontFamily: FONTS.bold,
+    textAlign: 'center',
+    marginBottom: SIZES.margin.small,
   },
   profileTitle: {
-    ...FONTS.regular,
-    fontSize: 16,
     color: COLORS.white,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    textAlign: 'center',
     opacity: 0.8,
-    marginTop: 4,
   },
-  infoCard: {
+  detailsContainer: {
     backgroundColor: COLORS.white,
-    marginHorizontal: 20,
-    borderRadius: 16,
-    padding: 24,
-    marginBottom: 20,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingHorizontal: SIZES.padding.large,
+    paddingTop: SIZES.padding.large,
+    paddingBottom: SIZES.padding.extraLarge,
+    minHeight: height * 0.6,
+  },
+  section: {
+    marginBottom: SIZES.margin.large,
   },
   sectionTitle: {
-    ...FONTS.title,
-    fontSize: 18,
-    color: COLORS.black,
-    fontWeight: 'bold',
-    marginBottom: 20,
+    fontSize: SIZES.large,
+    fontFamily: FONTS.bold,
+    color: COLORS.primary,
+    marginBottom: SIZES.margin.medium,
   },
   infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
-  },
-  infoIconContainer: {
-    width: 40,
-    alignItems: 'center',
-  },
-  infoContent: {
-    flex: 1,
-    marginLeft: 12,
+    marginBottom: SIZES.margin.medium,
+    paddingVertical: SIZES.padding.small,
   },
   infoLabel: {
-    ...FONTS.regular,
-    fontSize: 14,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.medium,
     color: COLORS.gray,
-    marginBottom: 2,
+    marginLeft: SIZES.margin.small,
+    marginRight: SIZES.margin.small,
+    minWidth: 100,
   },
   infoValue: {
-    ...FONTS.regular,
-    fontSize: 16,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
     color: COLORS.black,
-    fontWeight: '500',
+    flex: 1,
+  },
+  description: {
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.regular,
+    color: COLORS.black,
+    lineHeight: 24,
   },
   editButton: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: COLORS.secondary,
-    marginHorizontal: 20,
-    marginBottom: 32,
-    paddingVertical: 16,
-    borderRadius: 12,
+    paddingVertical: SIZES.padding.medium,
+    paddingHorizontal: SIZES.padding.large,
+    borderRadius: 25,
+    marginTop: SIZES.margin.large,
   },
   editButtonText: {
-    ...FONTS.regular,
     color: COLORS.white,
-    fontWeight: 'bold',
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  changeImageButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    marginTop: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  changeImageButtonText: {
-    ...FONTS.regular,
-    color: COLORS.white,
-    fontSize: 14,
-    marginLeft: 6,
-    fontWeight: '600',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    ...FONTS.regular,
-    fontSize: 16,
-    color: COLORS.white,
+    fontSize: SIZES.medium,
+    fontFamily: FONTS.medium,
+    marginLeft: SIZES.margin.small,
   },
   errorContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: COLORS.primary,
   },
   errorText: {
-    ...FONTS.regular,
-    fontSize: 16,
     color: COLORS.white,
+    fontSize: SIZES.large,
+    fontFamily: FONTS.medium,
   },
 });
 

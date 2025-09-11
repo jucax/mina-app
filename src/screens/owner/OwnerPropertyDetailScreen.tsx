@@ -67,6 +67,7 @@ const OwnerPropertyDetailScreen = () => {
   const [propertyData, setPropertyData] = useState<PropertyType | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [deletingProperty, setDeletingProperty] = useState(false);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [modalVisible, setModalVisible] = useState(false);
   const [modalImageIndex, setModalImageIndex] = useState(0);
@@ -129,6 +130,56 @@ const OwnerPropertyDetailScreen = () => {
               );
             } finally {
               setUpdatingStatus(false);
+            }
+          }
+        }
+      ]
+    );
+  };
+
+  const handleDeleteProperty = async () => {
+    if (!propertyData?.id) return;
+
+    Alert.alert(
+      'Eliminar Publicación',
+      '¿Estás seguro de que quieres eliminar permanentemente esta publicación? Esta acción no se puede deshacer.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            setDeletingProperty(true);
+            try {
+              console.log('🗑️ Attempting to delete property with ID:', propertyData.id);
+              
+              // Call the delete function
+              await PropertyService.deleteProperty(propertyData.id!);
+              
+              console.log('✅ Property deleted successfully');
+              
+              Alert.alert(
+                'Publicación Eliminada',
+                'La publicación ha sido eliminada correctamente.',
+                [
+                  {
+                    text: 'OK',
+                    onPress: () => {
+                      console.log('🔄 Navigating back to dashboard');
+                      router.replace('/(owner)/dashboard' as any);
+                    }
+                  }
+                ]
+              );
+            } catch (error) {
+              console.error('❌ Error deleting property:', error);
+              Alert.alert(
+                'Error',
+                `No se pudo eliminar la publicación. Error: ${error instanceof Error ? error.message : 'Error desconocido'}`,
+                [{ text: 'OK' }]
+              );
+            } finally {
+              setDeletingProperty(false);
             }
           }
         }
@@ -402,28 +453,46 @@ const OwnerPropertyDetailScreen = () => {
           <Text style={styles.editButtonText}>Editar Publicación</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[
-            styles.statusButton,
-            propertyData?.status === 'inactive' ? styles.activateButton : styles.pauseButton
-          ]}
-          onPress={handleToggleStatus}
-          disabled={updatingStatus}
-        >
-          <Ionicons 
-            name={propertyData?.status === 'inactive' ? 'play' : 'pause'} 
-            size={24} 
-            color={COLORS.white} 
-          />
-          <Text style={styles.statusButtonText}>
-            {updatingStatus 
-              ? 'Actualizando...' 
-              : propertyData?.status === 'inactive' 
-                ? 'Activar Publicación' 
-                : 'Pausar Publicación'
-            }
-          </Text>
-        </TouchableOpacity>
+        {/* Action Buttons Container */}
+        <View style={styles.actionButtonsContainer}>
+          <TouchableOpacity
+            style={[
+              styles.statusButton,
+              propertyData?.status === 'inactive' ? styles.activateButton : styles.pauseButton
+            ]}
+            onPress={handleToggleStatus}
+            disabled={updatingStatus}
+          >
+            <Ionicons 
+              name={propertyData?.status === 'inactive' ? 'play' : 'pause'} 
+              size={24} 
+              color={COLORS.white} 
+            />
+            <Text style={styles.statusButtonText}>
+              {updatingStatus 
+                ? 'Actualizando...' 
+                : propertyData?.status === 'inactive' 
+                  ? 'Activar' 
+                  : 'Pausar'
+              }
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.statusButton, styles.deleteButton]}
+            onPress={handleDeleteProperty}
+            disabled={deletingProperty}
+          >
+            <Ionicons 
+              name="trash" 
+              size={24} 
+              color={COLORS.white} 
+            />
+            <Text style={styles.statusButtonText}>
+              {deletingProperty ? 'Eliminando...' : 'Eliminar'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </View>
   );
@@ -651,12 +720,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginLeft: 8,
   },
+  actionButtonsContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 24,
+    marginBottom: 32,
+    gap: 12,
+  },
   statusButton: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginHorizontal: 24,
-    marginBottom: 32,
     paddingVertical: 16,
     borderRadius: 12,
   },
@@ -665,6 +739,9 @@ const styles = StyleSheet.create({
   },
   activateButton: {
     backgroundColor: '#4CAF50', // Green for activate
+  },
+  deleteButton: {
+    backgroundColor: '#F44336', // Red for delete
   },
   statusButtonText: {
     ...FONTS.regular,
@@ -734,4 +811,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default OwnerPropertyDetailScreen; 
+export default OwnerPropertyDetailScreen;

@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppState, AppStateStatus } from 'react-native';
 import { AgentFormData } from '../types/agent';
+import { supabase } from '../services/supabase';
 
 interface AgentFormContextType {
   formData: AgentFormData;
@@ -59,13 +60,30 @@ interface AgentFormProviderProps {
 export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }) => {
   const [formData, setFormData] = useState<AgentFormData>(initialFormData);
   const [isLoaded, setIsLoaded] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+
+  // Get user-specific storage key
+  const getStorageKey = (userId: string) => `agentFormData_${userId}`;
 
   // Load form data from AsyncStorage on mount
   useEffect(() => {
     const loadFormData = async () => {
       try {
-        console.log('🔄 Loading agent form data...');
-        const savedData = await AsyncStorage.getItem('agentFormData');
+        // Get current user
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user) {
+          console.log('📱 No authenticated user, using initial form data');
+          setFormData(initialFormData);
+          setIsLoaded(true);
+          return;
+        }
+
+        setCurrentUserId(user.id);
+        const storageKey = getStorageKey(user.id);
+        
+        console.log('�� Loading agent form data for user:', user.id);
+        const savedData = await AsyncStorage.getItem(storageKey);
         
         if (savedData) {
           const parsedData = JSON.parse(savedData);
@@ -73,9 +91,11 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
           setFormData(parsedData);
         } else {
           console.log('📱 No saved form data found, using initial form data');
+          setFormData(initialFormData);
         }
       } catch (error) {
         console.error('Error loading agent form data:', error);
+        setFormData(initialFormData);
       } finally {
         setIsLoaded(true);
         console.log('✅ Agent form data loading completed');
@@ -85,12 +105,57 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
     loadFormData();
   }, []);
 
+  // Listen for auth state changes
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
+        console.log('🔄 Auth state changed, clearing form data');
+        setFormData(initialFormData);
+        setCurrentUserId(null);
+        // Clear all form data from storage
+        AsyncStorage.multiRemove([
+          'agentFormData',
+          'propertyFormData',
+          'propertyFormProgress'
+        ]).catch(error => {
+          console.error('Error clearing form data on logout:', error);
+        });
+      } else if (event === 'SIGNED_IN' && session?.user) {
+        console.log('🔄 User signed in, loading form data for:', session.user.id);
+        setCurrentUserId(session.user.id);
+        // Load form data for the new user
+        loadFormDataForUser(session.user.id);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const loadFormDataForUser = async (userId: string) => {
+    try {
+      const storageKey = getStorageKey(userId);
+      const savedData = await AsyncStorage.getItem(storageKey);
+      
+      if (savedData) {
+        const parsedData = JSON.parse(savedData);
+        console.log('📱 Loaded form data for user:', parsedData);
+        setFormData(parsedData);
+      } else {
+        setFormData(initialFormData);
+      }
+    } catch (error) {
+      console.error('Error loading form data for user:', error);
+      setFormData(initialFormData);
+    }
+  };
+
   // Save form data when app goes to background
   useEffect(() => {
     const handleAppStateChange = (nextAppState: AppStateStatus) => {
-      if (nextAppState === 'background' || nextAppState === 'inactive') {
+      if ((nextAppState === 'background' || nextAppState === 'inactive') && currentUserId) {
         console.log('📱 App going to background, saving agent form data...');
-        AsyncStorage.setItem('agentFormData', JSON.stringify(formData))
+        const storageKey = getStorageKey(currentUserId);
+        AsyncStorage.setItem(storageKey, JSON.stringify(formData))
           .then(() => {
             console.log('✅ Agent form data saved on app state change');
           })
@@ -105,7 +170,7 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
     return () => {
       subscription?.remove();
     };
-  }, [formData]);
+  }, [formData, currentUserId]);
 
   const updateFormData = async (updates: Partial<AgentFormData>) => {
     console.log('🔄 Updating agent form data:', updates);
@@ -116,14 +181,17 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
       };
       console.log('📊 New agent form data state:', newData);
       
-      // Save to AsyncStorage immediately
-      AsyncStorage.setItem('agentFormData', JSON.stringify(newData))
-        .then(() => {
-          console.log('✅ Agent form data saved to AsyncStorage successfully');
-        })
-        .catch(error => {
-          console.error('❌ Error saving agent form data to AsyncStorage:', error);
-        });
+      // Save to AsyncStorage immediately if user is authenticated
+      if (currentUserId) {
+        const storageKey = getStorageKey(currentUserId);
+        AsyncStorage.setItem(storageKey, JSON.stringify(newData))
+          .then(() => {
+            console.log('✅ Agent form data saved to AsyncStorage successfully');
+          })
+          .catch(error => {
+            console.error('❌ Error saving agent form data to AsyncStorage:', error);
+          });
+      }
       
       return newData;
     });
@@ -141,13 +209,16 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
   const resetFormData = () => {
     console.log('🔄 Resetting agent form data');
     setFormData(initialFormData);
-    AsyncStorage.removeItem('agentFormData')
-      .then(() => {
-        console.log('✅ Agent form data removed from AsyncStorage successfully');
-      })
-      .catch(error => {
-        console.error('❌ Error removing agent form data from AsyncStorage:', error);
-      });
+    if (currentUserId) {
+      const storageKey = getStorageKey(currentUserId);
+      AsyncStorage.removeItem(storageKey)
+        .then(() => {
+          console.log('✅ Agent form data removed from AsyncStorage successfully');
+        })
+        .catch(error => {
+          console.error('❌ Error removing agent form data from AsyncStorage:', error);
+        });
+    }
   };
 
   const isFormComplete = (): boolean => {
@@ -178,4 +249,4 @@ export const AgentFormProvider: React.FC<AgentFormProviderProps> = ({ children }
       {children}
     </AgentFormContext.Provider>
   );
-}; 
+};
