@@ -166,38 +166,56 @@ const PaymentScreen = () => {
         // 3. Update user subscription in database
         let dbError = null;
         if (user) {
-          const { error } = await supabase
-            .from('agents')
-            .update({
-              subscription_plan: planId,
-              subscription_status: 'active',
-              subscription_start_date: new Date().toISOString(),
-              stripe_customer_id: result.customerId,
-            })
-            .eq('id', user.id);
-          if (error) {
-            dbError = error;
-            console.error('❌ Error actualizando la base de datos:', error);
+          // Get user auth data to find agent_id
+          const { data: userAuth, error: userAuthError } = await supabase
+            .from('user_auth')
+            .select('agent_id')
+            .eq('id', user.id)
+            .single();
+
+          if (userAuthError || !userAuth?.agent_id) {
+            console.error('❌ Error fetching agent ID:', userAuthError);
+            dbError = userAuthError;
           } else {
-            console.log('✅ Database updated successfully');
-            // 4. Send confirmation email
-            await sendConfirmationEmail(
-              user.email || 'test@example.com',
-              plan.name,
-              plan.price,
-              result.customerId
-            );
+            // Update agents table with subscription info
+            const { error: updateError } = await supabase
+              .from('agents')
+              .update({
+                current_plan_id: planId,
+                subscription_status: 'active',
+                subscription_expires_at: new Date(Date.now() + (planId === 'mensual' ? 30 : planId === 'semestral' ? 180 : 365) * 24 * 60 * 60 * 1000).toISOString(),
+                stripe_customer_id: result.customerId,
+                stripe_subscription_id: result.customerId, // Using customerId as subscription ID for now
+              })
+              .eq('id', userAuth.agent_id);
+
+            if (updateError) {
+              dbError = updateError;
+              console.error('❌ Error actualizando la base de datos:', updateError);
+            } else {
+              console.log('✅ Database updated successfully');
+              // 4. Send confirmation email
+              await sendConfirmationEmail(
+                user.email || 'test@example.com',
+                plan.name,
+                plan.price,
+                result.customerId
+              );
+            }
           }
         }
         
         console.log('🎉 Payment completed successfully!');
         Alert.alert(
           'Pago Exitoso',
-          `Tu suscripción ${plan.name} ha sido activada exitosamente. ${dbError ? 'Nota: Hubo un problema actualizando tu perfil, pero el pago fue procesado.' : ''}`,
+          `Tu suscripción ${plan.name} ha sido activada exitosamente. Ahora completa tu perfil para continuar.${dbError ? ' Nota: Hubo un problema actualizando tu perfil, pero el pago fue procesado.' : ''}`,
           [
             {
               text: 'Continuar',
-              onPress: () => router.replace('/(agent)/home' as any),
+              onPress: () => {
+              console.log('🔄 PaymentScreen: Redirecting to /(agent)/registration');
+              router.replace('/(agent)/registration' as any);
+            },
             },
           ]
         );

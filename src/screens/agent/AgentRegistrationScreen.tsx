@@ -151,14 +151,12 @@ const AgentRegistrationScreen = () => {
 
   const validateFields = () => {
     const requiredFields = {
-      cp: cp.trim(),
-      municipio: municipio.trim(),
       selectedEstado: selectedEstado,
       experience: experience.trim(),
       propertiesSold: propertiesSold.trim(),
       selectedCommission: selectedCommission,
       description: description.trim(),
-      // colonia and calle are optional
+      // cp, municipio, colonia and calle are optional
     };
     const missingFields = Object.entries(requiredFields).filter(([key, value]) => !value || value === '');
     return {
@@ -215,6 +213,18 @@ const AgentRegistrationScreen = () => {
       if (updateError) {
         console.error('❌ Error updating agent:', updateError);
         throw updateError;
+      }
+
+      // Update user metadata to mark registration as completed
+      const { error: metadataError } = await supabase.auth.updateUser({
+        data: { has_completed_registration: true }
+      });
+      
+      if (metadataError) {
+        console.error('❌ Error updating user metadata:', metadataError);
+        // Don't throw error, just log it - the agent data is already saved
+      } else {
+        console.log('✅ User registration marked as completed');
       }
 
       // Navigate to submission screen

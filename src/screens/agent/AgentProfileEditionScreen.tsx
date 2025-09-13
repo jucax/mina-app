@@ -27,7 +27,7 @@ interface AgentProfile {
   email: string;
   phone: string;
   agency_name?: string;
-  subscription_plan?: string;
+  // subscription_plan?: string; // Removed - column doesn't exist
   avatar_url?: string;
   created_at?: string;
   postal_code?: string;
@@ -126,13 +126,9 @@ const AgentProfileEditionScreen = () => {
   const [worksAtAgency, setWorksAtAgency] = useState<boolean | null>(null);
   const [notWorksAtAgency, setNotWorksAtAgency] = useState<boolean | null>(null);
   const [description, setDescription] = useState('');
-  const [subscriptionPlan, setSubscriptionPlan] = useState('');
+  // const [subscriptionPlan, setSubscriptionPlan] = useState(''); // Removed - column doesn't exist
 
-  const planOptions = [
-    { label: 'Mensual', value: 'mensual' },
-    { label: 'Semestral', value: 'semestral' },
-    { label: 'Anual', value: 'anual' },
-  ];
+  // const planOptions = []; // Removed - subscription_plan column doesn't exist
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -140,7 +136,7 @@ const AgentProfileEditionScreen = () => {
         if (id) {
           const { data, error } = await supabase
             .from('agents')
-            .select('id, full_name, email, phone, agency_name, subscription_plan, avatar_url, postal_code, state, municipality, neighborhood, street, country, experience_years, properties_sold, commission_percentage, works_at_agency, description')
+            .select('id, full_name, email, phone, agency_name, avatar_url, postal_code, state, municipality, neighborhood, street, country, experience_years, properties_sold, commission_percentage, works_at_agency, description')
             .eq('id', id)
             .single();
 
@@ -171,7 +167,7 @@ const AgentProfileEditionScreen = () => {
           setWorksAtAgency(data.works_at_agency);
           setNotWorksAtAgency(!data.works_at_agency);
           setDescription(data.description || '');
-          setSubscriptionPlan(data.subscription_plan || '');
+          // setSubscriptionPlan(data.subscription_plan || ''); // Removed - column doesn't exist
         }
       } catch (error) {
         console.error('Error fetching profile data:', error);
@@ -225,7 +221,7 @@ const AgentProfileEditionScreen = () => {
         commission_percentage: commissionPercentage.trim() ? parseInt(commissionPercentage.trim()) : null,
         works_at_agency: worksAtAgency,
         description: description.trim() || null,
-        subscription_plan: subscriptionPlan.trim() || null,
+        // subscription_plan: subscriptionPlan.trim() || null, // Removed - column doesn't exist
       };
 
       const { error } = await supabase
@@ -243,12 +239,14 @@ const AgentProfileEditionScreen = () => {
         return;
       }
 
+      console.log('✅ Profile updated successfully, navigating back...');
       Alert.alert(
         'Éxito',
-        'El perfil ha sido actualizado correctamente.',
+        'El perfil ha sido actualizado correctamente. Los cambios se reflejarán al regresar.',
         [{ 
           text: 'OK', 
           onPress: () => {
+            console.log('🔄 Navigating back to profile screen...');
             router.back();
           }
         }]
@@ -517,18 +515,7 @@ const AgentProfileEditionScreen = () => {
           />
         </View>
 
-        <View style={styles.inputContainer}>
-          <Text style={styles.inputLabel}>Plan de Suscripción:</Text>
-          <Dropdown
-            label="Plan de Suscripción"
-            value={subscriptionPlan ? planOptions.find(opt => opt.value === subscriptionPlan)?.label || '' : null}
-            items={planOptions.map(opt => opt.label)}
-            onChange={(label: string) => {
-              const found = planOptions.find(opt => opt.label === label);
-              setSubscriptionPlan(found ? found.value : '');
-            }}
-          />
-        </View>
+        {/* Subscription plan section removed - column doesn't exist in database */}
 
         <TouchableOpacity
           style={[styles.saveButton, saving && styles.saveButtonDisabled]}

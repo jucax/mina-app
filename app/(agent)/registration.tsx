@@ -1,6 +1,7 @@
 import React from 'react';
-import AgentSubscriptionScreen from '../../src/screens/agent/AgentSubscriptionScreen';
+import AgentRegistrationScreen from '../../src/screens/agent/AgentRegistrationScreen';
 
-export default function SubscriptionRoute() {
-  return <AgentSubscriptionScreen />;
-} 
+export default function RegistrationRoute() {
+  console.log('🔄 RegistrationRoute: Loading AgentRegistrationScreen');
+  return <AgentRegistrationScreen />;
+}

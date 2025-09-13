@@ -283,7 +283,7 @@ const RegisterScreen = () => {
           [
             {
               text: 'OK',
-              onPress: () => router.replace('/(agent)/registration' as any),
+              onPress: () => router.replace('/(agent)/subscription' as any),
             },
           ]
         );

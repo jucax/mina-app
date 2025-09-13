@@ -1,0 +1,26 @@
+  const loadUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userAuth, error: userAuthError } = await supabase
+        .from('user_auth')
+        .select('agent_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userAuthError || !userAuth?.agent_id) return;
+
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('id, full_name, email, avatar_url')
+        .eq('id', userAuth.agent_id)
+        .single();
+
+      if (agentError || !agentData) return;
+
+      setUserProfile(agentData);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+  };

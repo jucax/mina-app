@@ -1,0 +1,761 @@
+import React, { useState, useEffect } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Image,
+  ScrollView,
+  Dimensions,
+  FlatList,
+  Modal,
+  Pressable,
+  ActivityIndicator,
+} from 'react-native';
+import { router, useFocusEffect } from 'expo-router';
+import { supabase } from '../../services/supabase';
+import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
+import { Ionicons } from '@expo/vector-icons';
+import { ProposalService } from '../../services/proposalService';
+import { useSubscription } from '../../contexts/SubscriptionContext';
+import { SubscriptionStatusBanner } from '../../components/SubscriptionStatusBanner';
+
+const {
+    subscriptionValidity, width, height } = Dimensions.get('window');
+
+interface Property {
+  id: string;
+  owner_id: string;
+  intent: 'sell' | 'rent';
+  timeline: string;
+  price: number;
+  property_type: string;
+  documentation: string;
+  country: string;
+  state: string;
+  municipality: string;
+  neighborhood?: string;
+  street?: string;
+  postal_code?: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  parking_spaces?: number;
+  construction_area?: number;
+  land_area?: number;
+  images: string[];
+  commission_percentage: number;
+  description?: string;
+  status: 'active' | 'inactive' | 'sold' | 'rented';
+  created_at: string;
+  updated_at: string;
+}
+
+interface UserProfile {
+  id: string;
+  full_name: string;
+  email: string;
+  avatar_url?: string;
+}
+
+const AgentPropertyListScreen = () => {
+  const [properties, setProperties] = useState<Property[]>([]);
+  const [filteredProperties, setFilteredProperties] = useState<Property[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFilter, setSelectedFilter] = useState('all');
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [selectedProperty, setSelectedProperty] = useState<Property | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [proposalText, setProposalText] = useState('');
+  const [submittingProposal, setSubmittingProposal] = useState(false);
+
+  // Subscription guard
+  const {
+    subscriptionValidity, 
+    subscriptionStatus, 
+    loading: subscriptionLoading, 
+    shouldRedirect, 
+    redirectToSubscription 
+  } = useSubscription();
+
+  // Redirect to subscription if needed
+  useEffect(() => {
+    if (!subscriptionLoading && shouldRedirect) {
+      redirectToSubscription();
+    }
+  }, [subscriptionLoading, shouldRedirect, redirectToSubscription]);
+
+  const loadUserProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data: userAuth, error: userAuthError } = await supabase
+        .from('user_auth')
+        .select('agent_id')
+        .eq('id', user.id)
+        .single();
+
+      if (userAuthError || !userAuth?.agent_id) return;
+
+      const { data: agentData, error: agentError } = await supabase
+        .from('agents')
+        .select('id, full_name, email, avatar_url')
+        .eq('id', userAuth.agent_id)
+        .single();
+
+      if (agentError || !agentData) return;
+
+      setUserProfile(agentData);
+    } catch (error) {
+      console.error('Error loading user profile:', error);
+    }
+    const loadProperties = async () => {
+    try {
+      setLoading(true);
+      const {
+    subscriptionValidity, data, error } = await supabase
+        .from('properties')
+        .select(`
+          *,
+          owners!inner(
+            id,
+            full_name,
+            email,
+            phone,
+            avatar_url
+          )
+        `)
+        .eq('status', 'active')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error loading properties:', error);
+        return;
+      }
+
+      setProperties(data || []);
+      setFilteredProperties(data || []);
+    } catch (error) {
+      console.error('Error in loadProperties:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await Promise.all([loadUserProfile(), loadProperties()]);
+    setRefreshing(false);
+  };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      loadUserProfile();
+      loadProperties();
+    }, [])
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    if (!query.trim()) {
+      setFilteredProperties(properties);
+      return;
+    }
+
+    const filtered = properties.filter(property =>
+      property.municipality.toLowerCase().includes(query.toLowerCase()) ||
+      property.state.toLowerCase().includes(query.toLowerCase()) ||
+      property.neighborhood?.toLowerCase().includes(query.toLowerCase()) ||
+      property.property_type.toLowerCase().includes(query.toLowerCase())
+    );
+    setFilteredProperties(filtered);
+  };
+
+  const handleFilter = (filter: string) => {
+    setSelectedFilter(filter);
+    let filtered = properties;
+
+    switch (filter) {
+      case 'sell':
+        filtered = properties.filter(p => p.intent === 'sell');
+        break;
+      case 'rent':
+        filtered = properties.filter(p => p.intent === 'rent');
+        break;
+      case 'both':
+        filtered = properties.filter(p => p.intent === 'both');
+        break;
+      default:
+        filtered = properties;
+    }
+
+    setFilteredProperties(filtered);
+  };
+
+  const handlePropertyPress = (property: Property) => {
+    setSelectedProperty(property);
+    setModalVisible(true);
+  };
+
+  const handleSubmitProposal = async () => {
+    if (!selectedProperty || !proposalText.trim()) return;
+
+    try {
+      setSubmittingProposal(true);
+      await ProposalService.createProposal(selectedProperty.id, proposalText);
+      
+      setModalVisible(false);
+      setProposalText('');
+      setSelectedProperty(null);
+      
+      // Show success message
+      alert('Propuesta enviada exitosamente');
+    } catch (error) {
+      console.error('Error submitting proposal:', error);
+      alert('Error al enviar la propuesta');
+    } finally {
+      setSubmittingProposal(false);
+    }
+  };
+
+  const formatPrice = (price: number) => {
+    return new Intl.NumberFormat('es-MX', {
+      style: 'currency',
+      currency: 'MXN',
+      minimumFractionDigits: 0,
+    }).format(price);
+  };
+
+  const renderPropertyCard = ({ item }: { item: Property }) => (
+    <TouchableOpacity
+      style={styles.propertyCard}
+      onPress={() => handlePropertyPress(item)}
+    >
+      <View style={styles.propertyImageContainer}>
+        {item.images && item.images.length > 0 ? (
+          <Image
+            source={{ uri: item.images[0] }}
+            style={styles.propertyImage}
+            resizeMode="cover"
+          />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <Ionicons name="home" size={40} color={COLORS.gray} />
+          </View>
+        )}
+        <View style={styles.priceTag}>
+          <Text style={styles.priceText}>{formatPrice(item.price)}</Text>
+        </View>
+      </View>
+
+      <View style={styles.propertyInfo}>
+        <Text style={styles.propertyType}>
+          {item.property_type} en {item.intent === 'sell' ? 'VENTA' : item.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+        </Text>
+        <Text style={styles.propertyLocation}>
+          {item.municipality}, {item.state}
+        </Text>
+        {item.bedrooms && item.bathrooms && (
+          <Text style={styles.propertyDetails}>
+            {item.bedrooms} rec • {item.bathrooms} baños
+          </Text>
+        )}
+        <Text style={styles.commissionText}>
+          Comisión: {item.commission_percentage}%
+        </Text>
+      </View>
+    </TouchableOpacity>
+  );
+
+  // Show loading if subscription is being checked
+  if (subscriptionLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={COLORS.secondary} />
+        <Text style={styles.loadingText}>Verificando suscripción...</Text>
+      </View>
+    );
+  }
+
+  // Don't render if should redirect (will be handled by useEffect)
+  if (shouldRedirect) {
+    return null;
+  }
+
+  return (
+    <View style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.greeting}>¡Hola!</Text>
+            <Text style={styles.userName}>
+              {userProfile?.full_name || 'Agente'}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.profileButton}
+            onPress={() => router.push('/(agent)/profile')}
+          >
+            {userProfile?.avatar_url ? (
+              <Image
+                source={{ uri: userProfile.avatar_url }}
+                style={styles.profileImage}
+              />
+            ) : (
+              <View style={styles.profilePlaceholder}>
+                <Ionicons name="person" size={24} color={COLORS.white} />
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color={COLORS.gray} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar propiedades..."
+            placeholderTextColor={COLORS.gray}
+            value={searchQuery}
+            onChangeText={handleSearch}
+          />
+        </View>
+
+        {/* Filter Buttons */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.filterContainer}
+        >
+          {[
+            { key: 'all', label: 'Todas' },
+            { key: 'sell', label: 'Venta' },
+            { key: 'rent', label: 'Renta' },
+            { key: 'both', label: 'Ambas' },
+          ].map((filter) => (
+            <TouchableOpacity
+              key={filter.key}
+              style={[
+                styles.filterButton,
+                selectedFilter === filter.key && styles.filterButtonActive,
+              ]}
+              onPress={() => handleFilter(filter.key)}
+            >
+              <Text
+                style={[
+                  styles.filterButtonText,
+                  selectedFilter === filter.key && styles.filterButtonTextActive,
+                ]}
+              >
+                {filter.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Subscription Status Banner */}
+      subscriptionValidity {subscriptionStatus &&{subscriptionStatus && (
+        <SubscriptionStatusBanner
+          subscriptionValidity={subscriptionValidity}
+          onRenew={redirectToSubscription}
+        />
+      )}
+
+      {/* Properties List */}
+      <View style={styles.content}>
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={COLORS.secondary} />
+            <Text style={styles.loadingText}>Cargando propiedades...</Text>
+          </View>
+        ) : filteredProperties.length === 0 ? (
+          <View style={styles.emptyContainer}>
+            <Ionicons name="home-outline" size={64} color={COLORS.gray} />
+            <Text style={styles.emptyTitle}>No hay propiedades</Text>
+            <Text style={styles.emptySubtitle}>
+              {searchQuery ? 'No se encontraron propiedades con tu búsqueda' : 'No hay propiedades disponibles en este momento'}
+            </Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredProperties}
+            renderItem={renderPropertyCard}
+            keyExtractor={(item) => item.id}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            showsVerticalScrollIndicator={false}
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            contentContainerStyle={styles.listContainer}
+          />
+        )}
+      </View>
+
+      {/* Proposal Modal */}
+      <Modal
+        visible={modalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Enviar Propuesta</Text>
+              <TouchableOpacity
+                style={styles.closeButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Ionicons name="close" size={24} color={COLORS.black} />
+              </TouchableOpacity>
+            </View>
+
+            {selectedProperty && (
+              <View style={styles.propertySummary}>
+                <Text style={styles.propertySummaryTitle}>
+                  {selectedProperty.property_type} en {selectedProperty.municipality}
+                </Text>
+                <Text style={styles.propertySummaryPrice}>
+                  {formatPrice(selectedProperty.price)}
+                </Text>
+              </View>
+            )}
+
+            <TextInput
+              style={styles.proposalInput}
+              placeholder="Escribe tu propuesta aquí..."
+              placeholderTextColor={COLORS.gray}
+              value={proposalText}
+              onChangeText={setProposalText}
+              multiline
+              numberOfLines={6}
+              textAlignVertical="top"
+            />
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => setModalVisible(false)}
+              >
+                <Text style={styles.cancelButtonText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.submitButton, submittingProposal && styles.buttonDisabled]}
+                onPress={handleSubmitProposal}
+                disabled={submittingProposal}
+              >
+                <Text style={styles.submitButtonText}>
+                  {submittingProposal ? 'Enviando...' : 'Enviar Propuesta'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: COLORS.primary,
+  },
+  loadingText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    marginTop: 16,
+  },
+  header: {
+    paddingTop: 60,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  greeting: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    opacity: 0.8,
+  },
+  userName: {
+    ...FONTS.title,
+    fontSize: 24,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  profileButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+  },
+  profilePlaceholder: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    marginBottom: 16,
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: COLORS.black,
+  },
+  filterContainer: {
+    marginBottom: 8,
+  },
+  filterButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 12,
+  },
+  filterButtonActive: {
+    backgroundColor: COLORS.secondary,
+  },
+  filterButtonText: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  filterButtonTextActive: {
+    color: COLORS.white,
+  },
+  content: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+  },
+  listContainer: {
+    padding: 16,
+  },
+  row: {
+    justifyContent: 'space-between',
+  },
+  propertyCard: {
+    width: (width - 48) / 2,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    marginBottom: 16,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  propertyImageContainer: {
+    position: 'relative',
+  },
+  propertyImage: {
+    width: '100%',
+    height: 120,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+  },
+  placeholderImage: {
+    width: '100%',
+    height: 120,
+    backgroundColor: COLORS.lightGray,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  priceTag: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: COLORS.secondary,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  priceText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.white,
+    fontWeight: 'bold',
+  },
+  propertyInfo: {
+    padding: 12,
+  },
+  propertyType: {
+    ...FONTS.regular,
+    fontSize: 14,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  propertyLocation: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
+  propertyDetails: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.gray,
+    marginBottom: 4,
+  },
+  commissionText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: COLORS.secondary,
+    fontWeight: '600',
+  },
+  emptyContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  emptyTitle: {
+    ...FONTS.title,
+    fontSize: 20,
+    color: COLORS.gray,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.gray,
+    textAlign: 'center',
+    lineHeight: 22,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
+    padding: 20,
+    width: width * 0.9,
+    maxHeight: height * 0.8,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  modalTitle: {
+    ...FONTS.title,
+    fontSize: 20,
+    color: COLORS.primary,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 4,
+  },
+  propertySummary: {
+    backgroundColor: COLORS.lightGray,
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  propertySummaryTitle: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.primary,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  propertySummaryPrice: {
+    ...FONTS.regular,
+    fontSize: 18,
+    color: COLORS.secondary,
+    fontWeight: 'bold',
+  },
+  proposalInput: {
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: COLORS.black,
+    marginBottom: 20,
+    minHeight: 120,
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
+  cancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginRight: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.gray,
+    alignItems: 'center',
+  },
+  cancelButtonText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.gray,
+    fontWeight: '600',
+  },
+  submitButton: {
+    flex: 1,
+    paddingVertical: 12,
+    marginLeft: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.secondary,
+    alignItems: 'center',
+  },
+  submitButtonText: {
+    ...FONTS.regular,
+    fontSize: 16,
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  buttonDisabled: {
+    opacity: 0.6,
+  },
+});
+
+export default AgentPropertyListScreen;

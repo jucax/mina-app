@@ -247,22 +247,8 @@ const AgentPropertyListScreen = () => {
     fetchResponseProposalsCount();
   }, []);
 
-  // Build locations array with cleaned labels
-  const locationLabels = properties.map(p => {
-    const neighborhood = p.neighborhood || '';
-    const municipality = p.municipality || '';
-    if (neighborhood && municipality) {
-      return `${neighborhood}, ${municipality}`;
-    } else if (municipality) {
-      return municipality;
-    } else if (neighborhood) {
-      return neighborhood;
-    } else {
-      return '';
-    }
-  }).filter(label => label && label.trim() !== '');
-  const uniqueLocations = Array.from(new Set(locationLabels));
-  const locations = ['Cualquier lugar', ...uniqueLocations].sort((a, b) => {
+  // Build locations array with states only
+  const locations = ['Cualquier lugar', ...new Set(properties.map(p => p.state))].sort((a, b) => {
     if (a === 'Cualquier lugar') return -1;
     if (b === 'Cualquier lugar') return 1;
     return a.localeCompare(b);
@@ -271,21 +257,10 @@ const AgentPropertyListScreen = () => {
   const commissionPercentages = ['All', ...new Set(properties.map(p => `${p.commission_percentage}%`))].sort();
 
   const filteredProperties = properties.filter(property => {
-    const neighborhood = property.neighborhood || '';
-    const municipality = property.municipality || '';
-    let propertyLocation = '';
-    if (neighborhood && municipality) {
-      propertyLocation = `${neighborhood}, ${municipality}`;
-    } else if (municipality) {
-      propertyLocation = municipality;
-    } else if (neighborhood) {
-      propertyLocation = neighborhood;
-    } else {
-      propertyLocation = '';
-    }
-    const matchesLocation = selectedLocation === 'Cualquier lugar' || propertyLocation === selectedLocation;
+    const matchesLocation = selectedLocation === 'Cualquier lugar' || property.state === selectedLocation;
     const matchesQuery = searchQuery === '' || 
-      propertyLocation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      property.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      property.municipality.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.property_type.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesType = selectedPropertyType === 'All' || property.property_type === selectedPropertyType;
     const matchesCommission = selectedCommission === 'All' || `${property.commission_percentage}%` === selectedCommission;
@@ -352,8 +327,10 @@ const AgentPropertyListScreen = () => {
           <View style={styles.locationContainer}>
             <Ionicons name="location" size={22} color={COLORS.secondary} />
             <View style={styles.locationTextContainer}>
-              <Text style={styles.locationText}>{propertyLocation}</Text>
-              <Text style={styles.propertyTypeText}>
+              <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
+                {propertyLocation}
+              </Text>
+              <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
                 {item.property_type || 'Propiedad'} en {item.intent === 'sell' ? 'VENTA' : 'RENTA'}
               </Text>
             </View>
@@ -707,16 +684,25 @@ const styles = StyleSheet.create({
   },
   locationTextContainer: {
     marginLeft: 6,
+    flex: 1,
+    marginRight: 8,
   },
   locationText: {
     ...FONTS.regular,
     fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 18,
   },
   propertyTypeText: {
     ...FONTS.regular,
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.7)',
+    marginTop: 2,
   },
   commissionContainer: {
     alignItems: 'flex-end',
+    minWidth: 60,
+    flexShrink: 0,
   },
   commissionText: {
     ...FONTS.title,

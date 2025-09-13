@@ -32,7 +32,7 @@ interface UserProfile {
 const OwnerDashboardScreen = () => {
   const [favoriteIndices, setFavoriteIndices] = useState<Set<number>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedLocation, setSelectedLocation] = useState('All');
+  const [selectedLocation, setSelectedLocation] = useState('Cualquier lugar');
   const [showLocationDropdown, setShowLocationDropdown] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [imageLoadError, setImageLoadError] = useState(false);
@@ -145,10 +145,14 @@ const OwnerDashboardScreen = () => {
     }
   }, [userProfile?.avatar_url]);
 
-  const locations = ['All', ...new Set(properties.map(p => p.state))].sort();
+  const locations = ['Cualquier lugar', ...new Set(properties.map(p => p.state))].sort((a, b) => {
+    if (a === 'Cualquier lugar') return -1;
+    if (b === 'Cualquier lugar') return 1;
+    return a.localeCompare(b);
+  });
 
   const filteredProperties = properties.filter(property => {
-    const matchesLocation = selectedLocation === 'All' || property.state === selectedLocation;
+    const matchesLocation = selectedLocation === 'Cualquier lugar' || property.state === selectedLocation;
     const matchesQuery = searchQuery === '' || 
       property.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
       property.municipality.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -254,19 +258,19 @@ const OwnerDashboardScreen = () => {
             <View style={styles.locationTextContainer}>
               {isLocationLong ? (
                 <View>
-                  <Text style={styles.locationText}>
+                  <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
                     {property.municipality}
                   </Text>
-                  <Text style={styles.locationText}>
+                  <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
                     {property.state}
                   </Text>
                 </View>
               ) : (
-                <Text style={styles.locationText}>
+                <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
                   {property.municipality}, {property.state}
                 </Text>
               )}
-              <Text style={styles.propertyTypeText}>
+              <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
                 {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
               </Text>
             </View>
@@ -580,21 +584,26 @@ const styles = StyleSheet.create({
   },
   locationTextContainer: {
     marginLeft: 6,
-    flex: 1, // Allow it to take available space
+    flex: 1,
+    marginRight: 8,
   },
   locationText: {
     ...FONTS.regular,
     fontWeight: '600',
-    fontSize: 14, // Slightly smaller font for better fit
+    fontSize: 14,
+    lineHeight: 18,
   },
   propertyTypeText: {
     ...FONTS.regular,
-    fontSize: 12, // Smaller font for property type
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.7)',
     marginTop: 2,
   },
   commissionContainer: {
     alignItems: 'flex-end',
-    marginLeft: 8, // Add some margin to separate from location text
+    minWidth: 60,
+    flexShrink: 0,
+    marginLeft: 8,
   },
   commissionText: {
     ...FONTS.title,

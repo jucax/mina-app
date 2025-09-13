@@ -47,6 +47,32 @@ const LoginScreen = () => {
       console.log('User data:', data.user);
       console.log('Session:', data.session);
 
+      // DEBUG: Check subscription status
+      try {
+        const { data: userAuth, error: userAuthError } = await supabase
+          .from('user_auth')
+          .select('agent_id, user_type')
+          .eq('id', data.user.id)
+          .single();
+        
+        console.log('🔍 DEBUG: User auth:', userAuth);
+        
+        if (userAuth?.agent_id) {
+          const { data: agentData, error: agentError } = await supabase
+            .from('agents')
+            .select('current_plan_id, subscription_status, subscription_expires_at')
+            .eq('id', userAuth.agent_id)
+            .single();
+          
+          console.log('🔍 DEBUG: Agent data:', agentData);
+          console.log('🔍 DEBUG: current_plan_id:', agentData?.current_plan_id);
+          console.log('🔍 DEBUG: subscription_status:', agentData?.subscription_status);
+          console.log('🔍 DEBUG: subscription_expires_at:', agentData?.subscription_expires_at);
+        }
+      } catch (debugError) {
+        console.error('🔍 DEBUG: Error:', debugError);
+      }
+
       // Check if user has completed registration
       const isOwner = data.user?.user_metadata?.is_owner;
       const hasCompletedRegistration = data.user?.user_metadata?.has_completed_registration;
@@ -56,10 +82,52 @@ const LoginScreen = () => {
         if (isOwner) {
           router.replace('/(owner)/intent' as any);
         } else {
-          router.replace('/(agent)/registration' as any);
+          // For agents, check subscription status and profile completion
+          try {
+            const { data: userAuth, error: userAuthError } = await supabase
+              .from('user_auth')
+              .select('agent_id')
+              .eq('id', data.user.id)
+              .single();
+
+            if (userAuth?.agent_id) {
+              const { data: agentData, error: agentError } = await supabase
+                .from('agents')
+                .select('current_plan_id, subscription_status, description, experience_years, commission_percentage')
+                .eq('id', userAuth.agent_id)
+                .single();
+
+              // Check if agent has completed profile (has essential fields filled)
+              const hasCompletedProfile = agentData?.description && 
+                                        agentData?.experience_years && 
+                                        agentData?.commission_percentage;
+
+              if (agentData?.current_plan_id && agentData?.subscription_status === 'active') {
+                if (hasCompletedProfile) {
+                  console.log('✅ Agent has active subscription and completed profile, redirecting to home');
+                  router.replace('/(agent)/home' as any);
+                  return;
+                } else {
+                  console.log('✅ Agent has active subscription but incomplete profile, redirecting to registration');
+                  router.replace('/(agent)/registration' as any);
+                  return;
+                }
+              } else {
+                console.log('❌ Agent has no active subscription, redirecting to subscription');
+                router.replace('/(agent)/subscription' as any);
+                return;
+              }
+            }
+          } catch (error) {
+            console.error('❌ Error checking agent status:', error);
+          }
+          
+          // If no agent data or error, send to subscription
+          router.replace('/(agent)/subscription' as any);
         }
       } else {
         // User has completed registration, go to home screen
+        // The SubscriptionContext will handle subscription checks for agents
         router.replace(`/(${isOwner ? 'owner' : 'agent'})/home` as any);
       }
     } catch (error: any) {
