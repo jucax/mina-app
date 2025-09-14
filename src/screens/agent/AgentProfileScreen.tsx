@@ -93,9 +93,9 @@ const AgentProfileScreen = () => {
 
         console.log('✅ Profile data loaded successfully:', data);
         setAgentProfile(data);
-      } else {
+        } else {
         // Load current user's profile
-        const { data: { user } } = await supabase.auth.getUser();
+          const { data: { user } } = await supabase.auth.getUser();
         
         if (!user) {
           Alert.alert('Error', 'Usuario no autenticado.');
@@ -103,25 +103,25 @@ const AgentProfileScreen = () => {
         }
 
         // Get user auth data to find agent_id
-        const { data: userAuth, error: userAuthError } = await supabase
-          .from('user_auth')
+            const { data: userAuth, error: userAuthError } = await supabase
+              .from('user_auth')
           .select('agent_id')
-          .eq('id', user.id)
-          .single();
+              .eq('id', user.id)
+              .single();
 
         if (userAuthError || !userAuth?.agent_id) {
           Alert.alert('Error', 'No se encontró el perfil del agente.');
-          return;
-        }
+              return;
+            }
 
-        // Fetch agent profile
+              // Fetch agent profile
         const { data, error } = await supabase
-          .from('agents')
+                .from('agents')
           .select('id, full_name, email, phone, avatar_url, works_at_agency, agency_name, description, created_at, postal_code, state, municipality, neighborhood, street, country, experience_years, properties_sold, commission_percentage')
-          .eq('id', userAuth.agent_id)
-          .single();
+                .eq('id', userAuth.agent_id)
+                .single();
 
-        if (error) {
+              if (error) {
           console.error('Error fetching agent profile:', error);
           Alert.alert('Error', 'No se pudo cargar el perfil.');
           return;
@@ -129,14 +129,14 @@ const AgentProfileScreen = () => {
 
         console.log('✅ Profile data loaded successfully:', data);
         setAgentProfile(data);
-      }
-    } catch (error) {
+        }
+      } catch (error) {
       console.error('Error in loadAgentProfile:', error);
       Alert.alert('Error', 'Ocurrió un error al cargar el perfil.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     loadAgentProfile();
@@ -190,8 +190,8 @@ const AgentProfileScreen = () => {
   };
 
   if (loading) {
-    return (
-      <View style={styles.container}>
+  return (
+    <View style={styles.container}>
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={COLORS.secondary} />
           <Text style={styles.loadingText}>Cargando perfil...</Text>
@@ -222,12 +222,12 @@ const AgentProfileScreen = () => {
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity
-        style={styles.backButton}
-        onPress={() => router.back()}
-      >
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+            >
         <Ionicons name="arrow-back" size={28} color={COLORS.white} />
-      </TouchableOpacity>
+            </TouchableOpacity>
       
       <ScrollView 
         contentContainerStyle={styles.content}
@@ -258,13 +258,13 @@ const AgentProfileScreen = () => {
           {agentProfile.works_at_agency && agentProfile.agency_name && (
             <Text style={styles.agencyName}>{agentProfile.agency_name}</Text>
           )}
-        </View>
+          </View>
 
         <View style={styles.infoSection}>
           {/* 🎯 RENDERING COMPREHENSIVE PROFILE SECTIONS! */}
           {/* Personal Information */}
-          <Text style={styles.sectionTitle}>Información Personal</Text>
-          
+            <Text style={styles.sectionTitle}>Información Personal</Text>
+            
           <View style={styles.infoItem}>
             <Ionicons name="mail" size={20} color={COLORS.secondary} />
             <Text style={styles.infoLabel}>Correo electrónico</Text>
@@ -452,7 +452,7 @@ const AgentProfileScreen = () => {
           )}
         </View>
 
-        {!isViewingOtherProfile && (
+          {!isViewingOtherProfile && (
           <View style={styles.actionsSection}>
             <TouchableOpacity
               style={styles.actionButton}
@@ -478,8 +478,8 @@ const AgentProfileScreen = () => {
               <Text style={styles.actionButtonText}>Cerrar Sesión</Text>
             </TouchableOpacity>
           </View>
-        )}
-      </ScrollView>
+          )}
+        </ScrollView>
     </View>
   );
 };
@@ -680,4 +680,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default AgentProfileScreen;
+export default AgentProfileScreen; 

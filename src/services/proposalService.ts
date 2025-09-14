@@ -4,11 +4,9 @@ export interface Proposal {
   id: string;
   property_id: string;
   agent_id: string;
-  owner_id: string;
-  proposal_text: string;
+  owner_id: string;  proposal_text: string;
   status: 'pending' | 'accepted' | 'rejected';
   created_at: string;
-  updated_at: string;
   
   // Joined data
   agent?: {
@@ -276,10 +274,9 @@ export class ProposalService {
 
   // Update proposal status (accept/reject)
   static async updateProposalStatus(id: string, status: 'accepted' | 'rejected'): Promise<void> {
-    try {
-      const { error } = await supabase
+    try {      const { error } = await supabase
         .from('proposals')
-        .update({ status, updated_at: new Date().toISOString() })
+        .update({ status })
         .eq('id', id);
 
       if (error) {

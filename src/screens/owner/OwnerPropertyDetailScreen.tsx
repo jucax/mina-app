@@ -11,7 +11,7 @@ import {
   Modal,
   FlatList,
 } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams, useFocusEffect } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { PropertyService } from '../../services/propertyService';
@@ -94,7 +94,26 @@ const OwnerPropertyDetailScreen = () => {
     fetchPropertyData();
   }, [id]);
 
-  const handleToggleStatus = async () => {
+    // Refresh property data when screen comes into focus (e.g., returning from edit screen)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 OwnerPropertyDetailScreen focused - refreshing property data...');
+      if (id) {
+        const fetchPropertyData = async () => {
+          try {
+            const data = await PropertyService.getPropertyById(id);
+            setPropertyData(data);
+            console.log('✅ Property data refreshed successfully');
+          } catch (error) {
+            console.error('❌ Error refreshing property data:', error);
+          }
+        };
+        fetchPropertyData();
+      }
+    }, [id])
+  );
+
+const handleToggleStatus = async () => {
     if (!propertyData?.id) return;
 
     const newStatus = propertyData.status === 'published' ? 'inactive' : 'published';

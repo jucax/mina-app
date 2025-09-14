@@ -42,7 +42,7 @@ interface Property {
   images: string[];
   commission_percentage: number;
   description?: string;
-  status: 'active' | 'inactive' | 'sold' | 'rented';
+  status: 'active' | 'published' | 'inactive' | 'sold' | 'rented';
   created_at: string;
   updated_at: string;
 }
@@ -175,11 +175,11 @@ const AgentPropertyListScreen = () => {
       const { data, error } = await supabase
         .from('properties')
         .select('*')
-        .eq('status', 'active')
+        .eq('status', 'published')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('❌ Error fetching active properties:', error);
+        console.error('❌ Error fetching published properties:', error);
         console.error('❌ Error details:', JSON.stringify(error, null, 2));
         
         // If there's an RLS error, let's try a different approach
@@ -188,14 +188,14 @@ const AgentPropertyListScreen = () => {
           
           // Try using the properties from the "all properties" query if they exist
           if (allProperties && allProperties.length > 0) {
-            const activeProperties = allProperties.filter(p => p.status === 'active');
-            console.log('✅ Using filtered properties from bypass query:', activeProperties.length);
-            setProperties(activeProperties);
+            const publishedProperties = allProperties.filter(p => p.status === 'published');
+            console.log('✅ Using filtered properties from bypass query:', publishedProperties.length);
+            setProperties(publishedProperties);
             return;
           }
         }
       } else {
-        console.log('✅ Active properties fetched successfully:', data?.length || 0);
+        console.log('✅ Published properties fetched successfully:', data?.length || 0);
         console.log('📋 Properties data:', data);
         setProperties(data || []);
       }
@@ -225,6 +225,14 @@ const AgentPropertyListScreen = () => {
     }, [])
   );
 
+  // Refresh properties when screen comes into focus (e.g., returning from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused - refreshing properties list...');
+      fetchProperties();
+    }, [])
+  );
+
   // Log avatar URL when it changes
   useEffect(() => {
     if (userProfile?.avatar_url) {
@@ -247,7 +255,31 @@ const AgentPropertyListScreen = () => {
     fetchResponseProposalsCount();
   }, []);
 
-  // Build locations array with states only
+  // Debounced search effect - only refresh after user stops typing
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchQuery !== '') {
+        console.log('🔍 Search query changed - refreshing data...');
+        console.log('📊 Search term:', searchQuery);
+        fetchProperties();
+      }
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timeoutId);
+  }, [searchQuery]);
+
+  // Refresh data when location, property type, or commission filters change
+  useEffect(() => {
+    console.log('🔄 Filter changed - refreshing data...');
+    console.log('📊 Current filters:', {
+      selectedLocation,
+      selectedPropertyType,
+      selectedCommission
+    });
+    fetchProperties();
+  }, [selectedLocation, selectedPropertyType, selectedCommission]);
+
+// Build locations array with states only
   const locations = ['Cualquier lugar', ...new Set(properties.map(p => p.state))].sort((a, b) => {
     if (a === 'Cualquier lugar') return -1;
     if (b === 'Cualquier lugar') return 1;
@@ -716,6 +748,8 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 64,
   },
   emptyText: {
     ...FONTS.regular,

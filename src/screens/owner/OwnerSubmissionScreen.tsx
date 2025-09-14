@@ -54,12 +54,14 @@ const OwnerSubmissionScreen = () => {
         
         if (property && property.id) {
           console.log('✅ Property saved successfully:', property.id);
+          console.log('🔍 Property status after creation:', property.status);
           
           // Publish the property (change status from draft to active)
           try {
             const publishedProperty = await PropertyService.publishProperty(property.id);
             if (publishedProperty) {
               console.log('✅ Property published successfully:', publishedProperty.id);
+              console.log('🔍 Property status after publishing:', publishedProperty.status);
             } else {
               console.log('⚠️ Property saved but could not be published');
             }

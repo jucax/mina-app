@@ -65,16 +65,14 @@ const AgentPropertyDetailScreen = () => {
           'No se pudo cargar la información de la propiedad.',
           [{ text: 'OK', onPress: () => router.back() }]
         );
-      } finally {
-        setLoading(false);
+      } finally {      setLoading(false);
       }
     };
-
-    fetchPropertyData();
+    
+fetchPropertyData();
   }, [id]);
 
-  
-  // Refresh property data when screen comes into focus (e.g., returning from other screens)
+// Refresh property data when screen comes into focus (e.g., returning from other screens)
   useFocusEffect(
     React.useCallback(() => {
       console.log('🔄 AgentPropertyDetailScreen focused - refreshing property data...');
@@ -92,8 +90,34 @@ const AgentPropertyDetailScreen = () => {
       }
     }, [id])
   );
-useEffect(() => {
-    // Fetch userType and userId if not already set
+
+  useEffect(() => {
+    // Fetch userType and userId if not already set// Refresh property data when screen comes into focus (e.g., returning from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 AgentPropertyDetailScreen focused - refreshing property data...');
+      if (id) {
+        const fetchPropertyData = async () => {
+          try {
+            const data = await PropertyService.getPropertyById(id);
+            setPropertyData(data);
+            console.log('✅ Property data refreshed successfully');
+          } catch (error) {
+            console.error('❌ Error refreshing property data:', error);
+          }
+        };
+        fetchPropertyData();
+      }
+    }, [id])
+  );
+
+  useEffect(() => {
+    // Fetch userType and userId if not already set);
+
+  useEffect(() => {
+    // Fetch userType and userId if not already set);
+
+
     const fetchUserTypeAndId = async () => {
       if (!userType || !userId) {
         try {

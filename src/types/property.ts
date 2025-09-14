@@ -52,7 +52,7 @@ export interface Property {
   offers_count?: number;
   
   // Status and Metadata
-  status?: 'draft' | 'published' | 'sold' | 'rented' | 'inactive';
+  status?: 'draft' | 'active' | 'published' | 'sold' | 'rented' | 'inactive';
   created_at?: string;
   updated_at?: string;
 }

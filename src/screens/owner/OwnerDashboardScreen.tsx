@@ -101,7 +101,15 @@ const OwnerDashboardScreen = () => {
     }, [])
   );
 
-  const fetchProperties = async () => {
+    // Refresh properties when screen comes into focus (e.g., returning from other screens)
+  useFocusEffect(
+    React.useCallback(() => {
+      console.log('🔄 Screen focused - refreshing properties list...');
+      fetchProperties();
+    }, [])
+  );
+
+const fetchProperties = async () => {
     try {
       setLoading(true);
       const { data: { user } } = await supabase.auth.getUser();
