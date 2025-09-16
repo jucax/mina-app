@@ -12,7 +12,8 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.minarealestate.app",
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos of properties and upload them to your listings."
       }
     },
     "android": {
