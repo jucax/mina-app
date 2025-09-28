@@ -13,7 +13,8 @@
       "bundleIdentifier": "com.minarealestate.app",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
-        "NSCameraUsageDescription": "This app needs access to your camera to take photos of properties and upload them to your listings."
+        "NSCameraUsageDescription": "This app needs access to your camera to take photos of properties and upload them to your listings.",
+        "NSPhotoLibraryUsageDescription": "This app needs access to your photo library to select and upload property images."
       }
     },
     "android": {
@@ -24,7 +25,7 @@
       },
       "icon": "./assets/images/mina-app-icon.png",
       "edgeToEdgeEnabled": true,
-      "package": "com.minarealestate.app"
+      "package": "com.minaios"
     },
     "web": {
       "bundler": "metro",

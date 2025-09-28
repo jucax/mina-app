@@ -19,6 +19,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { ProposalService } from '../../services/proposalService';
 
 const { width, height } = Dimensions.get('window');
+const isTablet = width >= 768; // iPad starts at 768px width
 
 interface Property {
   id: string;
@@ -355,23 +356,49 @@ const AgentPropertyListScreen = () => {
             color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
           />
         </TouchableOpacity>
-        <View style={styles.propertyInfo}>
-          <View style={styles.locationContainer}>
-            <Ionicons name="location" size={22} color={COLORS.secondary} />
-            <View style={styles.locationTextContainer}>
-              <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
-                {propertyLocation}
-              </Text>
-              <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
-                {item.property_type || 'Propiedad'} en {item.intent === 'sell' ? 'VENTA' : 'RENTA'}
-              </Text>
+        {isTablet ? (
+          <>
+            {/* Left Bottom Corner - Location Info (iPad only) */}
+            <View style={styles.leftInfoBox}>
+              <View style={styles.locationContainer}>
+                <Ionicons name="location" size={20} color={COLORS.secondary} />
+                <View style={styles.locationTextContainer}>
+                  <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
+                    {propertyLocation}
+                  </Text>
+                  <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
+                    {item.property_type || 'Propiedad'} en {item.intent === 'sell' ? 'VENTA' : 'RENTA'}
+                  </Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Right Bottom Corner - Commission (iPad only) */}
+            <View style={styles.rightInfoBox}>
+              <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
+              <Text style={styles.commissionLabel}>Comision</Text>
+            </View>
+          </>
+        ) : (
+          /* Original single info bar for phone */
+          <View style={styles.propertyInfo}>
+            <View style={styles.locationContainer}>
+              <Ionicons name="location" size={22} color={COLORS.secondary} />
+              <View style={styles.locationTextContainer}>
+                <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
+                  {propertyLocation}
+                </Text>
+                <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
+                  {item.property_type || 'Propiedad'} en {item.intent === 'sell' ? 'VENTA' : 'RENTA'}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.commissionContainer}>
+              <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
+              <Text style={styles.commissionLabel}>Comision</Text>
             </View>
           </View>
-          <View style={styles.commissionContainer}>
-            <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
-            <Text style={styles.commissionLabel}>Comision</Text>
-          </View>
-        </View>
+        )}
       </Pressable>
     );
   };
@@ -579,8 +606,9 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: SIZES.padding.large,
-    paddingTop: SIZES.padding.large,
-    height: 100,
+    paddingTop: 50, // Reduced padding for iPad
+    paddingBottom: 20,
+    minHeight: 120, // Increased minimum height to prevent cutoff
   },
   searchContainer: {
     flex: 1,
@@ -601,7 +629,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary,
     marginRight: 8,
     backgroundColor: COLORS.white,
-    marginTop: 25,
+    marginTop: 15, // Reduced margin for better iPad fit
   },
   locationDropdownText: {
     ...FONTS.regular,
@@ -612,7 +640,7 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 22,
+    marginTop: 15, // Reduced margin for better iPad fit
   },
   headerButton: {
     width: 44,
@@ -692,6 +720,65 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
+  leftInfoBox: {
+    position: 'absolute',
+    left: 18,
+    bottom: 18,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    maxWidth: '70%', // Increased width for iPad to fit location text
+    minWidth: 350, // Ensure minimum width for location text
+  },
+  rightInfoBox: {
+    position: 'absolute',
+    right: 18,
+    bottom: 18,
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    padding: 12,
+    shadowColor: COLORS.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 4,
+    alignItems: 'center',
+    minWidth: 80,
+  },
+  locationContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  locationTextContainer: {
+    marginLeft: 6,
+    flex: 1,
+  },
+  locationText: {
+    ...FONTS.regular,
+    fontWeight: '600',
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  propertyTypeText: {
+    ...FONTS.regular,
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.7)',
+    marginTop: 2,
+  },
+  commissionText: {
+    ...FONTS.title,
+    fontSize: 28,
+  },
+  commissionLabel: {
+    fontSize: 14,
+    color: 'rgba(0, 0, 0, 0.5)',
+  },
+  // Phone layout styles (original)
   propertyInfo: {
     position: 'absolute',
     left: 18,
@@ -709,40 +796,10 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
-  locationContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-  },
-  locationTextContainer: {
-    marginLeft: 6,
-    flex: 1,
-    marginRight: 8,
-  },
-  locationText: {
-    ...FONTS.regular,
-    fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  propertyTypeText: {
-    ...FONTS.regular,
-    fontSize: 12,
-    color: 'rgba(0, 0, 0, 0.7)',
-    marginTop: 2,
-  },
   commissionContainer: {
     alignItems: 'flex-end',
-    minWidth: 60,
+    minWidth: 80,
     flexShrink: 0,
-  },
-  commissionText: {
-    ...FONTS.title,
-    fontSize: 28,
-  },
-  commissionLabel: {
-    fontSize: 14,
-    color: 'rgba(0, 0, 0, 0.5)',
   },
   emptyContainer: {
     flex: 1,

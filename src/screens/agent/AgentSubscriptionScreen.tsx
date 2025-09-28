@@ -93,58 +93,13 @@ const AgentSubscriptionScreen = () => {
           </View>
         </View>
 
-        {/* Plan Selection - 2-1 Layout */}
+        {/* Plan Selection - Single Row Layout */}
         <View style={styles.plansContainer}>
           <Text style={styles.plansTitle}>Selecciona tu plan:</Text>
           
-          {/* First Row - 2 plans side by side */}
+          {/* Single Row - All 3 plans with equal spacing */}
           <View style={styles.plansRow}>
-            {subscriptionPlans.slice(0, 2).map((plan) => (
-              <TouchableOpacity
-                key={plan.id}
-                style={[
-                  styles.planSquare,
-                  selectedPlan === plan.id && styles.planSquareSelected
-                ]}
-                onPress={() => handlePlanSelection(plan.id)}
-              >
-                <Text style={[
-                  styles.planName,
-                  selectedPlan === plan.id && styles.planNameSelected
-                ]}>
-                  {plan.name}
-                </Text>
-                <Text style={[
-                  styles.planPrice,
-                  selectedPlan === plan.id && styles.planPriceSelected
-                ]}>
-                  {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
-                </Text>
-                <Text style={[
-                  styles.planPeriod,
-                  selectedPlan === plan.id && styles.planPeriodSelected
-                ]}>
-                  /{plan.period}
-                </Text>
-                <Text style={[
-                  styles.planIVA,
-                  selectedPlan === plan.id && styles.planIVASelected
-                ]}>
-                  No incluye IVA
-                </Text>
-                
-                {selectedPlan === plan.id && (
-                  <View style={styles.selectedIndicator}>
-                    <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Second Row - 1 plan centered */}
-          <View style={styles.plansRowCentered}>
-            {subscriptionPlans.slice(2, 3).map((plan) => (
+            {subscriptionPlans.map((plan) => (
               <TouchableOpacity
                 key={plan.id}
                 style={[
@@ -280,14 +235,9 @@ const styles = StyleSheet.create({
   },
   plansRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'space-around',
     marginBottom: SIZES.margin.medium,
-    paddingHorizontal: 10,
-  },
-  plansRowCentered: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginBottom: SIZES.margin.medium,
+    paddingHorizontal: 20,
   },
   planSquare: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -296,10 +246,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    width: Math.min(width * 0.42, 170),
+    width: Math.min(width * 0.28, 160),
     position: 'relative',
     minHeight: 160,
     justifyContent: 'center',
+    flex: 1,
+    marginHorizontal: 8,
   },
   planSquareSelected: {
     backgroundColor: COLORS.secondary,
