@@ -121,6 +121,13 @@ const PropertyDocumentationScreen = () => {
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.replace('/(owner)/home' as any)}
+        >
+          <Text style={styles.skipButtonText}>Agregar propiedad más tarde</Text>
+        </TouchableOpacity>
       </ScrollView>
 
       <TouchableOpacity
@@ -221,6 +228,21 @@ const styles = StyleSheet.create({
     top: Platform.OS === 'ios' ? 60 : 40,
     left: 0,
     padding: 16,
+  },
+  skipButton: {
+    marginTop: 16,
+    marginBottom: 32,
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: width * 0.8,
+    alignSelf: 'center',
+  },
+  skipButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
   },
 });
 

@@ -158,6 +158,13 @@ const OwnerIntentSelectionScreen = () => {
           >
             <Text style={styles.continueButtonText}>Continuar</Text>
           </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.skipButton}
+            onPress={() => router.replace('/(owner)/home' as any)}
+          >
+            <Text style={styles.skipButtonText}>Agregar propiedad más tarde</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -283,6 +290,19 @@ const styles = StyleSheet.create({
     color: COLORS.white,
     fontSize: 20,
     fontWeight: 'bold',
+  },
+  skipButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: '100%',
+  },
+  skipButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
   },
   backButton: {
     position: 'absolute',

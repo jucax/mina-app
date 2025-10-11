@@ -204,6 +204,16 @@ const LoginScreen = () => {
               </Text>
             </TouchableOpacity>
 
+            {/* Browse as Guest Button */}
+            <TouchableOpacity
+              style={[commonStyles.button, styles.guestButton]}
+              onPress={() => router.push('/(guest)/properties' as any)}
+            >
+              <Text style={styles.guestButtonText}>
+                Explorar Propiedades
+              </Text>
+            </TouchableOpacity>
+
             {/* Forgot Password */}
             <TouchableOpacity
               style={styles.forgotPasswordButton}
@@ -269,6 +279,17 @@ const styles = StyleSheet.create({
   },
   loginButtonDisabled: {
     opacity: 0.7,
+  },
+  guestButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 2,
+    borderColor: COLORS.white,
+    marginTop: SIZES.margin.medium,
+  },
+  guestButtonText: {
+    color: COLORS.white,
+    fontSize: SIZES.font,
+    fontWeight: '600',
   },
   forgotPasswordButton: {
     marginTop: SIZES.margin.medium,

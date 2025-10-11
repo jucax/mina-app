@@ -14,6 +14,7 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../../services/supabase';
+import { AccountDeletionService } from '../../services/accountDeletionService';
 
 const { width } = Dimensions.get('window');
 
@@ -151,6 +152,52 @@ const OwnerProfileScreen = () => {
     }
   };
 
+  const handleDeleteAccount = async () => {
+    AccountDeletionService.confirmAccountDeletion('owner', async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        
+        if (!user || !ownerProfile?.id) {
+          Alert.alert('Error', 'No se pudo obtener la información del usuario.');
+          return;
+        }
+
+        // Show loading state
+        Alert.alert('Eliminando cuenta...', 'Por favor espera.');
+
+        const success = await AccountDeletionService.deleteOwnerAccount(
+          ownerProfile.id,
+          user.id
+        );
+
+        if (success) {
+          // Clear form data
+          const { clearAllFormData } = await import('../../utils/formDataUtils');
+          await clearAllFormData();
+          
+          Alert.alert(
+            'Cuenta Eliminada',
+            'Tu cuenta ha sido eliminada exitosamente.',
+            [
+              {
+                text: 'OK',
+                onPress: () => router.replace('/(general)/login'),
+              },
+            ]
+          );
+        } else {
+          Alert.alert(
+            'Error',
+            'No se pudo eliminar la cuenta. Por favor intenta de nuevo o contacta soporte.'
+          );
+        }
+      } catch (error) {
+        console.error('Error in handleDeleteAccount:', error);
+        Alert.alert('Error', 'Ocurrió un error al eliminar la cuenta.');
+      }
+    });
+  };
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -255,6 +302,14 @@ const OwnerProfileScreen = () => {
             >
               <Ionicons name="log-out" size={24} color={COLORS.white} />
               <Text style={styles.actionButtonText}>Cerrar Sesión</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionButton, styles.deleteButton]}
+              onPress={handleDeleteAccount}
+            >
+              <Ionicons name="trash" size={24} color={COLORS.white} />
+              <Text style={styles.actionButtonText}>Eliminar Cuenta</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -405,6 +460,9 @@ const styles = StyleSheet.create({
   },
   logoutButton: {
     backgroundColor: '#FF4444',
+  },
+  deleteButton: {
+    backgroundColor: '#CC0000',
   },
   actionButtonText: {
     ...FONTS.regular,

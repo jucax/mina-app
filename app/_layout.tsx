@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack>
           <Stack.Screen name="index" options={{ headerShown: false }} />
           <Stack.Screen name="(general)" options={{ headerShown: false }} />
+          <Stack.Screen name="(guest)" options={{ headerShown: false }} />
           <Stack.Screen name="(owner)" options={{ headerShown: false }} />
           <Stack.Screen name="(agent)" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

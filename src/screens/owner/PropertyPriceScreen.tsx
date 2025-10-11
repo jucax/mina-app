@@ -157,6 +157,13 @@ const PropertyPriceScreen = () => {
         >
           <Text style={styles.continueButtonText}>Continuar</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.replace('/(owner)/home' as any)}
+        >
+          <Text style={styles.skipButtonText}>Agregar propiedad más tarde</Text>
+        </TouchableOpacity>
       </View>
       </KeyboardAvoidingView>
     </TouchableWithoutFeedback>
@@ -253,6 +260,20 @@ const styles = StyleSheet.create({
   inputError: {
     borderColor: '#FF4444',
     backgroundColor: 'rgba(255, 68, 68, 0.1)',
+  },
+  skipButton: {
+    marginTop: 16,
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: width * 0.8,
+    alignSelf: 'center',
+  },
+  skipButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
   },
 });
 

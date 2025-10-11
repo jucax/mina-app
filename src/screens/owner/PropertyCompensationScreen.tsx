@@ -223,6 +223,13 @@ const PropertyCompensationScreen = () => {
         >
           <Text style={styles.publishButtonText}>Publicar</Text>
         </TouchableOpacity>
+        
+        <TouchableOpacity
+          style={styles.skipButton}
+          onPress={() => router.replace('/(owner)/home' as any)}
+        >
+          <Text style={styles.skipButtonText}>Agregar propiedad más tarde</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
@@ -374,6 +381,21 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 24,
     textAlign: 'center',
+  },
+  skipButton: {
+    marginTop: 16,
+    marginBottom: 32,
+    paddingVertical: 12,
+    alignItems: 'center',
+    width: width * 0.7,
+    alignSelf: 'center',
+  },
+  skipButtonText: {
+    ...FONTS.regular,
+    color: COLORS.white,
+    fontSize: 16,
+    textDecorationLine: 'underline',
+    opacity: 0.8,
   },
 });
 
