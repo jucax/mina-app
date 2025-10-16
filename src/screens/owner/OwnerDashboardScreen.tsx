@@ -261,71 +261,35 @@ const fetchProperties = async () => {
             color={favoriteIndices.has(index) ? COLORS.secondary : COLORS.primary}
           />
         </TouchableOpacity>
-        {isTablet ? (
-          <>
-            {/* Left Bottom Corner - Location Info (iPad only) */}
-            <View style={styles.leftInfoBox}>
-              <View style={styles.locationContainer}>
-                <Ionicons name="location" size={20} color={COLORS.secondary} />
-                <View style={styles.locationTextContainer}>
-                  {isLocationLong ? (
-                    <View>
-                      <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
-                        {property.municipality}
-                      </Text>
-                      <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
-                        {property.state}
-                      </Text>
-                    </View>
-                  ) : (
-                    <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
-                      {property.municipality}, {property.state}
-                    </Text>
-                  )}
-                  <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
-                    {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+        {/* Single Property Info Box */}
+        <View style={styles.propertyInfo}>
+          <View style={styles.locationContainer}>
+            <Ionicons name="location" size={20} color={COLORS.secondary} />
+            <View style={styles.locationTextContainer}>
+              {isLocationLong ? (
+                <View>
+                  <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                    {property.municipality}
+                  </Text>
+                  <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
+                    {property.state}
                   </Text>
                 </View>
-              </View>
-            </View>
-
-            {/* Right Bottom Corner - Commission (iPad only) */}
-            <View style={styles.rightInfoBox}>
-              <Text style={styles.commissionText}>{property.commission_percentage}%</Text>
-              <Text style={styles.commissionLabel}>Comisión</Text>
-            </View>
-          </>
-        ) : (
-          /* Original single info bar for phone */
-          <View style={styles.propertyInfo}>
-            <View style={styles.locationContainer}>
-              <Ionicons name="location" size={22} color={COLORS.secondary} />
-              <View style={styles.locationTextContainer}>
-                {isLocationLong ? (
-                  <View>
-                    <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
-                      {property.municipality}
-                    </Text>
-                    <Text style={styles.locationText} numberOfLines={1} ellipsizeMode="tail">
-                      {property.state}
-                    </Text>
-                  </View>
-                ) : (
-                  <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
-                    {property.municipality}, {property.state}
-                  </Text>
-                )}
-                <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
-                  {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+              ) : (
+                <Text style={styles.locationText} numberOfLines={2} ellipsizeMode="tail">
+                  {property.municipality}, {property.state}
                 </Text>
-              </View>
-            </View>
-            <View style={styles.commissionContainer}>
-              <Text style={styles.commissionText}>{property.commission_percentage}%</Text>
-              <Text style={styles.commissionLabel}>Comisión</Text>
+              )}
+              <Text style={styles.propertyTypeText} numberOfLines={1} ellipsizeMode="tail">
+                {property.property_type || 'Propiedad'} en {property.intent === 'sell' ? 'VENTA' : property.intent === 'rent' ? 'RENTA' : 'VENTA/RENTA'}
+              </Text>
             </View>
           </View>
-        )}
+          <View style={styles.commissionContainer}>
+            <Text style={styles.commissionText}>{property.commission_percentage || 0}%</Text>
+            <Text style={styles.commissionLabel}>Comisión</Text>
+          </View>
+        </View>
       </TouchableOpacity>
     );
   };
@@ -607,9 +571,6 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   leftInfoBox: {
-    position: 'absolute',
-    left: 18,
-    bottom: 18,
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 12,
@@ -618,13 +579,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 8,
     elevation: 4,
-    maxWidth: '70%', // Increased width for iPad to fit location text
-    minWidth: 350, // Ensure minimum width for location text
   },
   rightInfoBox: {
-    position: 'absolute',
-    right: 18,
-    bottom: 18,
     backgroundColor: COLORS.white,
     borderRadius: 12,
     padding: 12,
@@ -634,7 +590,9 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
     alignItems: 'center',
-    minWidth: 80,
+    justifyContent: 'center',
+    minWidth: 70,
+    maxWidth: 90,
   },
   locationContainer: {
     flexDirection: 'row',
@@ -643,28 +601,34 @@ const styles = StyleSheet.create({
   locationTextContainer: {
     marginLeft: 6,
     flex: 1,
+    maxWidth: '70%',
   },
   locationText: {
     ...FONTS.regular,
     fontWeight: '600',
-    fontSize: 14,
-    lineHeight: 18,
+    fontSize: 13,
+    lineHeight: 16,
+    maxWidth: '90%',
   },
   propertyTypeText: {
     ...FONTS.regular,
-    fontSize: 12,
+    fontSize: 11,
     color: 'rgba(0, 0, 0, 0.7)',
     marginTop: 2,
+    maxWidth: '90%',
   },
   commissionText: {
     ...FONTS.title,
-    fontSize: 24, // Slightly smaller for better fit
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: COLORS.black,
   },
   commissionLabel: {
-    fontSize: 12, // Smaller font for label
-    color: 'rgba(0, 0, 0, 0.5)',
+    fontSize: 12,
+    color: 'rgba(0, 0, 0, 0.6)',
+    marginTop: 2,
+    fontWeight: '400',
   },
-  // Phone layout styles (original)
   propertyInfo: {
     position: 'absolute',
     left: 18,
@@ -672,22 +636,25 @@ const styles = StyleSheet.create({
     bottom: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     backgroundColor: COLORS.white,
     borderRadius: 16,
     padding: 12,
     shadowColor: COLORS.black,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.15,
     shadowRadius: 8,
     elevation: 4,
-    minHeight: 60,
+    minHeight: 50,
   },
   commissionContainer: {
-    alignItems: 'flex-end',
-    minWidth: 60,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minWidth: 70,
+    maxWidth: 90,
     flexShrink: 0,
-    marginLeft: 8,
+    marginLeft: 12,
+    paddingRight: 8,
   },
   favoriteButton: {
     position: 'absolute',

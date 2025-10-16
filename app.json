@@ -4,7 +4,7 @@
     "slug": "mina_app",
     "version": "1.0.4",
     "orientation": "portrait",
-    "icon": "./assets/images/mina-app-icon.png",
+    "icon": "./assets/images/mina-app-icon.jpg",
     "scheme": "mina-app",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -23,7 +23,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "icon": "./assets/images/mina-app-icon.png",
+      "icon": "./assets/images/mina-app-icon.jpg",
       "edgeToEdgeEnabled": true,
       "package": "com.minaios"
     },

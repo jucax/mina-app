@@ -200,7 +200,7 @@ const GuestPropertyListScreen = () => {
             {/* Right Bottom Corner - Commission (iPad only) */}
             <View style={styles.rightInfoBox}>
               <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
-              <Text style={styles.commissionLabel}>Comision</Text>
+              <Text style={styles.commissionLabel}>Comisión</Text>
             </View>
           </>
         ) : (
@@ -219,7 +219,7 @@ const GuestPropertyListScreen = () => {
             </View>
             <View style={styles.commissionContainer}>
               <Text style={styles.commissionText}>{item.commission_percentage}%</Text>
-              <Text style={styles.commissionLabel}>Comision</Text>
+              <Text style={styles.commissionLabel}>Comisión</Text>
             </View>
           </View>
         )}

@@ -19,6 +19,7 @@ import { Agent } from '../../types/database';
 import { StripeService, subscriptionPlans } from '../../services/stripeService';
 
 const { width, height } = Dimensions.get('window');
+const isTablet = width >= 768; // iPad starts at 768px width
 
 // Prices without IVA for display purposes
 const displayPrices = {
@@ -93,54 +94,148 @@ const AgentSubscriptionScreen = () => {
           </View>
         </View>
 
-        {/* Plan Selection - Single Row Layout */}
+        {/* Plan Selection - Responsive Layout */}
         <View style={styles.plansContainer}>
           <Text style={styles.plansTitle}>Selecciona tu plan:</Text>
           
-          {/* Single Row - All 3 plans with equal spacing */}
-          <View style={styles.plansRow}>
-            {subscriptionPlans.map((plan) => (
-              <TouchableOpacity
-                key={plan.id}
-                style={[
-                  styles.planSquare,
-                  selectedPlan === plan.id && styles.planSquareSelected
-                ]}
-                onPress={() => handlePlanSelection(plan.id)}
-              >
-                <Text style={[
-                  styles.planName,
-                  selectedPlan === plan.id && styles.planNameSelected
-                ]}>
-                  {plan.name}
-                </Text>
-                <Text style={[
-                  styles.planPrice,
-                  selectedPlan === plan.id && styles.planPriceSelected
-                ]}>
-                  {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
-                </Text>
-                <Text style={[
-                  styles.planPeriod,
-                  selectedPlan === plan.id && styles.planPeriodSelected
-                ]}>
-                  /{plan.period}
-                </Text>
-                <Text style={[
-                  styles.planIVA,
-                  selectedPlan === plan.id && styles.planIVASelected
-                ]}>
-                  No incluye IVA
-                </Text>
-                
-                {selectedPlan === plan.id && (
-                  <View style={styles.selectedIndicator}>
-                    <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
-                  </View>
-                )}
-              </TouchableOpacity>
-            ))}
-          </View>
+          {isTablet ? (
+            /* Single Row - All 3 plans with equal spacing (Tablet) */
+            <View style={styles.plansRow}>
+              {subscriptionPlans.map((plan) => (
+                <TouchableOpacity
+                  key={plan.id}
+                  style={[
+                    styles.planSquare,
+                    selectedPlan === plan.id && styles.planSquareSelected
+                  ]}
+                  onPress={() => handlePlanSelection(plan.id)}
+                >
+                  <Text style={[
+                    styles.planName,
+                    selectedPlan === plan.id && styles.planNameSelected
+                  ]}>
+                    {plan.name}
+                  </Text>
+                  <Text style={[
+                    styles.planPrice,
+                    selectedPlan === plan.id && styles.planPriceSelected
+                  ]}>
+                    {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
+                  </Text>
+                  <Text style={[
+                    styles.planPeriod,
+                    selectedPlan === plan.id && styles.planPeriodSelected
+                  ]}>
+                    /{plan.period}
+                  </Text>
+                  <Text style={[
+                    styles.planIVA,
+                    selectedPlan === plan.id && styles.planIVASelected
+                  ]}>
+                    No incluye IVA
+                  </Text>
+                  
+                  {selectedPlan === plan.id && (
+                    <View style={styles.selectedIndicator}>
+                      <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
+                    </View>
+                  )}
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            /* Two Row Layout (Phone) */
+            <View style={styles.plansGrid}>
+              {/* First Row - Mensual and Semestral */}
+              <View style={styles.plansRow}>
+                {subscriptionPlans.slice(0, 2).map((plan) => (
+                  <TouchableOpacity
+                    key={plan.id}
+                    style={[
+                      styles.planSquare,
+                      selectedPlan === plan.id && styles.planSquareSelected
+                    ]}
+                    onPress={() => handlePlanSelection(plan.id)}
+                  >
+                    <Text style={[
+                      styles.planName,
+                      selectedPlan === plan.id && styles.planNameSelected
+                    ]}>
+                      {plan.name}
+                    </Text>
+                    <Text style={[
+                      styles.planPrice,
+                      selectedPlan === plan.id && styles.planPriceSelected
+                    ]}>
+                      {StripeService.formatPrice(displayPrices[plan.id as keyof typeof displayPrices])}
+                    </Text>
+                    <Text style={[
+                      styles.planPeriod,
+                      selectedPlan === plan.id && styles.planPeriodSelected
+                    ]}>
+                      /{plan.period}
+                    </Text>
+                    <Text style={[
+                      styles.planIVA,
+                      selectedPlan === plan.id && styles.planIVASelected
+                    ]}>
+                      No incluye IVA
+                    </Text>
+                    
+                    {selectedPlan === plan.id && (
+                      <View style={styles.selectedIndicator}>
+                        <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                ))}
+              </View>
+              
+              {/* Second Row - Anual (centered) */}
+              <View style={styles.plansRow}>
+                <View style={styles.centeredPlanContainer}>
+                  <TouchableOpacity
+                    style={[
+                      styles.planSquare,
+                      selectedPlan === 'anual' && styles.planSquareSelected
+                    ]}
+                    onPress={() => handlePlanSelection('anual')}
+                  >
+                    <Text style={[
+                      styles.planName,
+                      selectedPlan === 'anual' && styles.planNameSelected
+                    ]}>
+                      {subscriptionPlans[2].name}
+                    </Text>
+                    <Text style={[
+                      styles.planPrice,
+                      selectedPlan === 'anual' && styles.planPriceSelected
+                    ]}>
+                      {StripeService.formatPrice(displayPrices.anual)}
+                    </Text>
+                    <Text style={[
+                      styles.planPeriod,
+                      selectedPlan === 'anual' && styles.planPeriodSelected
+                    ]}>
+                      /{subscriptionPlans[2].period}
+                    </Text>
+                    <Text style={[
+                      styles.planIVA,
+                      selectedPlan === 'anual' && styles.planIVASelected
+                    ]}>
+                      No incluye IVA
+                    </Text>
+                    
+                    {selectedPlan === 'anual' && (
+                      <View style={styles.selectedIndicator}>
+                        <Ionicons name="checkmark" size={16} color={COLORS.secondary} />
+                      </View>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          )}
         </View>
 
         {/* Continue Button */}
@@ -235,9 +330,13 @@ const styles = StyleSheet.create({
   },
   plansRow: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: SIZES.margin.medium,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
+  },
+  plansGrid: {
+    marginBottom: SIZES.margin.medium,
   },
   planSquare: {
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
@@ -246,12 +345,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 2,
     borderColor: 'transparent',
-    width: Math.min(width * 0.28, 160),
+    width: isTablet ? Math.min(width * 0.25, 140) : width * 0.42,
     position: 'relative',
     minHeight: 160,
     justifyContent: 'center',
+    flex: 0,
+    marginHorizontal: 6,
+  },
+  centeredPlanContainer: {
     flex: 1,
-    marginHorizontal: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   planSquareSelected: {
     backgroundColor: COLORS.secondary,

@@ -21,7 +21,7 @@ const timeOptions = [
   'De inmediato',
   '1 a 3 meses',
   '4 meses o mas',
-  'En cuanto se pueda',
+  'Indefinido',
 ];
 
 const OwnerIntentSelectionScreen = () => {
