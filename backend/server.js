@@ -265,8 +265,9 @@ app.get('/api/debug/test-verify', async (req, res) => {
     
     console.log('🔍 Testing verification with:', { testEmail, testName, testPhone });
     
-    const { data: userByEmail, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(testEmail);
-    if (getUserError || !userByEmail?.user) {
+    const { data: users, error: getUserError } = await supabaseAdmin.auth.admin.listUsers();
+    const userByEmail = users?.users?.find(user => user.email === testEmail);
+    if (getUserError || !userByEmail) {
       console.log('❌ User lookup failed:', getUserError);
       return res.json({ 
         step: 'user_lookup', 
@@ -275,7 +276,7 @@ app.get('/api/debug/test-verify', async (req, res) => {
       });
     }
     
-    const user = userByEmail.user;
+    const user = userByEmail;
     console.log('✅ User found:', { id: user.id, email: user.email });
     
     const { data: userAuth, error: userAuthError } = await supabaseAdmin
@@ -412,12 +413,13 @@ app.post('/api/password-recovery/verify', async (req, res) => {
     console.log('🔐 Password recovery verification:', { email, name, phoneMasked: String(phone).slice(-4).padStart(String(phone).length, '*') });
 
     // First check if user exists in auth.users
-    const { data: userByEmail, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
-    if (getUserError || !userByEmail?.user) {
+    const { data: users, error: getUserError } = await supabaseAdmin.auth.admin.listUsers();
+    const userByEmail = users?.users?.find(user => user.email === email);
+    if (getUserError || !userByEmail) {
       console.log('No user found for email:', email);
       return res.json({ found: false });
     }
-    const user = userByEmail.user;
+    const user = userByEmail;
 
     // Get user_auth record to determine if user is owner or agent
     const { data: userAuth, error: userAuthError } = await supabaseAdmin
@@ -504,13 +506,14 @@ app.post('/api/password-recovery/reset', async (req, res) => {
     logToFile({ event: 'password-recovery:request', email });
 
     // First check if user exists in auth.users
-    const { data: userByEmail, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(email);
+    const { data: users, error: getUserError } = await supabaseAdmin.auth.admin.listUsers();
+    const userByEmail = users?.users?.find(user => user.email === email);
     if (getUserError) {
       console.log('Supabase getUserByEmail error:', getUserError.message);
       logToFile({ event: 'password-recovery:getUserError', error: getUserError.message });
       return res.status(404).json({ error: 'No user found for this email' });
     }
-    const user = userByEmail?.user;
+    const user = userByEmail;
     if (!user) {
       return res.status(404).json({ error: 'No user found for this email' });
     }
