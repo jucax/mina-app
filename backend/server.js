@@ -12,9 +12,21 @@ const { createClient } = require('@supabase/supabase-js');
 // Supabase admin client for secure operations (password reset)
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const supabaseAdmin = (supabaseUrl && supabaseServiceKey)
-  ? createClient(supabaseUrl, supabaseServiceKey)
-  : null;
+let supabaseAdmin = null;
+
+try {
+  if (supabaseUrl && supabaseServiceKey) {
+    supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    console.log('✅ Supabase admin client initialized');
+  } else {
+    console.log('⚠️ Supabase admin not configured - missing environment variables');
+    console.log('SUPABASE_URL:', supabaseUrl ? 'SET' : 'NOT_SET');
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', supabaseServiceKey ? 'SET' : 'NOT_SET');
+  }
+} catch (error) {
+  console.error('❌ Failed to initialize Supabase admin client:', error.message);
+  supabaseAdmin = null;
+}
 
 function logToFile(obj) {
   const line = JSON.stringify({ ...obj, timestamp: new Date().toISOString() }) + '\n';
@@ -34,6 +46,15 @@ app.use((req, res, next) => {
 
 // Serve static files from the 'public' directory
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    supabaseConfigured: Boolean(supabaseAdmin)
+  });
+});
 
 // Serve debug page at root
 app.get('/', (req, res) => {
@@ -242,8 +263,11 @@ app.get('/api/debug/test-verify', async (req, res) => {
     const testName = 'Mina Team';
     const testPhone = '5545024076'; // Update this with your actual phone number from agents table
     
+    console.log('🔍 Testing verification with:', { testEmail, testName, testPhone });
+    
     const { data: userByEmail, error: getUserError } = await supabaseAdmin.auth.admin.getUserByEmail(testEmail);
     if (getUserError || !userByEmail?.user) {
+      console.log('❌ User lookup failed:', getUserError);
       return res.json({ 
         step: 'user_lookup', 
         error: getUserError?.message || 'User not found',
@@ -252,6 +276,8 @@ app.get('/api/debug/test-verify', async (req, res) => {
     }
     
     const user = userByEmail.user;
+    console.log('✅ User found:', { id: user.id, email: user.email });
+    
     const { data: userAuth, error: userAuthError } = await supabaseAdmin
       .from('user_auth')
       .select('owner_id, agent_id')
@@ -259,12 +285,15 @@ app.get('/api/debug/test-verify', async (req, res) => {
       .single();
 
     if (userAuthError || !userAuth) {
+      console.log('❌ User auth lookup failed:', userAuthError);
       return res.json({ 
         step: 'user_auth_lookup', 
         error: userAuthError?.message || 'No user_auth record',
         found: false 
       });
     }
+
+    console.log('✅ User auth found:', userAuth);
 
     let profileData = null;
     if (userAuth.agent_id) {
@@ -275,6 +304,7 @@ app.get('/api/debug/test-verify', async (req, res) => {
         .single();
       
       if (agentError || !agent) {
+        console.log('❌ Agent lookup failed:', agentError);
         return res.json({ 
           step: 'agent_lookup', 
           error: agentError?.message || 'No agent profile',
@@ -282,18 +312,76 @@ app.get('/api/debug/test-verify', async (req, res) => {
         });
       }
       profileData = agent;
+      console.log('✅ Agent profile found:', profileData);
     }
+
+    // Test the comparison logic
+    const profileName = (profileData.full_name || '').toString().trim().toLowerCase();
+    const profilePhone = (profileData.phone || '').toString().replace(/\D/g, '');
+    const inputName = testName.toString().trim().toLowerCase();
+    const inputPhone = testPhone.toString().replace(/\D/g, '');
+
+    console.log('🔍 Comparison:', {
+      profileName,
+      inputName,
+      profilePhone,
+      inputPhone,
+      nameMatch: profileName === inputName,
+      phoneMatch: profilePhone === inputPhone
+    });
 
     return res.json({ 
       step: 'success', 
       found: true,
       user: { id: user.id, email: user.email },
       userAuth,
-      profileData
+      profileData,
+      comparison: {
+        profileName,
+        inputName,
+        profilePhone,
+        inputPhone,
+        nameMatch: profileName === inputName,
+        phoneMatch: profilePhone === inputPhone
+      }
     });
     
   } catch (e) {
+    console.log('❌ Exception in test-verify:', e);
     return res.status(500).json({ error: e.message, step: 'exception' });
+  }
+});
+
+// Debug: Test the actual verification endpoint
+app.get('/api/debug/test-verify-endpoint', async (req, res) => {
+  try {
+    const testData = {
+      email: 'realstatemina@gmail.com',
+      name: 'Mina Team',
+      phone: '5545024076'
+    };
+    
+    console.log('🧪 Testing verification endpoint with:', testData);
+    
+    // Simulate the POST request to /api/password-recovery/verify
+    const response = await fetch('http://localhost:3000/api/password-recovery/verify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testData)
+    });
+    
+    const result = await response.json();
+    return res.json({
+      endpoint: '/api/password-recovery/verify',
+      status: response.status,
+      result
+    });
+    
+  } catch (e) {
+    return res.status(500).json({ 
+      error: e.message,
+      note: 'This test only works when running locally'
+    });
   }
 });
 
@@ -311,11 +399,14 @@ app.get('/api/debug/payment-intent/:id', async (req, res) => {
 // Verify account exists with name/email/phone (without updating password)
 app.post('/api/password-recovery/verify', async (req, res) => {
   try {
+    console.log('🔐 [VERIFY] Request received:', req.body);
     if (!supabaseAdmin) {
+      console.log('❌ [VERIFY] Supabase admin not configured');
       return res.status(500).json({ error: 'Supabase admin not configured' });
     }
     const { email, name, phone } = req.body || {};
     if (!email || !name || !phone) {
+      console.log('❌ [VERIFY] Missing required fields:', { email: !!email, name: !!name, phone: !!phone });
       return res.status(400).json({ error: 'email, name, phone are required' });
     }
     console.log('🔐 Password recovery verification:', { email, name, phoneMasked: String(phone).slice(-4).padStart(String(phone).length, '*') });
