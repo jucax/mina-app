@@ -1,7 +1,5 @@
 import { supabase } from './supabase';
-
-// For local development - change this to your actual backend URL in production
-const API_BASE_URL = 'https://mina-app-ten.vercel.app/api'; // Production backend server
+import { API_BASE_URL } from '../config/env';
 
 export class ApiService {
   // Create payment intent
@@ -118,3 +116,45 @@ export class ApiService {
     }
   }
 } 
+
+// Debug helpers to validate backend/Stripe environment
+export class ApiDebugService {
+  static async getInfo() {
+    const url = `${API_BASE_URL}/debug/info`;
+    try {
+      const res = await fetch(url);
+      return await res.json();
+    } catch (e) {
+      console.log('Debug info fetch failed:', e);
+      return null;
+    }
+  }
+
+  static async getPaymentIntent(id: string) {
+    const url = `${API_BASE_URL}/debug/payment-intent/${id}`;
+    try {
+      const res = await fetch(url);
+      return await res.json();
+    } catch (e) {
+      console.log('Debug PI fetch failed:', e);
+      return null;
+    }
+  }
+}
+
+export class PasswordRecoveryService {
+  static async resetPasswordWithVerification(email: string, name: string, phone: string, newPassword: string) {
+    const url = `${API_BASE_URL}/password-recovery/reset`;
+    const body = { email, name, phone, newPassword } as const;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data?.error || 'No se pudo restablecer la contraseña');
+    }
+    return data;
+  }
+}

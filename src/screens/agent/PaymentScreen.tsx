@@ -14,8 +14,10 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { COLORS, FONTS, SIZES } from '../../styles/globalStyles';
 import { Ionicons } from '@expo/vector-icons';
 import { StripeService } from '../../services/stripeService';
+import { IS_STRIPE_LIVE } from '../../config/env';
 import { supabase } from '../../services/supabase';
 import { CardForm, useConfirmPayment } from '@stripe/stripe-react-native';
+// removed env import to avoid reload issues
 
 const { width, height } = Dimensions.get('window');
 
@@ -80,6 +82,37 @@ const PaymentScreen = () => {
       // 1. Create payment intent
       const result = await StripeService.createPaymentIntent(planId);
       console.log('✅ Payment intent created:', result);
+      // Local checks (no extra network):
+      if (typeof result.livemode === 'boolean' && result.livemode !== IS_STRIPE_LIVE) {
+        Alert.alert(
+          'Configuración inválida',
+          'El modo de Stripe del backend no coincide con el del cliente (test vs live).'
+        );
+        return;
+      }
+      const secret: string | undefined = result?.clientSecret;
+      const paymentIntentId: string | undefined = result?.paymentIntentId;
+      if (!secret || typeof secret !== 'string') {
+        throw new Error('Invalid client secret recibido del backend');
+      }
+      if (!secret.includes('_secret_')) {
+        throw new Error('Formato de client secret inválido (falta _secret_)');
+      }
+      const parsedId = secret.split('_secret_')[0];
+      if (paymentIntentId && parsedId !== paymentIntentId) {
+        console.log('⚠️ Mismatch PI id vs clientSecret:', { parsedId, paymentIntentId });
+        Alert.alert('Error de configuración', 'El client secret no coincide con el PaymentIntent retornado.');
+        return;
+      }
+      if (typeof result.livemode === 'boolean') {
+        if (result.livemode !== IS_STRIPE_LIVE) {
+          Alert.alert(
+            'Configuración inválida',
+            'El modo de Stripe del backend no coincide con el del cliente. Revisa las llaves (test vs live).'
+          );
+          return;
+        }
+      }
       
       // 2. Process payment with Stripe SDK
       console.log('💳 Confirming payment with Stripe SDK...');

@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { PasswordRecoveryService } from '../../services/apiService';
 import { supabase } from '../../services/supabase';
 import { COLORS, FONTS, SIZES, commonStyles } from '../../styles/globalStyles';
 import { safeGoBack } from '../../utils/navigation';
@@ -29,6 +30,9 @@ const NewPasswordScreen = () => {
   const [loading, setLoading] = useState(false);
   const [token, setToken] = useState<string | null>(null);
   const [tokenChecked, setTokenChecked] = useState(false);
+  const [email, setEmail] = useState<string | null>(null);
+  const [name, setName] = useState<string | null>(null);
+  const [phone, setPhone] = useState<string | null>(null);
 
   // Parse token from URL fragment or params
   useEffect(() => {
@@ -43,6 +47,11 @@ const NewPasswordScreen = () => {
       if (match) foundToken = match[1];
     }
     setToken(foundToken);
+    // Read identity verification inputs if present (from PasswordScreen)
+    setEmail((params?.email as string) || null);
+    setName((params?.name as string) || null);
+    setPhone((params?.phone as string) || null);
+    console.log('🔐 [NewPasswordScreen] Init', { hasToken: Boolean(foundToken), email: params?.email, hasName: Boolean(params?.name), hasPhone: Boolean(params?.phone) });
     setTokenChecked(true);
   }, [params]);
 
@@ -59,38 +68,56 @@ const NewPasswordScreen = () => {
       Alert.alert('Error', 'La contraseña debe tener al menos 6 caracteres.');
       return;
     }
-    if (!token) {
-      Alert.alert('Error', 'Token de restablecimiento no encontrado. Intenta abrir el enlace de nuevo.');
+    // Two paths: with a Supabase reset token, or via admin verified identity
+    const hasToken = Boolean(token);
+    const hasIdentity = Boolean(email && name && phone);
+    console.log('🔐 [NewPasswordScreen] Submit attempt', { hasToken, hasIdentity, email, name, phoneMasked: phone ? String(phone).slice(-4).padStart(String(phone).length, '*') : null });
+    if (!hasToken && !hasIdentity) {
+      Alert.alert('Error', 'No se pudo verificar la solicitud. Regresa e intenta de nuevo.');
+      console.log('🔐 [NewPasswordScreen] Neither token nor identity present');
       return;
     }
     setLoading(true);
     try {
-      // Set the session using the token
-      const { data, error } = await supabase.auth.setSession({
-        access_token: token,
-        refresh_token: token, // Supabase requires both, but only access_token is needed for password reset
-      });
-      if (error) {
-        throw error;
+      if (hasToken) {
+        // Standard Supabase flow
+        console.log('🔐 [NewPasswordScreen] Using Supabase token flow');
+        const { error } = await supabase.auth.setSession({
+          access_token: token as string,
+          refresh_token: token as string,
+        });
+        if (error) throw error;
+        const { error: updateError } = await supabase.auth.updateUser({ password });
+        if (updateError) throw updateError;
+      } else if (hasIdentity) {
+        // Admin flow via backend with name/email/phone verification
+        console.log('🔐 [NewPasswordScreen] Using admin verification flow');
+        await PasswordRecoveryService.resetPasswordWithVerification(
+          email as string,
+          name as string,
+          phone as string,
+          password
+        );
       }
-      // Now update the password
-      const { error: updateError } = await supabase.auth.updateUser({ password });
-      if (updateError) {
-        throw updateError;
-      }
-      Alert.alert(
-        'Contraseña actualizada',
-        'Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.replace('/(general)/login'),
-          },
-        ]
-      );
+       Alert.alert(
+         'Contraseña Actualizada',
+         '¡Excelente! Tu contraseña ha sido restablecida exitosamente. Ahora puedes iniciar sesión con tu nueva contraseña.',
+         [
+           {
+             text: 'Iniciar Sesión',
+             onPress: () => router.replace('/(general)/login'),
+           },
+         ]
+       );
     } catch (error: any) {
-      Alert.alert('Error', error?.message || 'Ocurrió un error al restablecer la contraseña.');
+      console.log('🔐 [NewPasswordScreen] Error updating password', error?.message);
+      Alert.alert(
+        'Error al Actualizar Contraseña',
+        error?.message || 'No se pudo restablecer tu contraseña. Verifica tu información e intenta de nuevo.',
+        [{ text: 'OK' }]
+      );
     } finally {
+      console.log('🔐 [NewPasswordScreen] Submit finished');
       setLoading(false);
     }
   };

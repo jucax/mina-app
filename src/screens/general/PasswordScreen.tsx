@@ -22,72 +22,76 @@ const { width, height } = Dimensions.get('window');
 
 const PasswordScreen = () => {
   const [email, setEmail] = useState('');
+  const [name, setName] = useState('');
+  const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
 
   const handlePasswordReset = async () => {
-    if (!email) {
-      Alert.alert('Error', 'Por favor, introduce tu correo electrónico');
+    console.log('🔐 [PasswordScreen] Start identity capture', { hasName: Boolean(name), hasEmail: Boolean(email), hasPhone: Boolean(phone) });
+    if (!name) {
+      Alert.alert('Error', 'Por favor, introduce tu nombre completo');
+      console.log('🔐 [PasswordScreen] Missing name');
       return;
     }
-
-    // Basic email validation
+    if (!email) {
+      Alert.alert('Error', 'Por favor, introduce tu correo electrónico');
+      console.log('🔐 [PasswordScreen] Missing email');
+      return;
+    }
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert('Error', 'Por favor, introduce un correo electrónico válido');
+      console.log('🔐 [PasswordScreen] Invalid email format');
       return;
     }
-
+    if (!phone) {
+      Alert.alert('Error', 'Por favor, introduce tu número de teléfono');
+      console.log('🔐 [PasswordScreen] Missing phone');
+      return;
+    }
+    console.log('🔐 [PasswordScreen] Identity captured OK, verifying account...', { email, name, phoneMasked: String(phone).slice(-4).padStart(String(phone).length, '*') });
+    setVerifying(true);
     try {
-      setLoading(true);
-      console.log('🔄 Attempting to send password reset email to:', email);
-
-      const { error, userExists } = await Auth.resetPassword(email);
-
-      if (error) {
-        console.error('❌ Password reset error:', error.message);
-        
-        if (!userExists) {
-          Alert.alert(
-            'Correo No Encontrado',
-            'No se encontró una cuenta registrada con este correo electrónico. Por favor, verifica el correo o regístrate si aún no tienes una cuenta.',
-            [{ text: 'OK' }]
-          );
-        } else {
-          // Handle other errors
-          if (error.message.includes('Too many requests')) {
-            Alert.alert(
-              'Demasiados Intentos',
-              'Has realizado demasiados intentos. Por favor, espera unos minutos antes de intentar de nuevo.'
-            );
-          } else {
-            Alert.alert(
-              'Error',
-              'Ocurrió un error al enviar el correo de restablecimiento. Por favor, verifica tu conexión a internet e intenta de nuevo.'
-            );
-          }
-        }
-        return;
+      // Verify account exists with these details before proceeding
+      const response = await fetch('https://mina-app-ten.vercel.app/api/password-recovery/verify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, name, phone }),
+      });
+      const result = await response.json();
+      if (response.ok && result.found) {
+        Alert.alert(
+          'Cuenta Encontrada',
+          'Tu identidad ha sido verificada exitosamente. Ahora puedes establecer una nueva contraseña.',
+          [
+            {
+              text: 'Continuar',
+              onPress: () => {
+                router.push({
+                  pathname: '/(general)/new-password',
+                  params: { email, name, phone },
+                } as any);
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert(
+          'Datos No Coinciden',
+          'Los datos proporcionados no coinciden con ninguna cuenta registrada. Verifica tu información e intenta de nuevo.',
+          [{ text: 'OK' }]
+        );
       }
-
-      console.log('✅ Password reset email sent successfully');
+    } catch (error) {
+      console.log('🔐 [PasswordScreen] Verification error:', error);
       Alert.alert(
-        'Correo Enviado',
-        'Se han enviado las instrucciones para restablecer tu contraseña a tu correo electrónico. Por favor, revisa tu bandeja de entrada.',
-        [
-          {
-            text: 'OK',
-            onPress: () => router.back(),
-          },
-        ]
-      );
-    } catch (error: any) {
-      console.error('❌ Password reset failed:', error?.message);
-      Alert.alert(
-        'Error',
-        'Ocurrió un error inesperado. Por favor, intenta de nuevo.'
+        'Error de Verificación',
+        'No se pudo verificar tu cuenta en este momento. Intenta de nuevo.',
+        [{ text: 'OK' }]
       );
     } finally {
-      setLoading(false);
+      setVerifying(false);
     }
   };
 
@@ -123,8 +127,24 @@ const PasswordScreen = () => {
 
           {/* Description */}
           <Text style={styles.description}>
-            Ingresa tu correo electrónico y te enviaremos instrucciones para recuperar tu contraseña
+            Ingresa tu nombre, correo y teléfono para verificar tu identidad y establecer una nueva contraseña.
           </Text>
+
+          {/* Name Input */}
+          <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Nombre completo:</Text>
+            <TextInput
+                style={commonStyles.input}
+              value={name}
+              onChangeText={setName}
+                placeholder=""
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              autoCapitalize="words"
+                selectionColor={COLORS.white}
+                autoCorrect={false}
+                spellCheck={false}
+            />
+          </View>
 
           {/* Email Input */}
           <View style={styles.inputContainer}>
@@ -143,14 +163,31 @@ const PasswordScreen = () => {
             />
           </View>
 
+          {/* Phone Input */}
+          <View style={styles.inputContainer}>
+              <Text style={commonStyles.label}>Teléfono:</Text>
+            <TextInput
+                style={commonStyles.input}
+              value={phone}
+              onChangeText={setPhone}
+                placeholder=""
+              placeholderTextColor="rgba(255, 255, 255, 0.5)"
+              keyboardType="phone-pad"
+              autoCapitalize="none"
+                selectionColor={COLORS.white}
+                autoCorrect={false}
+                spellCheck={false}
+            />
+          </View>
+
           {/* Continue Button */}
           <TouchableOpacity
               style={[commonStyles.button, commonStyles.primaryButton, loading && styles.continueButtonDisabled]}
             onPress={handlePasswordReset}
-            disabled={loading}
+            disabled={verifying}
           >
               <Text style={commonStyles.buttonText}>
-                {loading ? 'Enviando...' : 'Enviar Instrucciones'}
+                {verifying ? 'Verificando...' : 'Continuar'}
               </Text>
             </TouchableOpacity>
 

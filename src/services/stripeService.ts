@@ -7,15 +7,10 @@ import { useStripe,
   CardFieldInput,
   StripeProvider 
 } from '@stripe/stripe-react-native';
+import { IS_STRIPE_LIVE } from '../config/env';
 
-// Stripe configuration - only the publishable key should be here
-// For development, use test keys (pk_test_...)
-// For production, use live keys (pk_live_...)
-const STRIPE_PUBLISHABLE_KEY = 'pk_test_51Rlf5QBGJZRArFn9GQCebcQ9bG6l5xcFV1SmBPYjmfwufTaRAFk8gAekbZsNJWU69GTISFl6E3n2LXdYdTnJqeEO00ypWNut9L'; // Test key for development
-// SECRET KEY SHOULD ONLY BE IN BACKEND .env FILE - NEVER IN FRONTEND CODE
-
-// Test mode configuration
-const IS_TEST_MODE = true; // Set to true for development, false for production
+// Mode inferred from publishable key
+const IS_TEST_MODE = !IS_STRIPE_LIVE;
 
 export interface SubscriptionPlan {
   id: string;
@@ -33,7 +28,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Mensual',
     price: 580, // $580.0 MXN (with 16% IVA)
     period: 'mes',
-    stripePriceId: 'price_1RlhSMBGJZRArFn91e5AMNli', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1SIyzKP9pd8KcDEZEfPZL3eZ', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -47,7 +42,7 @@ export const subscriptionPlans: SubscriptionPlan[] = [
     name: 'Semestral',
     price: 2900, // $2,900.0 MXN (with 16% IVA)
     period: '6 meses',
-    stripePriceId: 'price_1RlhSnBGJZRArFn9w9u5WpaF', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1SIyzhP9pd8KcDEZCUugQWVw', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
@@ -59,9 +54,9 @@ export const subscriptionPlans: SubscriptionPlan[] = [
   {
     id: 'anual',
     name: 'Anual',
-    price: 5220, // $5,220.0 MXN (with 16% IVA)
+    price: 10, // $5,220.0 MXN (with 16% IVA)
     period: '12 meses',
-    stripePriceId: 'price_1RlhT9BGJZRArFn9rexmmxNN', // Legacy price ID - not used in current implementation
+    stripePriceId: 'price_1SIyzzP9pd8KcDEZ0bZqdHoq', // Legacy price ID - not used in current implementation
     features: [
       'Acceso a todas las propiedades',
       'Contacto directo con propietarios',
